@@ -8,22 +8,15 @@ BUILD_DIR="dist"
 rm -rf $BUILD_DIR
 mkdir -p $BUILD_DIR
 
-# Build client
-echo "🏗️  Building frontend..."
-cd client
+# Build application
+echo "🏗️  Building application..."
 npm run build
-cd ..
 
-# Copy client build
-echo "📋 Copying frontend assets..."
-cp -r client/dist $BUILD_DIR/public
+# Copy client build (already in dist/public from vite build)
+echo "📋 Frontend assets already built to dist/public"
 
-# Build server
-echo "🚀 Building backend..."
-npx esbuild server/index.ts --bundle --platform=node --target=node18 --format=esm --outfile=$BUILD_DIR/server.js \
-  --external:ws --external:express --external:multer --external:@neondatabase/serverless \
-  --external:drizzle-orm --external:drizzle-zod --external:passport --external:express-session \
-  --external:connect-pg-simple --external:zod --external:nanoid --external:exif --external:openai
+# Server already built to dist/index.js by npm run build
+echo "🚀 Backend already built to dist/index.js"
 
 # Copy essential files
 echo "📄 Copying configuration files..."
@@ -39,9 +32,9 @@ cat > $BUILD_DIR/package.json << 'EOF'
   "version": "1.0.0",
   "type": "module",
   "description": "AI-powered photo management platform",
-  "main": "server.js",
+  "main": "index.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "node index.js",
     "db:push": "drizzle-kit push"
   },
   "dependencies": {
@@ -87,7 +80,7 @@ console.log('🎯 Starting Pictallion Photo Management...');
 console.log('📍 Open http://localhost:5000 in your browser');
 console.log('⏹️  Press Ctrl+C to stop\n');
 
-const server = spawn('node', ['server.js'], {
+const server = spawn('node', ['index.js'], {
   stdio: 'inherit',
   env: { ...process.env, NODE_ENV: 'production' },
   cwd: __dirname

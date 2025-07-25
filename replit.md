@@ -130,8 +130,9 @@ The application includes comprehensive packaging and deployment tools:
 
 ### Packaging Scripts
 - **Native Packaging**: `scripts/package.sh` creates distributable archives for Linux/Windows
-- **Docker Support**: `scripts/build-docker.sh` sets up containerized deployment
+- **Docker Support**: `scripts/build-docker.sh` sets up containerized deployment  
 - **Installation Scripts**: Automated installers for both Unix and Windows systems
+- **Build Integration**: Uses unified `npm run build` for both frontend and backend compilation
 
 ### Distribution Features
 - Self-contained packages with all dependencies
