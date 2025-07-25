@@ -81,8 +81,8 @@ jobs:
 
       - name: 🏗️ Build application
         run: |
-          chmod +x scripts/package.sh
-          ./scripts/package.sh
+          chmod +x scripts/ci/package.sh
+          ./scripts/ci/package.sh
 
       - name: 📦 Test Docker build
         run: |
