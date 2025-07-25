@@ -1,7 +1,14 @@
 #!/bin/bash
 set -e
 
-echo "📦 Building Pictallion for distribution..."
+# Detect OS and adjust behavior
+if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" || "$OSTYPE" == "cygwin" ]]; then
+    IS_WINDOWS=true
+    echo "📦 Building Pictallion for Windows distribution..."
+else
+    IS_WINDOWS=false
+    echo "📦 Building Pictallion for distribution..."
+fi
 
 # Create temporary build directory
 TEMP_BUILD_DIR="dist-package"
@@ -290,6 +297,57 @@ rm -rf $TEMP_BUILD_DIR
 
 echo "✅ Created ${ARCHIVE_NAME} for Linux/macOS"
 echo ""
+# Add Windows batch installation script
+if [ "$IS_WINDOWS" = true ]; then
+    echo "📋 Creating Windows installation script..."
+    cat > $TEMP_BUILD_DIR/install.bat << 'EOF'
+@echo off
+setlocal enabledelayedexpansion
+
+echo 🚀 Installing Pictallion...
+
+:: Check Node.js
+where node >nul 2>&1
+if %errorlevel% neq 0 (
+    echo ❌ Node.js not found. Please install Node.js 18+ first.
+    echo Download from: https://nodejs.org/
+    pause
+    exit /b 1
+)
+
+:: Check version  
+for /f "tokens=1 delims=v" %%a in ('node -v') do set NODE_VERSION=%%a
+for /f "tokens=1 delims=." %%a in ("!NODE_VERSION!") do set MAJOR_VERSION=%%a
+if !MAJOR_VERSION! lss 18 (
+    echo ❌ Node.js version !NODE_VERSION! is too old. Please install Node.js 18+.
+    pause
+    exit /b 1
+)
+
+echo ✅ Node.js !NODE_VERSION! found
+
+:: Install dependencies with Windows-specific settings
+echo 📦 Installing dependencies...
+npm config set fetch-retry-mintimeout 20000
+npm config set fetch-retry-maxtimeout 120000  
+npm config set fetch-timeout 300000
+npm install --production --no-audit
+
+if %errorlevel% neq 0 (
+    echo ❌ Failed to install dependencies. Retrying...
+    npm install --production --no-audit --prefer-offline
+)
+
+echo ✅ Pictallion installed successfully!
+echo.
+echo 🔧 Next steps:
+echo    1. Copy .env.example to .env and configure your database
+echo    2. Run: node start.js
+echo    3. Open http://localhost:5000
+pause
+EOF
+fi
+
 echo "🎉 Pictallion build complete!"
 echo ""
 echo "📦 Distribution files:"

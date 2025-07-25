@@ -85,11 +85,24 @@ jobs:
           cache: 'npm'
 
       - name: 🔧 Install dependencies
-        run: npm ci
+        run: |
+          # Windows-specific npm install with retry logic
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            echo "🪟 Installing dependencies for Windows..."
+            npm config set fetch-retry-mintimeout 20000
+            npm config set fetch-retry-maxtimeout 120000
+            npm config set fetch-timeout 300000
+            npm install --no-audit --prefer-offline || npm install --no-audit
+          else
+            npm ci
+          fi
+        shell: bash
 
       - name: 🏗️ Build application
         run: |
-          chmod +x scripts/package.sh
+          if [ "${{ matrix.os }}" != "windows-latest" ]; then
+            chmod +x scripts/package.sh
+          fi
           ./scripts/package.sh
         shell: bash
 
@@ -111,11 +124,24 @@ jobs:
             ARCHIVE_EXT="tar.gz"
           fi
           
-          cd dist
-          if [ "$ARCHIVE_EXT" = "zip" ]; then
-            zip -r "../pictallion-${{ steps.version.outputs.VERSION }}-${PLATFORM}.zip" .
+          # Use the archives created by package.sh script
+          if [ -f "pictallion_v1.0.0_"*".tar.gz" ]; then
+            # Rename to include platform and version
+            EXISTING_ARCHIVE=$(ls pictallion_v1.0.0_*.tar.gz | head -1)
+            if [ "${{ matrix.os }}" = "windows-latest" ]; then
+              # For Windows, extract and repackage as ZIP
+              mkdir temp_extract
+              tar -xzf "$EXISTING_ARCHIVE" -C temp_extract
+              cd temp_extract
+              zip -r "../pictallion-${{ steps.version.outputs.VERSION }}-${PLATFORM}.zip" .
+              cd ..
+              rm -rf temp_extract
+            else
+              cp "$EXISTING_ARCHIVE" "pictallion-${{ steps.version.outputs.VERSION }}-${PLATFORM}.tar.gz"
+            fi
           else
-            tar -czf "../pictallion-${{ steps.version.outputs.VERSION }}-${PLATFORM}.tar.gz" .
+            echo "❌ No package archive found"
+            exit 1
           fi
         shell: bash
 
