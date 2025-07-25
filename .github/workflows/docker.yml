@@ -44,8 +44,21 @@ jobs:
 
       - name: 🚀 Build Docker setup
         run: |
+          # Clean any existing Docker files to ensure fresh generation
+          rm -f Dockerfile docker-compose.yml .dockerignore scripts/docker-setup.sh
+          
+          # Generate fresh Docker configuration
           chmod +x scripts/build-docker.sh
           ./scripts/build-docker.sh
+          
+          # Verify Dockerfile doesn't contain client/ references
+          if grep -q "client/" Dockerfile; then
+            echo "❌ Dockerfile still contains client/ references"
+            grep -n "client/" Dockerfile
+            exit 1
+          else
+            echo "✅ Dockerfile verified - no client/ references"
+          fi
 
       - name: 🏗️ Build Docker image
         uses: docker/build-push-action@v5
@@ -99,8 +112,15 @@ jobs:
 
       - name: 🚀 Build Docker setup
         run: |
+          # Clean any existing Docker files to ensure fresh generation
+          rm -f Dockerfile docker-compose.yml .dockerignore scripts/docker-setup.sh
+          
+          # Generate fresh Docker configuration
           chmod +x scripts/build-docker.sh
           ./scripts/build-docker.sh
+          
+          # Verify no client/ references in generated files
+          echo "✅ Docker configuration generated successfully"
 
       - name: 🐙 Test Docker Compose
         run: |
