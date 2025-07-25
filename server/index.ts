@@ -1,6 +1,5 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
 app.use(express.json());
@@ -29,7 +28,7 @@ app.use((req, res, next) => {
         logLine = logLine.slice(0, 79) + "…";
       }
 
-      log(logLine);
+      console.log(`${new Date().toLocaleTimeString()} [express] ${logLine}`);
     }
   });
 
@@ -47,13 +46,53 @@ app.use((req, res, next) => {
     throw err;
   });
 
+  // Logging function
+  function log(message: string, source = "express") {
+    const formattedTime = new Date().toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: true,
+    });
+    console.log(`${formattedTime} [${source}] ${message}`);
+  }
+
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
   if (app.get("env") === "development") {
+    const { setupVite } = await import("./vite.js");
     await setupVite(app, server);
   } else {
-    serveStatic(app);
+    // Production mode - serve static files
+    const path = await import("path");
+    const fs = await import("fs");
+    
+    // Try multiple possible paths for static files
+    const possiblePaths = [
+      path.resolve(process.cwd(), "public"),
+      path.resolve(process.cwd(), "dist", "public"),
+      path.resolve(import.meta.dirname, "..", "public"),
+      path.resolve(import.meta.dirname, "public")
+    ];
+    
+    let staticPath = null;
+    for (const testPath of possiblePaths) {
+      if (fs.existsSync(testPath)) {
+        staticPath = testPath;
+        console.log(`Using static files from: ${staticPath}`);
+        break;
+      }
+    }
+    
+    if (!staticPath) {
+      throw new Error(`Could not find build directory. Tried: ${possiblePaths.join(", ")}`);
+    }
+    
+    app.use(express.static(staticPath));
+    app.use("*", (_req, res) => {
+      res.sendFile(path.resolve(staticPath!, "index.html"));
+    });
   }
 
   // ALWAYS serve the app on the port specified in the environment variable PORT

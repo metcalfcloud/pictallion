@@ -12,8 +12,8 @@ RUN npm ci
 # Copy source code
 COPY . .
 
-# Build application using unified build process
-RUN npm run build
+# Build application using production build script
+RUN chmod +x scripts/build-production.sh && ./scripts/build-production.sh
 
 # Production stage
 FROM node:18-alpine AS production
