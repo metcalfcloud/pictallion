@@ -48,11 +48,12 @@ The application uses a relational database with four main tables:
 3. **Gold Tier**: Curated, finalized media with embedded metadata
 
 ### AI Processing Pipeline
-- **Image Analysis**: OpenAI GPT-4o for comprehensive image understanding
+- **Image Analysis**: Ollama with llava:latest for local AI image understanding
 - **Metadata Extraction**: EXIF data parsing for technical details
 - **Object Detection**: Confidence-scored object identification
 - **Tagging**: Automated tag generation based on content analysis
 - **Description Generation**: Short and long descriptions for searchability
+- **Fallback Mode**: Basic metadata generation when Ollama is not available
 
 ### File Management
 - **Directory Structure**: Automated creation of required media directories
@@ -78,8 +79,8 @@ The application uses a relational database with four main tables:
 
 ### Core Dependencies
 - **Database**: Neon PostgreSQL serverless database
-- **AI Service**: OpenAI API for image analysis (GPT-4o model)
-- **File Processing**: Sharp for image manipulation, EXIF parsing
+- **AI Service**: Ollama for local AI image analysis (llava:latest for vision, llama3.2:latest for text)
+- **File Processing**: EXIF parsing for technical metadata extraction
 - **Authentication**: Session-based with PostgreSQL session store
 
 ### Frontend Libraries
@@ -107,15 +108,16 @@ The application uses a relational database with four main tables:
 
 ### Environment Configuration
 - **Database**: `DATABASE_URL` environment variable for connection string
-- **AI Service**: `OPENAI_API_KEY` for API authentication
-- **Media Storage**: Docker volume mounts for persistent file storage at `/data/media`
+- **AI Service**: Ollama running locally on `http://localhost:11434` (configurable via `OLLAMA_BASE_URL`)
+- **AI Models**: `OLLAMA_MODEL` (default: llava:latest) and `OLLAMA_TEXT_MODEL` (default: llama3.2:latest)
+- **Media Storage**: Local file storage at `/data/media` with organized directory structure
 
 ### Key Architectural Decisions
 
 1. **Tiered Processing**: Separates raw uploads from processed content, enabling quality control and progressive enhancement
 2. **Shared Schema**: TypeScript schemas shared between frontend and backend ensure type safety across the stack
 3. **Serverless Database**: Neon PostgreSQL provides scalable, managed database infrastructure
-4. **AI-First Metadata**: OpenAI integration provides rich, searchable metadata automatically
+4. **AI-First Metadata**: Local Ollama integration provides rich, searchable metadata automatically without external dependencies
 5. **File System Organization**: Structured directory hierarchy supports scalability and maintenance
 6. **Session-Based Auth**: Simple authentication model suitable for single-user or small team deployment
 

@@ -6,7 +6,7 @@ import fs from "fs/promises";
 import crypto from "crypto";
 import { storage } from "./storage";
 import { aiService } from "./services/ai";
-import { fileManager } from "./services/fileManager";
+import { fileManager } from "./services/fileManager.js";
 import { insertMediaAssetSchema, insertFileVersionSchema, insertAssetHistorySchema } from "@shared/schema";
 
 // Configure multer for file uploads
