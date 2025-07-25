@@ -8,18 +8,43 @@
 [![CI](https://github.com/yourusername/pictallion/workflows/CI%2FCD/badge.svg)](https://github.com/yourusername/pictallion/actions)
 [![Docker](https://img.shields.io/badge/Docker-Available-blue.svg)](https://github.com/yourusername/pictallion/pkgs/container/pictallion)
 
-A modern photo management platform with intelligent tiered processing (Bronze → Silver → Gold) and AI-powered metadata generation. Supports both local AI processing with Ollama and cloud processing with OpenAI.
+A comprehensive photo management platform with intelligent tiered processing (Bronze → Silver → Gold) and AI-powered metadata generation. Features professional-grade capabilities including face recognition, advanced search, collections management, and batch operations.
 
-![Pictallion Screenshot](docs/screenshot.png)
+![Pictallion Dashboard](docs/dashboard-screenshot.png)
+*Modern dashboard with comprehensive analytics and tiered photo management*
 
-## ✨ Features
+![Pictallion Gallery](docs/gallery-screenshot.png)
+*Advanced gallery with filtering, search, and batch operations*
 
-- **🎯 Tiered Processing System**: Bronze (raw uploads) → Silver (AI processed) → Gold (curated)
-- **🤖 Dual AI Support**: Choose between Ollama (local) or OpenAI (cloud) processing
-- **🏷️ Smart Tagging**: Automatic tag generation and metadata extraction
-- **🔍 Advanced Search**: Find photos by content, tags, and metadata
-- **📊 Analytics Dashboard**: Track collection growth and processing statistics
-- **🎨 Modern UI**: Clean, responsive interface built with React and Tailwind CSS
+## ✨ Key Features
+
+### 🎯 **Tiered Processing System**
+- **Bronze Tier**: Raw uploads with basic metadata
+- **Silver Tier**: AI-processed with enriched metadata and tags
+- **Gold Tier**: Curated, finalized media with embedded metadata
+
+### 🤖 **Dual AI Processing**
+- **Ollama Integration**: Local AI processing with llava:latest for privacy
+- **OpenAI Integration**: Cloud-based processing with GPT-4 Vision
+- **Intelligent Fallback**: Seamless switching between providers
+
+### 👥 **Professional Photo Management**
+- **Face Recognition**: Detect and organize photos by people
+- **Advanced Search**: Filter by date, camera, tags, AI confidence, location, and more
+- **Collections & Albums**: Organize photos into custom collections
+- **Batch Operations**: Bulk tagging, organizing, exporting, and AI processing
+
+### 📊 **Comprehensive Analytics**
+- **Upload Trends**: Track photo ingestion over time
+- **Tier Distribution**: Monitor processing pipeline efficiency
+- **AI Processing Stats**: Success rates and performance metrics
+- **Storage Insights**: Breakdown by tier and file types
+
+### 🎨 **Modern Interface**
+- **Responsive Design**: Works on desktop, tablet, and mobile
+- **Drag & Drop**: Intuitive file upload with progress tracking
+- **Real-time Updates**: Live status updates during processing
+- **Professional UI**: Clean, modern design built with React and Tailwind CSS
 
 ## 🚀 Quick Start
 
@@ -61,6 +86,28 @@ A modern photo management platform with intelligent tiered processing (Bronze �
 
 6. **Open your browser**
    Navigate to `http://localhost:5000`
+
+### First Steps
+
+1. **Upload Photos**: Use the Upload page to add your first photos
+2. **AI Processing**: Click "Process with AI" on Bronze tier photos
+3. **Create Collections**: Organize your photos into custom albums
+4. **Advanced Search**: Use filters to find specific photos quickly
+5. **Batch Operations**: Select multiple photos for bulk actions
+
+## 🖼️ Screenshots
+
+### Dashboard
+The main dashboard provides comprehensive analytics and quick access to recent photos, processing statistics, and system health.
+
+### Gallery View
+Advanced photo gallery with tier-based filtering, search capabilities, and batch selection for professional workflow management.
+
+### Collections Management
+Organize photos into custom collections and albums with drag-and-drop simplicity and advanced metadata management.
+
+### Advanced Search
+Powerful search interface with filters for date ranges, camera settings, AI confidence scores, file types, and detected content.
 
 ## 📦 Distribution
 
