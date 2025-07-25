@@ -70,7 +70,7 @@ Create distributable packages:
 
 ```bash
 # Create native packages for distribution
-./scripts/package.sh
+./scripts/ci/package.sh
 
 # Or create Docker setup
 ./scripts/build-docker.sh

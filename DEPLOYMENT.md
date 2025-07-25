@@ -7,10 +7,10 @@ This guide covers different ways to package, deploy, and distribute Pictallion f
 ### Option 1: Native Package (Recommended)
 ```bash
 # Make the script executable
-chmod +x scripts/package.sh
+chmod +x scripts/ci/package.sh
 
 # Build and package
-./scripts/package.sh
+./scripts/ci/package.sh
 ```
 
 This creates:
@@ -163,7 +163,7 @@ OPENAI_API_KEY=sk-your-production-key
 
 The project includes several automation scripts:
 
-- `scripts/package.sh` - Create distribution packages
+- `scripts/ci/package.sh` - Create distribution packages
 - `scripts/build-docker.sh` - Setup Docker deployment
 - `scripts/docker-setup.sh` - Initialize Docker environment
 

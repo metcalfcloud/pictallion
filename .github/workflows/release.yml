@@ -48,18 +48,7 @@ jobs:
         run: npm run check
 
       - name: 🔍 Security audit
-        run: |
-          # Only fail on high/critical vulnerabilities for releases
-          npm audit --audit-level=high --json > audit-results.json || true
-          
-          HIGH_CRITICAL=$(cat audit-results.json | jq -r '.vulnerabilities | to_entries[] | select(.value.severity == "high" or .value.severity == "critical") | .key' | wc -l)
-          
-          if [ "$HIGH_CRITICAL" -gt "0" ]; then
-            echo "❌ Cannot create release with high/critical vulnerabilities"
-            exit 1
-          else
-            echo "✅ No high/critical vulnerabilities blocking release"
-          fi
+        run: bash ./scripts/ci/security-audit.sh
 
       - name: 🔍 Database setup
         run: npm run db:push
@@ -85,177 +74,11 @@ jobs:
           cache: 'npm'
 
       - name: 🔧 Install dependencies
-        run: |
-          # Windows-specific npm install with retry logic
-          if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            echo "🪟 Installing dependencies for Windows..."
-            npm config set fetch-retry-mintimeout 20000
-            npm config set fetch-retry-maxtimeout 120000
-            npm config set fetch-timeout 300000
-            npm install --no-audit --prefer-offline || npm install --no-audit
-          else
-            npm ci
-          fi
+        run: bash ./scripts/ci/install-deps.sh
         shell: bash
 
       - name: 🏗️ Build application
-        run: |
-          # FORCE REGENERATE ALL BUILD FILES TO PREVENT CACHING ISSUES
-          echo "🔄 Force regenerating all build scripts..."
-          
-          # Clean everything
-          rm -rf dist dist-package node_modules/.cache
-          rm -f scripts/package-old.sh scripts/build.js scripts/build-docker.sh Dockerfile docker-compose.yml .dockerignore
-          
-          # Recreate correct package script content (overwrites any cached version)
-          cat > scripts/package.sh << 'SCRIPT_EOF'
-#!/bin/bash
-set -e
-
-# Detect OS and adjust behavior
-if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" || "$OSTYPE" == "cygwin" ]]; then
-    IS_WINDOWS=true
-    echo "📦 Building Pictallion for Windows distribution..."
-else
-    IS_WINDOWS=false
-    echo "📦 Building Pictallion for distribution..."
-fi
-
-# Create temporary build directory
-TEMP_BUILD_DIR="dist-package"
-rm -rf $TEMP_BUILD_DIR
-mkdir -p $TEMP_BUILD_DIR
-
-# Build application (creates dist/public and dist/index.js)
-echo "🏗️ Building application..."
-npm run build
-
-# Verify build outputs exist
-if [ ! -f "dist/index.js" ]; then
-    echo "❌ Server build failed - dist/index.js not found"
-    exit 1
-fi
-
-if [ ! -d "dist/public" ]; then
-    echo "❌ Client build failed - dist/public not found"
-    exit 1
-fi
-
-echo "✅ Build completed successfully"
-
-# Copy all built assets to package directory
-echo "📋 Copying built application..."
-cp -r dist/* $TEMP_BUILD_DIR/
-
-# Create production package.json
-echo "📝 Creating production package.json..."
-cat > $TEMP_BUILD_DIR/package.json << 'PACKAGE_EOF'
-{
-  "name": "pictallion",
-  "version": "1.0.0",
-  "description": "AI-powered photo management platform",
-  "main": "index.js",
-  "type": "module",
-  "scripts": {
-    "start": "node index.js"
-  },
-  "dependencies": {
-    "@neondatabase/serverless": "^0.10.4",
-    "drizzle-orm": "^0.35.3",
-    "express": "^4.19.2",
-    "multer": "^1.4.5-lts.1"
-  }
-}
-PACKAGE_EOF
-
-# Create startup script
-echo "🚀 Creating startup script..."
-cat > $TEMP_BUILD_DIR/start.js << 'START_EOF'
-#!/usr/bin/env node
-import { spawn } from 'child_process';
-
-console.log('🎯 Starting Pictallion...');
-console.log('📍 Open http://localhost:5000');
-
-const server = spawn('node', ['index.js'], {
-  stdio: 'inherit',
-  env: { ...process.env, NODE_ENV: 'production' }
-});
-
-server.on('close', (code) => {
-  console.log(`Server stopped with code ${code}`);
-});
-
-process.on('SIGINT', () => {
-  server.kill();
-  process.exit(0);
-});
-START_EOF
-
-chmod +x $TEMP_BUILD_DIR/start.js
-
-# Create install scripts
-echo "📋 Creating installation scripts..."
-cat > $TEMP_BUILD_DIR/install.sh << 'INSTALL_EOF'
-#!/bin/bash
-set -e
-
-echo "🚀 Installing Pictallion..."
-
-if ! command -v node &> /dev/null; then
-    echo "❌ Node.js not found. Install Node.js 18+"
-    exit 1
-fi
-
-echo "✅ Node.js $(node -v) found"
-echo "📦 Installing dependencies..."
-npm install --production
-
-echo "✅ Installation complete!"
-echo "Configure .env file and run: node start.js"
-INSTALL_EOF
-
-chmod +x $TEMP_BUILD_DIR/install.sh
-
-# Windows installer
-cat > $TEMP_BUILD_DIR/install.bat << 'INSTALL_WIN_EOF'
-@echo off
-echo Installing Pictallion...
-
-where node >nul 2>&1
-if %errorlevel% neq 0 (
-    echo Node.js not found. Install Node.js 18+
-    pause
-    exit /b 1
-)
-
-echo Installing dependencies...
-npm install --production --no-audit
-
-echo Installation complete!
-echo Configure .env file and run: node start.js
-pause
-INSTALL_WIN_EOF
-
-# Create archive
-echo "📦 Creating distribution archive..."
-TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-ARCHIVE_NAME="pictallion_v1.0.0_${TIMESTAMP}.tar.gz"
-
-cd $TEMP_BUILD_DIR
-tar -czf "../${ARCHIVE_NAME}" .
-cd ..
-
-rm -rf $TEMP_BUILD_DIR
-
-echo "✅ Created ${ARCHIVE_NAME}"
-echo "🎉 Build complete!"
-SCRIPT_EOF
-          
-          chmod +x scripts/package.sh
-          
-          echo "✅ Fresh package script created, executing..."
-          ./scripts/package.sh
+        run: bash ./scripts/ci/build-app.sh
         shell: bash
 
       - name: 📋 Get version
@@ -264,37 +87,7 @@ SCRIPT_EOF
         shell: bash
 
       - name: 📦 Create platform archive
-        run: |
-          if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            PLATFORM="windows"
-            ARCHIVE_EXT="zip"
-          elif [ "${{ matrix.os }}" = "macos-latest" ]; then
-            PLATFORM="macos"
-            ARCHIVE_EXT="tar.gz"
-          else
-            PLATFORM="linux"
-            ARCHIVE_EXT="tar.gz"
-          fi
-          
-          # Use the archives created by package.sh script
-          if [ -f "pictallion_v1.0.0_"*".tar.gz" ]; then
-            # Rename to include platform and version
-            EXISTING_ARCHIVE=$(ls pictallion_v1.0.0_*.tar.gz | head -1)
-            if [ "${{ matrix.os }}" = "windows-latest" ]; then
-              # For Windows, extract and repackage as ZIP
-              mkdir temp_extract
-              tar -xzf "$EXISTING_ARCHIVE" -C temp_extract
-              cd temp_extract
-              zip -r "../pictallion-${{ steps.version.outputs.VERSION }}-${PLATFORM}.zip" .
-              cd ..
-              rm -rf temp_extract
-            else
-              cp "$EXISTING_ARCHIVE" "pictallion-${{ steps.version.outputs.VERSION }}-${PLATFORM}.tar.gz"
-            fi
-          else
-            echo "❌ No package archive found"
-            exit 1
-          fi
+        run: bash ./scripts/ci/create-platform-archive.sh
         shell: bash
 
       - name: 📤 Upload build artifacts
@@ -334,9 +127,7 @@ SCRIPT_EOF
             type=semver,pattern={{major}}
 
       - name: 🚀 Build Docker setup
-        run: |
-          chmod +x scripts/build-docker.sh
-          ./scripts/build-docker.sh
+        run: bash ./scripts/ci/docker-setup.sh
 
       - name: 🏗️ Build and push Docker image
         uses: docker/build-push-action@v5
@@ -367,88 +158,10 @@ SCRIPT_EOF
 
       - name: 📋 Get version and changelog
         id: version
-        run: |
-          VERSION=${GITHUB_REF#refs/tags/}
-          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-          
-          # Generate changelog since last tag
-          PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
-          if [ -n "$PREVIOUS_TAG" ]; then
-            CHANGELOG=$(git log $PREVIOUS_TAG..HEAD --pretty=format:"- %s (%h)" --no-merges)
-          else
-            CHANGELOG=$(git log --pretty=format:"- %s (%h)" --no-merges)
-          fi
-          
-          # Create release notes
-          cat > release_notes.md << EOF
-          # Pictallion $VERSION
-          
-          ## 🎯 What's New
-          
-          $CHANGELOG
-          
-          ## 📦 Installation
-          
-          ### Quick Install (Recommended)
-          
-          **Linux/macOS:**
-          \`\`\`bash
-          wget https://github.com/${{ github.repository }}/releases/download/$VERSION/pictallion-$VERSION-linux.tar.gz
-          tar -xzf pictallion-$VERSION-linux.tar.gz
-          cd dist && ./install.sh
-          \`\`\`
-          
-          **Windows:**
-          1. Download \`pictallion-$VERSION-windows.zip\`
-          2. Extract the archive
-          3. Run \`install.bat\`
-          4. Follow the setup instructions
-          
-          ### Docker Installation
-          \`\`\`bash
-          docker run -d \\
-            --name pictallion \\
-            -p 5000:5000 \\
-            -v pictallion_data:/app/data \\
-            -e DATABASE_URL=your_database_url \\
-            ghcr.io/${{ github.repository }}:$VERSION
-          \`\`\`
-          
-          ## 🔧 Configuration
-          
-          1. Set up your PostgreSQL database
-          2. Configure AI providers (Ollama or OpenAI)
-          3. Start the application: \`node start.js\`
-          4. Open http://localhost:5000
-          
-          ## 🆕 Features in this Release
-          
-          - AI-powered photo analysis with Ollama and OpenAI support
-          - Tiered processing system (Bronze → Silver → Gold)
-          - Advanced search and filtering capabilities
-          - Modern React interface with dark mode support
-          - Comprehensive deployment options
-          
-          ## 🐛 Bug Fixes & Improvements
-          
-          See the full changelog above for all changes in this release.
-          
-          ## 📚 Documentation
-          
-          - [Installation Guide](https://github.com/${{ github.repository }}#-quick-start)
-          - [Deployment Guide](https://github.com/${{ github.repository }}/blob/main/DEPLOYMENT.md)
-          - [Contributing](https://github.com/${{ github.repository }}/blob/main/CONTRIBUTING.md)
-          
-          ## 🙏 Contributors
-          
-          Thank you to everyone who contributed to this release!
-          EOF
+        run: bash ./scripts/ci/get-version-changelog.sh
 
       - name: 📁 Organize release assets
-        run: |
-          mkdir -p release_assets
-          find artifacts -name "pictallion-*" -type f -exec cp {} release_assets/ \;
-          ls -la release_assets/
+        run: bash ./scripts/ci/organize-release-assets.sh
 
       - name: 🎉 Create GitHub Release
         uses: softprops/action-gh-release@v1
