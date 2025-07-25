@@ -12,21 +12,15 @@ WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
-COPY client/package*.json ./client/
 
 # Install dependencies
 RUN npm ci
-RUN cd client && npm ci
 
 # Copy source code
 COPY . .
 
-# Build application
-RUN cd client && npm run build
-RUN npx esbuild server/index.ts --bundle --platform=node --target=node18 --format=esm --outfile=dist/server.js \
-  --external:ws --external:express --external:multer --external:@neondatabase/serverless \
-  --external:drizzle-orm --external:drizzle-zod --external:passport --external:express-session \
-  --external:connect-pg-simple --external:zod --external:nanoid --external:exif --external:openai
+# Build application (client and server)
+RUN npm run build
 
 # Production stage
 FROM node:18-alpine AS production
@@ -34,8 +28,7 @@ FROM node:18-alpine AS production
 WORKDIR /app
 
 # Copy built application
-COPY --from=builder /app/dist/server.js ./
-COPY --from=builder /app/client/dist ./public
+COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/shared ./shared
 COPY --from=builder /app/drizzle.config.ts ./
 
@@ -64,7 +57,7 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD node -e "require('http').get('http://localhost:5000/api/stats', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
 
 # Start application
-CMD ["node", "server.js"]
+CMD ["node", "dist/index.js"]
 EOF
 
 # Create docker-compose.yml

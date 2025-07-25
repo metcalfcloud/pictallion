@@ -81,11 +81,18 @@ This creates installation packages that recipients can easily install on Windows
 ### Docker Deployment
 
 ```bash
+# Test Docker configuration
+./scripts/test-docker-config.sh
+
 # Quick Docker setup with all services
 ./scripts/docker-setup.sh
 ```
 
-Includes PostgreSQL database and Ollama for complete local setup.
+Includes PostgreSQL database and Ollama for complete local setup with:
+- Multi-stage Docker build for optimized images
+- Non-root security configuration
+- Health checks and monitoring
+- Persistent data volumes
 
 ## 🔧 Configuration
 
