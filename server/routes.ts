@@ -15,12 +15,12 @@ const upload = multer({
   limits: {
     fileSize: 50 * 1024 * 1024, // 50MB limit
   },
-  fileFilter: (req, file, cb) => {
+  fileFilter: (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
     const allowedTypes = ['image/jpeg', 'image/png', 'image/tiff', 'video/mp4', 'video/mov', 'video/avi'];
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Unsupported file type'), false);
+      cb(new Error('Unsupported file type'));
     }
   },
 });
@@ -216,8 +216,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const aiMetadata = await aiService.analyzeImage(photo.filePath);
 
       // Combine existing metadata with AI metadata
+      const existingMetadata = photo.metadata || {};
       const combinedMetadata = {
-        ...photo.metadata,
+        ...existingMetadata,
         ai: aiMetadata,
       };
 
@@ -275,7 +276,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Serve uploaded images
   app.get("/api/files/*", async (req, res) => {
     try {
-      const filePath = req.params[0];
+      const filePath = (req.params as any)[0];
       const fullPath = path.join(process.cwd(), 'data', filePath);
       
       // Security check to prevent directory traversal

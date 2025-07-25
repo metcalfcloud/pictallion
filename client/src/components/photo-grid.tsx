@@ -4,16 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Heart, Bot, Eye, Star, MoreVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-interface Photo {
-  id: string;
-  tier: string;
-  filePath: string;
-  metadata: any;
-  isReviewed?: boolean;
-  mediaAsset: {
-    originalFilename: string;
-  };
-}
+import type { Photo } from "@shared/types";
 
 interface PhotoGridProps {
   photos: Photo[];

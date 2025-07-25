@@ -10,16 +10,7 @@ import PhotoDetailModal from "@/components/photo-detail-modal";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
-interface Photo {
-  id: string;
-  tier: string;
-  filePath: string;
-  metadata: any;
-  isReviewed: boolean;
-  mediaAsset: {
-    originalFilename: string;
-  };
-}
+import type { Photo } from "@shared/types";
 
 export default function Gallery() {
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);

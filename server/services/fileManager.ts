@@ -1,6 +1,6 @@
 import fs from "fs/promises";
 import path from "path";
-import { ExifImage } from "exif";
+import ExifImage from "exif";
 import type { ExifMetadata, CombinedMetadata } from "@shared/schema";
 
 class FileManager {
@@ -117,7 +117,7 @@ class FileManager {
   private async extractExifData(imagePath: string): Promise<ExifMetadata> {
     return new Promise((resolve, reject) => {
       try {
-        new ExifImage({ image: imagePath }, (error, exifData) => {
+        new ExifImage({ image: imagePath }, (error: any, exifData: any) => {
           if (error) {
             reject(error);
             return;
