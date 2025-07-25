@@ -44,6 +44,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Package script build process to match unified npm run build output structure
 - Distribution archive creation with correct file paths and startup scripts
 - Build pipeline integration for seamless frontend and backend compilation
+- Ubuntu/Linux packaging script completely rewritten to eliminate client/dist dependency
+- Package validation and error handling improved with comprehensive build verification
 - Docker containerization
 - Professional GitHub workflows
 - Detailed documentation and contribution guidelines
