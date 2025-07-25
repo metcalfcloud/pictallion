@@ -5,7 +5,7 @@ import path from "path";
 import fs from "fs/promises";
 import crypto from "crypto";
 import { storage } from "./storage";
-import { aiService } from "./services/ai";
+import { aiService, AIProvider } from "./services/ai";
 import { fileManager } from "./services/fileManager.js";
 import { insertMediaAssetSchema, insertFileVersionSchema, insertAssetHistorySchema } from "@shared/schema";
 
@@ -294,6 +294,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error serving file:", error);
       res.status(500).json({ message: "Failed to serve file" });
+    }
+  });
+
+  // AI Configuration Routes
+  app.get("/api/ai/config", async (req, res) => {
+    try {
+      const config = aiService.getConfig();
+      const providers = await aiService.getAvailableProviders();
+      
+      res.json({
+        currentProvider: config.provider,
+        availableProviders: providers,
+        config: {
+          ollama: {
+            baseUrl: config.ollama.baseUrl,
+            visionModel: config.ollama.visionModel,
+            textModel: config.ollama.textModel
+          },
+          openai: {
+            model: config.openai.model,
+            hasApiKey: !!config.openai.apiKey
+          }
+        }
+      });
+    } catch (error) {
+      console.error("Get AI config error:", error);
+      res.status(500).json({ error: "Failed to get AI configuration" });
+    }
+  });
+
+  app.post("/api/ai/config", async (req, res) => {
+    try {
+      const { provider, ollama, openai } = req.body;
+      
+      const newConfig: any = {};
+      if (provider) newConfig.provider = provider;
+      if (ollama) newConfig.ollama = ollama;
+      if (openai) newConfig.openai = openai;
+      
+      aiService.setConfig(newConfig);
+      
+      res.json({ success: true, message: "AI configuration updated" });
+    } catch (error) {
+      console.error("Update AI config error:", error);
+      res.status(500).json({ error: "Failed to update AI configuration" });
+    }
+  });
+
+  app.post("/api/ai/test", async (req, res) => {
+    try {
+      const providers = await aiService.getAvailableProviders();
+      
+      res.json({
+        ollama: providers.ollama,
+        openai: providers.openai
+      });
+    } catch (error) {
+      console.error("Test AI providers error:", error);
+      res.status(500).json({ error: "Failed to test AI providers" });
     }
   });
 
