@@ -100,9 +100,37 @@ jobs:
 
       - name: 🏗️ Build application
         run: |
+          # Clean any potentially cached build artifacts and old scripts
+          rm -rf dist dist-package node_modules/.cache
+          rm -f scripts/package-old.sh scripts/build.js
+          
+          # Verify package script integrity
+          echo "🔍 Verifying package script content..."
+          echo "Script size: $(wc -l < scripts/package.sh) lines"
+          echo "Script last modified: $(stat -c %y scripts/package.sh 2>/dev/null || stat -f %Sm scripts/package.sh)"
+          
+          if grep -q "client/dist\|frontend assets\|Building frontend" scripts/package.sh; then
+            echo "❌ Package script contains old references:"
+            grep -n "client/dist\|frontend assets\|Building frontend" scripts/package.sh || true
+            echo ""
+            echo "Current script first 30 lines:"
+            head -30 scripts/package.sh
+            exit 1
+          fi
+          
+          # Verify all expected content is present
+          if ! grep -q "Building application" scripts/package.sh; then
+            echo "❌ Package script missing 'Building application' - something is wrong"
+            head -10 scripts/package.sh
+            exit 1
+          fi
+          
+          # Make executable and run
           if [ "${{ matrix.os }}" != "windows-latest" ]; then
             chmod +x scripts/package.sh
           fi
+          
+          echo "✅ Package script verified, executing..."
           ./scripts/package.sh
         shell: bash
 
