@@ -9,6 +9,11 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
 jobs:
   security-audit:
     name: 🔍 Security Audit
@@ -120,6 +125,10 @@ jobs:
     name: 🐳 Docker Security Scan
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: read
+      security-events: write
+
     steps:
       - name: 📥 Checkout
         uses: actions/checkout@v4
@@ -137,11 +146,18 @@ jobs:
           format: 'sarif'
           output: 'trivy-results.sarif'
 
-      - name: 📤 Upload Trivy scan results
+      - name: 📤 Upload Trivy scan results to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
-        if: always()
+        if: always() && github.event_name != 'pull_request'
         with:
           sarif_file: 'trivy-results.sarif'
+          
+      - name: 📤 Upload Trivy scan results as artifact (for PRs)
+        uses: actions/upload-artifact@v4
+        if: always() && github.event_name == 'pull_request'
+        with:
+          name: trivy-scan-results
+          path: 'trivy-results.sarif'
 
   secret-scan:
     name: 🔐 Secret Scanning
