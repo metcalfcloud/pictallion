@@ -148,3 +148,12 @@ The application includes comprehensive packaging and deployment tools:
 - **Cloud**: VPS deployment with managed databases and SSL configuration
 
 The packaging system ensures easy distribution and installation across different operating systems while maintaining security best practices and providing clear setup instructions for end users.
+
+## Recent Fixes (January 25, 2025)
+
+- **GitHub Docker Workflow**: Fixed all client/ directory references that were causing build failures
+- **Docker Configuration**: Added automatic file cleanup and regeneration to prevent cached outdated configurations  
+- **Release Workflow**: Updated to use unified `npm run build` instead of separate client build process
+- **Package Scripts**: Removed legacy `scripts/build.js` file containing obsolete client/dist references
+- **Build Validation**: Created comprehensive validation script to verify correct Docker and packaging configuration
+- **Multi-Platform Builds**: Ensured Docker builds work correctly for both amd64 and arm64 architectures
