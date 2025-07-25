@@ -1,6 +1,79 @@
-node_modules
-dist
-.DS_Store
-server/public
-vite.config.ts.*
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Production builds
+dist/
+build/
+*.tgz
 *.tar.gz
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Database
+*.db
+*.sqlite
+
+# Logs
+logs
+*.log
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+.coverage
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Photo storage (keep structure but not files)
+data/media/bronze/*
+data/media/silver/*
+data/media/gold/*
+data/media/dropzone/*
+data/media/archive/*
+uploads/temp/*
+
+# Keep directory structure
+!data/media/bronze/.gitkeep
+!data/media/silver/.gitkeep
+!data/media/gold/.gitkeep
+!data/media/dropzone/.gitkeep
+!data/media/archive/.gitkeep
+!uploads/temp/.gitkeep
+
+# Temporary files
+*.tmp
+*.temp
+
+# Package manager lockfiles (keep one)
+# yarn.lock
+
+# Replit specific
+.replit
+replit.nix
