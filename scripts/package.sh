@@ -283,23 +283,9 @@ Node.js: $(node --version)
 Platform: $(uname -s)-$(uname -m)
 EOF
 
-# Create final distribution archive
-echo "📦 Creating distribution archive..."
-TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-ARCHIVE_NAME="pictallion_v1.0.0_${TIMESTAMP}.tar.gz"
-
-cd $TEMP_BUILD_DIR
-tar -czf "../${ARCHIVE_NAME}" .
-cd ..
-
-# Cleanup
-rm -rf $TEMP_BUILD_DIR
-
-echo "✅ Created ${ARCHIVE_NAME} for Linux/macOS"
-echo ""
-# Add Windows batch installation script
+# Add Windows-specific files before archiving
 if [ "$IS_WINDOWS" = true ]; then
-    echo "📋 Creating Windows installation script..."
+    echo "📋 Creating enhanced Windows installation script..."
     cat > $TEMP_BUILD_DIR/install.bat << 'EOF'
 @echo off
 setlocal enabledelayedexpansion
@@ -348,6 +334,20 @@ pause
 EOF
 fi
 
+# Create final distribution archive
+echo "📦 Creating distribution archive..."
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+ARCHIVE_NAME="pictallion_v1.0.0_${TIMESTAMP}.tar.gz"
+
+cd $TEMP_BUILD_DIR
+tar -czf "../${ARCHIVE_NAME}" .
+cd ..
+
+# Cleanup
+rm -rf $TEMP_BUILD_DIR
+
+echo "✅ Created ${ARCHIVE_NAME} for Linux/macOS"
+echo ""
 echo "🎉 Pictallion build complete!"
 echo ""
 echo "📦 Distribution files:"
