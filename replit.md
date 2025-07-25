@@ -8,6 +8,7 @@ Pictallion is a comprehensive photo and video management application built with 
 
 Preferred communication style: Simple, everyday language.
 App name: Pictallion (combination of "pictures" + "medallion" - chosen by Paul to reflect the tiered system and the precious nature of photos)
+Deployment preference: Wants to package and distribute the app for easy installation on Linux and Windows systems
 
 ## System Architecture
 
@@ -122,3 +123,27 @@ The application uses a relational database with four main tables:
 6. **Session-Based Auth**: Simple authentication model suitable for single-user or small team deployment
 
 The application prioritizes reliability, scalability, and user experience while maintaining a clean separation of concerns between media processing, data management, and user interface layers.
+
+## Deployment & Distribution
+
+The application includes comprehensive packaging and deployment tools:
+
+### Packaging Scripts
+- **Native Packaging**: `scripts/package.sh` creates distributable archives for Linux/Windows
+- **Docker Support**: `scripts/build-docker.sh` sets up containerized deployment
+- **Installation Scripts**: Automated installers for both Unix and Windows systems
+
+### Distribution Features
+- Self-contained packages with all dependencies
+- Automated installation scripts with system requirement checks
+- Environment configuration templates
+- Comprehensive documentation and troubleshooting guides
+- Support for both local and cloud database configurations
+
+### Deployment Options
+- **Personal/Local**: Native packages with simple node.js execution
+- **Team/Office**: Docker Compose with integrated PostgreSQL and Ollama
+- **Production**: Docker containers with external managed services
+- **Cloud**: VPS deployment with managed databases and SSL configuration
+
+The packaging system ensures easy distribution and installation across different operating systems while maintaining security best practices and providing clear setup instructions for end users.
