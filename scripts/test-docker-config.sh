@@ -32,8 +32,8 @@ fi
 
 # Check docker-compose syntax
 echo "🐙 Validating docker-compose.yml syntax..."
-if command -v docker-compose &> /dev/null; then
-    docker-compose config > /dev/null
+if command -v docker &> /dev/null && docker compose version &> /dev/null; then
+    docker compose config > /dev/null
     if [ $? -eq 0 ]; then
         echo "  ✅ docker-compose.yml syntax valid"
     else
@@ -41,7 +41,7 @@ if command -v docker-compose &> /dev/null; then
         exit 1
     fi
 else
-    echo "  ⚠️ docker-compose not available - syntax validation skipped"
+    echo "  ⚠️ docker compose not available - syntax validation skipped"
 fi
 
 # Validate build script dependencies

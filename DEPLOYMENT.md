@@ -99,6 +99,8 @@ AI_PROVIDER=ollama
 OLLAMA_BASE_URL=http://ollama:11434
 ```
 
+**Note:** Use `docker compose` (not `docker-compose`) with modern Docker installations.
+
 ### Cloud Production
 ```bash
 # Managed database
