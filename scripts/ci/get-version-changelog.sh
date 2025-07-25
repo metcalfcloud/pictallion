@@ -24,7 +24,7 @@ $CHANGELOG
 
 **Linux/macOS:**
 \`\`\`bash
-wget https://github.com/${{ github.repository }}/releases/download/$VERSION/pictallion-$VERSION-linux.tar.gz
+wget https://github.com/$REPOSITORY/releases/download/$VERSION/pictallion-$VERSION-linux.tar.gz
 tar -xzf pictallion-$VERSION-linux.tar.gz
 cd dist && ./install.sh
 \`\`\`
@@ -42,7 +42,7 @@ docker run -d \\
   -p 5000:5000 \\
   -v pictallion_data:/app/data \\
   -e DATABASE_URL=your_database_url \\
-  ghcr.io/${{ github.repository }}:$VERSION
+  ghcr.io/$REPOSITORY:$VERSION
 \`\`\`
 
 ## 🔧 Configuration
@@ -66,9 +66,9 @@ See the full changelog above for all changes in this release.
 
 ## 📚 Documentation
 
-- [Installation Guide](https://github.com/${{ github.repository }}#-quick-start)
-- [Deployment Guide](https://github.com/${{ github.repository }}/blob/main/DEPLOYMENT.md)
-- [Contributing](https://github.com/${{ github.repository }}/blob/main/CONTRIBUTING.md)
+- [Installation Guide](https://github.com/$REPOSITORY#-quick-start)
+- [Deployment Guide](https://github.com/$REPOSITORY/blob/main/DEPLOYMENT.md)
+- [Contributing](https://github.com/$REPOSITORY/blob/main/CONTRIBUTING.md)
 
 ## 🙏 Contributors
 
