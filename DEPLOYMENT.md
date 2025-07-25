@@ -99,7 +99,11 @@ AI_PROVIDER=ollama
 OLLAMA_BASE_URL=http://ollama:11434
 ```
 
-**Note:** Use `docker compose` (not `docker-compose`) with modern Docker installations.
+**Important Notes:**
+- Use `docker compose` (not `docker-compose`) with modern Docker installations
+- The Docker build uses a unified structure (no separate client directory)
+- Multi-stage build optimizes image size and security
+- Non-root user execution for enhanced security
 
 ### Cloud Production
 ```bash

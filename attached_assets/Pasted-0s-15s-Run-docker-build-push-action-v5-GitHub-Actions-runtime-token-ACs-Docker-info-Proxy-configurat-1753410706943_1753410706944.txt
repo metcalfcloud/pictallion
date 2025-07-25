@@ -1,0 +1,153 @@
+0s
+15s
+Run docker/build-push-action@v5
+GitHub Actions runtime token ACs
+Docker info
+Proxy configuration
+Buildx version
+Builder info
+/usr/bin/docker buildx build --cache-from type=gha --cache-to type=gha,mode=max --iidfile /home/runner/work/_temp/docker-actions-toolkit-rR9IfA/build-iidfile-a8d07279a4.txt --label org.opencontainers.image.created=2025-07-25T02:30:48.273Z --label org.opencontainers.image.description= --label org.opencontainers.image.licenses=MIT --label org.opencontainers.image.revision=f4b9831c7b1a5cf54423c873d438d2d15b0dcad4 --label org.opencontainers.image.source=https://github.com/metcalfcloud/pictallion --label org.opencontainers.image.title=pictallion --label org.opencontainers.image.url=https://github.com/metcalfcloud/pictallion --label org.opencontainers.image.version=0.0.1 --platform linux/amd64,linux/arm64 --attest type=provenance,mode=max,builder-id=https://github.com/metcalfcloud/pictallion/actions/runs/16512344653 --tag ghcr.io/metcalfcloud/pictallion:0.0.1 --tag ghcr.io/metcalfcloud/pictallion:0.0 --tag ghcr.io/metcalfcloud/pictallion:0 --tag ghcr.io/metcalfcloud/pictallion:v0.0.1 --tag ghcr.io/metcalfcloud/pictallion:latest --metadata-file /home/runner/work/_temp/docker-actions-toolkit-rR9IfA/build-metadata-5e59790de9.json --push .
+#0 building with "builder-1a695119-fe5a-4318-920e-314df9a2df39" instance using docker-container driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 1.75kB done
+#1 DONE 0.0s
+
+#2 [auth] library/node:pull token for registry-1.docker.io
+#2 DONE 0.0s
+
+#3 [linux/amd64 internal] load metadata for docker.io/library/node:18-alpine
+#3 ...
+
+#4 [linux/arm64 internal] load metadata for docker.io/library/node:18-alpine
+#4 DONE 0.3s
+
+#3 [linux/amd64 internal] load metadata for docker.io/library/node:18-alpine
+#3 DONE 0.3s
+
+#5 [internal] load .dockerignore
+#5 transferring context: 163B done
+#5 DONE 0.0s
+
+#6 importing cache manifest from gha:5572943233926598464
+#6 DONE 0.1s
+
+#7 [linux/arm64 builder 1/9] FROM docker.io/library/node:18-alpine@sha256:8d6421d663b4c28fd3ebc498332f249011d118945588d0a35cb9bc4b8ca09d9e
+#7 resolve docker.io/library/node:18-alpine@sha256:8d6421d663b4c28fd3ebc498332f249011d118945588d0a35cb9bc4b8ca09d9e 0.0s done
+#7 ...
+
+#8 [internal] load build context
+#8 transferring context: 2.63MB 0.1s done
+#8 DONE 0.1s
+
+#7 [linux/arm64 builder 1/9] FROM docker.io/library/node:18-alpine@sha256:8d6421d663b4c28fd3ebc498332f249011d118945588d0a35cb9bc4b8ca09d9e
+#7 sha256:02bb84e9f3412827f177bc6c020812249b32a8425d2c1858e9d71bd4c015f031 443B / 443B 0.0s done
+#7 sha256:8bfa36aa66ce614f6da68a16fb71f875da8d623310f0cb80ae1ecfa092f587f6 1.26MB / 1.26MB 0.1s done
+#7 sha256:6e771e15690e2fabf2332d3a3b744495411d6e0b00b2aea64419b58b0066cf81 3.99MB / 3.99MB 0.1s done
+#7 extracting sha256:6e771e15690e2fabf2332d3a3b744495411d6e0b00b2aea64419b58b0066cf81
+#7 extracting sha256:6e771e15690e2fabf2332d3a3b744495411d6e0b00b2aea64419b58b0066cf81 0.1s done
+#7 sha256:d84c815451acbca96b6e6bdb479929222bec57121dfe10cc5b128c5c2dbaf10a 12.58MB / 39.66MB 0.2s
+#7 sha256:d84c815451acbca96b6e6bdb479929222bec57121dfe10cc5b128c5c2dbaf10a 39.66MB / 39.66MB 0.3s done
+#7 extracting sha256:d84c815451acbca96b6e6bdb479929222bec57121dfe10cc5b128c5c2dbaf10a
+#7 extracting sha256:d84c815451acbca96b6e6bdb479929222bec57121dfe10cc5b128c5c2dbaf10a 1.0s done
+#7 DONE 1.4s
+
+#9 [linux/amd64 builder 1/9] FROM docker.io/library/node:18-alpine@sha256:8d6421d663b4c28fd3ebc498332f249011d118945588d0a35cb9bc4b8ca09d9e
+#9 resolve docker.io/library/node:18-alpine@sha256:8d6421d663b4c28fd3ebc498332f249011d118945588d0a35cb9bc4b8ca09d9e done
+#9 sha256:25ff2da83641908f65c3a74d80409d6b1b62ccfaab220b9ea70b80df5a2e0549 446B / 446B 0.0s done
+#9 sha256:1e5a4c89cee5c0826c540ab06d4b6b491c96eda01837f430bd47f0d26702d6e3 1.26MB / 1.26MB 0.0s done
+#9 sha256:f18232174bc91741fdf3da96d85011092101a032a93a388b79e99e69c2d5c870 3.64MB / 3.64MB 0.1s done
+#9 extracting sha256:f18232174bc91741fdf3da96d85011092101a032a93a388b79e99e69c2d5c870 0.1s done
+#9 sha256:dd71dde834b5c203d162902e6b8994cb2309ae049a0eabc4efea161b2b5a3d0e 40.01MB / 40.01MB 0.4s done
+#9 extracting sha256:dd71dde834b5c203d162902e6b8994cb2309ae049a0eabc4efea161b2b5a3d0e
+#9 ...
+
+#7 [linux/arm64 builder 1/9] FROM docker.io/library/node:18-alpine@sha256:8d6421d663b4c28fd3ebc498332f249011d118945588d0a35cb9bc4b8ca09d9e
+#7 extracting sha256:8bfa36aa66ce614f6da68a16fb71f875da8d623310f0cb80ae1ecfa092f587f6 0.0s done
+#7 extracting sha256:02bb84e9f3412827f177bc6c020812249b32a8425d2c1858e9d71bd4c015f031 done
+#7 DONE 1.5s
+
+#10 [linux/arm64 builder 2/9] WORKDIR /app
+#10 ...
+
+#9 [linux/amd64 builder 1/9] FROM docker.io/library/node:18-alpine@sha256:8d6421d663b4c28fd3ebc498332f249011d118945588d0a35cb9bc4b8ca09d9e
+#9 extracting sha256:dd71dde834b5c203d162902e6b8994cb2309ae049a0eabc4efea161b2b5a3d0e 1.3s done
+#9 DONE 1.8s
+
+#9 [linux/amd64 builder 1/9] FROM docker.io/library/node:18-alpine@sha256:8d6421d663b4c28fd3ebc498332f249011d118945588d0a35cb9bc4b8ca09d9e
+#9 extracting sha256:1e5a4c89cee5c0826c540ab06d4b6b491c96eda01837f430bd47f0d26702d6e3 0.0s done
+#9 extracting sha256:25ff2da83641908f65c3a74d80409d6b1b62ccfaab220b9ea70b80df5a2e0549 done
+#9 DONE 1.8s
+
+#10 [linux/arm64 builder 2/9] WORKDIR /app
+#10 DONE 0.4s
+
+#11 [linux/amd64 builder 2/9] WORKDIR /app
+#11 DONE 0.0s
+
+#12 [linux/arm64 builder 3/9] COPY package*.json ./
+#12 DONE 0.0s
+
+#13 [linux/amd64 builder 3/9] COPY package*.json ./
+#13 DONE 0.0s
+
+#14 [linux/arm64 builder 4/9] COPY client/package*.json ./client/
+#14 DONE 0.0s
+
+#15 [linux/amd64 builder 4/9] COPY client/package*.json ./client/
+#15 DONE 0.0s
+
+#16 [linux/amd64 builder 5/9] RUN npm ci
+#16 4.893 npm warn deprecated @esbuild-kit/esm-loader@2.6.5: Merged into tsx: https://tsx.is
+#16 4.913 npm warn deprecated @esbuild-kit/core-utils@3.3.2: Merged into tsx: https://tsx.is
+#16 ...
+
+#17 [linux/arm64 builder 5/9] RUN npm ci
+#17 ...
+
+#16 [linux/amd64 builder 5/9] RUN npm ci
+#16 11.17 
+#16 11.17 added 500 packages, and audited 501 packages in 11s
+#16 11.17 
+#16 11.17 66 packages are looking for funding
+#16 11.17   run `npm fund` for details
+#16 11.24 
+#16 11.24 11 vulnerabilities (3 low, 8 moderate)
+#16 11.24 
+#16 11.24 To address issues that do not require attention, run:
+#16 11.24   npm audit fix
+#16 11.24 
+#16 11.24 To address all issues (including breaking changes), run:
+#16 11.24   npm audit fix --force
+#16 11.24 
+#16 11.24 Run `npm audit` for details.
+#16 11.24 npm notice
+#16 11.24 npm notice New major version of npm available! 10.8.2 -> 11.5.1
+#16 11.24 npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.5.1
+#16 11.24 npm notice To update run: npm install -g npm@11.5.1
+#16 11.24 npm notice
+#16 DONE 11.9s
+
+#17 [linux/arm64 builder 5/9] RUN npm ci
+#17 ...
+
+#18 [linux/amd64 builder 6/9] RUN cd client && npm ci
+#18 0.238 /bin/sh: cd: line 0: can't cd to client: No such file or directory
+#18 ERROR: process "/bin/sh -c cd client && npm ci" did not complete successfully: exit code: 2
+
+#17 [linux/arm64 builder 5/9] RUN npm ci
+#17 CANCELED
+------
+ > [linux/amd64 builder 6/9] RUN cd client && npm ci:
+
+------
+Dockerfile:12
+--------------------
+  10 |     # Install dependencies
+  11 |     RUN npm ci
+  12 | >>> RUN cd client && npm ci
+  13 |     
+  14 |     # Copy source code
+--------------------
+ERROR: failed to build: failed to solve: process "/bin/sh -c cd client && npm ci" did not complete successfully: exit code: 2
+Error: buildx failed with: ERROR: failed to build: failed to solve: process "/bin/sh -c cd client && npm ci" did not complete successfully: exit code: 2
