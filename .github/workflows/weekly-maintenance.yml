@@ -1,0 +1,140 @@
+name: 🔧 Weekly Maintenance
+
+on:
+  schedule:
+    - cron: '0 8 * * 1' # Weekly on Monday at 8 AM UTC
+  workflow_dispatch:
+
+jobs:
+  update-dependencies:
+    name: 📦 Update Dependencies
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 🔄 Check for updates
+        run: |
+          echo "# Weekly Dependency Report" > dependency-update-report.md
+          echo "Generated on: $(date)" >> dependency-update-report.md
+          echo "" >> dependency-update-report.md
+          
+          echo "## Available Updates" >> dependency-update-report.md
+          echo "\`\`\`" >> dependency-update-report.md
+          npm outdated >> dependency-update-report.md || echo "No outdated packages" >> dependency-update-report.md
+          echo "\`\`\`" >> dependency-update-report.md
+          echo "" >> dependency-update-report.md
+
+      - name: 🔒 Security audit
+        run: |
+          echo "## Security Audit" >> dependency-update-report.md
+          echo "\`\`\`" >> dependency-update-report.md
+          npm audit >> dependency-update-report.md || true
+          echo "\`\`\`" >> dependency-update-report.md
+          echo "" >> dependency-update-report.md
+
+      - name: 📊 Package health check
+        run: |
+          echo "## Package Information" >> dependency-update-report.md
+          echo "- **Total packages**: $(npm list --depth=0 2>/dev/null | grep -c '├\|└' || echo 'N/A')" >> dependency-update-report.md
+          echo "- **Node.js version**: $(node --version)" >> dependency-update-report.md
+          echo "- **NPM version**: $(npm --version)" >> dependency-update-report.md
+          
+          # Check if any critical packages need updates
+          CRITICAL_UPDATES=$(npm outdated --json 2>/dev/null | jq -r 'keys[]' | grep -E "(react|express|typescript|drizzle)" | wc -l || echo "0")
+          echo "- **Critical package updates available**: $CRITICAL_UPDATES" >> dependency-update-report.md
+
+      - name: 📤 Upload dependency report
+        uses: actions/upload-artifact@v4
+        with:
+          name: weekly-dependency-report-${{ github.run_id }}
+          path: dependency-update-report.md
+
+  clean-artifacts:
+    name: 🧹 Clean Old Artifacts
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🧹 Delete old workflow runs
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: runs } = await github.rest.actions.listWorkflowRunsForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 100
+            });
+            
+            const oldRuns = runs.workflow_runs.filter(run => {
+              const runDate = new Date(run.created_at);
+              const thirtyDaysAgo = new Date();
+              thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+              return runDate < thirtyDaysAgo && run.status === 'completed';
+            });
+            
+            console.log(`Found ${oldRuns.length} old workflow runs to clean up`);
+            
+            for (const run of oldRuns.slice(0, 10)) { // Limit to 10 per run
+              try {
+                await github.rest.actions.deleteWorkflowRun({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  run_id: run.id
+                });
+                console.log(`Deleted workflow run ${run.id}`);
+              } catch (error) {
+                console.log(`Failed to delete run ${run.id}: ${error.message}`);
+              }
+            }
+
+  health-check:
+    name: 🏥 Repository Health Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 📊 Generate health report
+        run: |
+          echo "# Repository Health Report" > health-report.md
+          echo "Generated on: $(date)" >> health-report.md
+          echo "" >> health-report.md
+          
+          # Repository stats
+          echo "## Repository Statistics" >> health-report.md
+          echo "- **Total commits**: $(git rev-list --count HEAD)" >> health-report.md
+          echo "- **Total branches**: $(git branch -r | wc -l)" >> health-report.md
+          echo "- **Total tags**: $(git tag | wc -l)" >> health-report.md
+          echo "- **Repository size**: $(du -sh . | cut -f1)" >> health-report.md
+          echo "" >> health-report.md
+          
+          # File stats
+          echo "## Codebase Statistics" >> health-report.md
+          echo "- **TypeScript files**: $(find . -name '*.ts' -o -name '*.tsx' | wc -l)" >> health-report.md
+          echo "- **JavaScript files**: $(find . -name '*.js' -o -name '*.jsx' | wc -l)" >> health-report.md
+          echo "- **Total lines of code**: $(find . -name '*.ts' -o -name '*.tsx' -o -name '*.js' -o -name '*.jsx' | xargs wc -l | tail -1 | awk '{print $1}')" >> health-report.md
+          echo "" >> health-report.md
+          
+          # Documentation check
+          echo "## Documentation Status" >> health-report.md
+          [ -f README.md ] && echo "- ✅ README.md exists" >> health-report.md || echo "- ❌ README.md missing" >> health-report.md
+          [ -f CONTRIBUTING.md ] && echo "- ✅ CONTRIBUTING.md exists" >> health-report.md || echo "- ❌ CONTRIBUTING.md missing" >> health-report.md
+          [ -f SECURITY.md ] && echo "- ✅ SECURITY.md exists" >> health-report.md || echo "- ❌ SECURITY.md missing" >> health-report.md
+          [ -f LICENSE ] && echo "- ✅ LICENSE exists" >> health-report.md || echo "- ❌ LICENSE missing" >> health-report.md
+          [ -f CHANGELOG.md ] && echo "- ✅ CHANGELOG.md exists" >> health-report.md || echo "- ❌ CHANGELOG.md missing" >> health-report.md
+
+      - name: 📤 Upload health report
+        uses: actions/upload-artifact@v4
+        with:
+          name: repository-health-report-${{ github.run_id }}
+          path: health-report.md
