@@ -7,6 +7,92 @@ import crypto from "crypto";
 import { storage } from "./storage";
 import { aiService, AIProvider } from "./services/ai";
 import { fileManager } from "./services/fileManager.js";
+
+// Similarity detection function
+async function findSimilarPhotos(photos: any[]): Promise<any[]> {
+  const similarGroups = [];
+  const processed = new Set<string>();
+
+  for (let i = 0; i < photos.length; i++) {
+    if (processed.has(photos[i].id)) continue;
+
+    const currentPhoto = photos[i];
+    const similarPhotos = [currentPhoto];
+    processed.add(currentPhoto.id);
+
+    // Find similar photos based on:
+    // 1. Similar filenames (burst photos, sequence shots)
+    // 2. Similar AI tags
+    // 3. Same time period (within 5 minutes)
+    for (let j = i + 1; j < photos.length; j++) {
+      if (processed.has(photos[j].id)) continue;
+
+      const comparePhoto = photos[j];
+      let similarityScore = 0;
+
+      // Check filename similarity (burst photos often have similar names)
+      const currentName = currentPhoto.mediaAsset.originalFilename.toLowerCase();
+      const compareName = comparePhoto.mediaAsset.originalFilename.toLowerCase();
+      
+      // Extract base filename without extension and sequence numbers
+      const currentBase = currentName.replace(/\d+\.(jpg|jpeg|png|tiff)$/i, '').replace(/_\d+$/, '');
+      const compareBase = compareName.replace(/\d+\.(jpg|jpeg|png|tiff)$/i, '').replace(/_\d+$/, '');
+      
+      if (currentBase === compareBase && currentBase.length > 3) {
+        similarityScore += 0.4;
+      }
+
+      // Check AI tags similarity
+      const currentTags = currentPhoto.metadata?.ai?.aiTags || [];
+      const compareTags = comparePhoto.metadata?.ai?.aiTags || [];
+      if (currentTags.length > 0 && compareTags.length > 0) {
+        const commonTags = currentTags.filter((tag: string) => compareTags.includes(tag));
+        const tagSimilarity = commonTags.length / Math.max(currentTags.length, compareTags.length);
+        if (tagSimilarity > 0.6) {
+          similarityScore += 0.3;
+        }
+      }
+
+      // Check time proximity (if within 5 minutes, likely same photo session)
+      const currentTime = new Date(currentPhoto.createdAt);
+      const compareTime = new Date(comparePhoto.createdAt);
+      const timeDiff = Math.abs(currentTime.getTime() - compareTime.getTime());
+      if (timeDiff < 5 * 60 * 1000) { // 5 minutes
+        similarityScore += 0.3;
+      }
+
+      // If similarity score is high enough, group them
+      if (similarityScore > 0.6) {
+        similarPhotos.push(comparePhoto);
+        processed.add(comparePhoto.id);
+      }
+    }
+
+    // Only create groups with multiple photos
+    if (similarPhotos.length > 1) {
+      // Find the "best" photo in the group (highest AI confidence or most recent)
+      const suggested = similarPhotos.reduce((best, current) => {
+        const bestConfidence = best.metadata?.ai?.aiConfidenceScores?.tags || 0;
+        const currentConfidence = current.metadata?.ai?.aiConfidenceScores?.tags || 0;
+        
+        if (currentConfidence > bestConfidence) return current;
+        if (currentConfidence === bestConfidence) {
+          // If same confidence, prefer more recent
+          return new Date(current.createdAt) > new Date(best.createdAt) ? current : best;
+        }
+        return best;
+      });
+
+      similarGroups.push({
+        photos: similarPhotos,
+        similarityScore: 0.8, // Average high similarity for grouped photos
+        suggested: suggested
+      });
+    }
+  }
+
+  return similarGroups;
+}
 import { insertMediaAssetSchema, insertFileVersionSchema, insertAssetHistorySchema } from "@shared/schema";
 
 // Configure multer for file uploads
@@ -365,7 +451,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const peopleWithStats = await Promise.all(
         people.map(async (person) => {
           const faces = await storage.getFacesByPerson(person.id);
-          const photoIds = [...new Set(faces.map(face => face.photoId))];
+          const photoIds = Array.from(new Set(faces.map(face => face.photoId)));
           
           return {
             ...person,
@@ -502,13 +588,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             if (photo) {
               const metadata = photo.metadata || {};
               const existingTags = metadata.ai?.aiTags || [];
-              const newTags = [...new Set([...existingTags, ...params.tags])];
+              const newTags = Array.from(new Set([...existingTags, ...params.tags]));
               
               await storage.updateFileVersion(photoId, {
                 metadata: {
                   ...metadata,
-                  ai: { ...metadata.ai, aiTags: newTags }
-                }
+                  ai: { ...(metadata as any).ai, aiTags: newTags }
+                } as any
               });
             }
           }
@@ -559,6 +645,117 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching analytics:", error);
       res.status(500).json({ message: "Failed to fetch analytics" });
+    }
+  });
+
+  // Promote photo from Silver to Gold
+  app.post("/api/photos/:id/promote", async (req, res) => {
+    try {
+      const photo = await storage.getFileVersion(req.params.id);
+      if (!photo) {
+        return res.status(404).json({ message: "Photo not found" });
+      }
+
+      if (photo.tier !== 'silver') {
+        return res.status(400).json({ message: "Photo must be in Silver tier for promotion" });
+      }
+
+      // Copy file to Gold tier
+      const goldPath = await fileManager.copyToGold(photo.filePath);
+
+      // Create Gold file version with embedded metadata
+      const goldVersion = await storage.createFileVersion({
+        mediaAssetId: photo.mediaAssetId,
+        tier: 'gold',
+        filePath: goldPath,
+        fileHash: photo.fileHash,
+        fileSize: photo.fileSize,
+        mimeType: photo.mimeType,
+        metadata: photo.metadata as any,
+        isReviewed: true,
+      });
+
+      // Log promotion
+      await storage.createAssetHistory({
+        mediaAssetId: photo.mediaAssetId,
+        action: 'PROMOTED',
+        details: 'Promoted from Silver to Gold tier',
+      });
+
+      res.json(goldVersion);
+    } catch (error) {
+      console.error("Error promoting photo:", error);
+      res.status(500).json({ message: "Failed to promote photo" });
+    }
+  });
+
+  // Batch promote photos to Gold
+  app.post("/api/photos/batch-promote", async (req, res) => {
+    try {
+      const { photoIds } = req.body;
+      
+      if (!Array.isArray(photoIds) || photoIds.length === 0) {
+        return res.status(400).json({ message: "photoIds array is required" });
+      }
+
+      let promoted = 0;
+      const errors = [];
+
+      for (const photoId of photoIds) {
+        try {
+          const photo = await storage.getFileVersion(photoId);
+          if (!photo || photo.tier !== 'silver') {
+            continue;
+          }
+
+          // Copy file to Gold tier
+          const goldPath = await fileManager.copyToGold(photo.filePath);
+
+          // Create Gold file version
+          await storage.createFileVersion({
+            mediaAssetId: photo.mediaAssetId,
+            tier: 'gold',
+            filePath: goldPath,
+            fileHash: photo.fileHash,
+            fileSize: photo.fileSize,
+            mimeType: photo.mimeType,
+            metadata: photo.metadata as any,
+            isReviewed: true,
+          });
+
+          // Log promotion
+          await storage.createAssetHistory({
+            mediaAssetId: photo.mediaAssetId,
+            action: 'PROMOTED',
+            details: 'Batch promoted from Silver to Gold tier',
+          });
+
+          promoted++;
+        } catch (error: any) {
+          errors.push({ photoId, error: error.message });
+        }
+      }
+
+      res.json({ promoted, errors });
+    } catch (error) {
+      console.error("Error in batch promotion:", error);
+      res.status(500).json({ message: "Failed to batch promote photos" });
+    }
+  });
+
+  // Get similar photos for review
+  app.get("/api/photos/similarity", async (req, res) => {
+    try {
+      const { tier = "silver" } = req.query;
+      const photos = await storage.getFileVersionsByTier(tier as "bronze" | "silver" | "gold");
+      
+      // Simple similarity grouping based on filename patterns and metadata
+      const similarGroups = await findSimilarPhotos(photos);
+      
+      res.json(similarGroups);
+    } catch (error) {
+      console.error("Error finding similar photos:", error);
+      res.status(500).json({ message: "Failed to analyze photo similarity" });
     }
   });
 

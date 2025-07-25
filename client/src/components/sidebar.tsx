@@ -23,6 +23,7 @@ const navigationItems = [
   { path: "/gallery", label: "Gallery", icon: Images },
   { path: "/upload", label: "Upload", icon: Upload },
   { path: "/collections", label: "Collections", icon: Images },
+  { path: "/silver-review", label: "Silver Review", icon: Camera },
   { path: "/people", label: "People & Faces", icon: Users },
   { path: "/search", label: "Search", icon: Search },
 ];

@@ -74,6 +74,26 @@ class FileManager {
     return path.relative(this.dataDir, silverPath);
   }
 
+  async copyToGold(silverPath: string): Promise<string> {
+    const fullSilverPath = path.join(this.dataDir, silverPath);
+    const date = new Date();
+    const yearMonth = `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}`;
+    const goldDir = path.join(this.mediaDir, 'gold', yearMonth);
+
+    try {
+      await fs.access(goldDir);
+    } catch {
+      await fs.mkdir(goldDir, { recursive: true });
+    }
+
+    const filename = path.basename(silverPath);
+    const goldPath = path.join(goldDir, filename);
+    
+    await fs.copyFile(fullSilverPath, goldPath);
+    
+    return path.relative(this.dataDir, goldPath);
+  }
+
   async moveToDuplicates(tempPath: string, originalFilename: string): Promise<void> {
     const duplicatesDir = path.join(this.mediaDir, 'dropzone', 'duplicates');
     const timestamp = Date.now();

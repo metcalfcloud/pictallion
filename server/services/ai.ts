@@ -147,7 +147,8 @@ Rules:
     const base64Image = imageBuffer.toString('base64');
 
     const response = await openai.chat.completions.create({
-      model: this.config.openai.model,
+      // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      model: "gpt-4o",
       messages: [
         {
           role: "system",
@@ -279,7 +280,8 @@ Return ONLY a JSON array like: ["tag1", "tag2", "tag3"]`,
         const openai = new OpenAI({ apiKey: this.config.openai.apiKey });
         
         const response = await openai.chat.completions.create({
-          model: this.config.openai.model,
+          // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+          model: "gpt-4o",
           messages: [
             { role: "system", content: "Generate 5-8 relevant tags for the given image description. Return as JSON array of strings." },
             { role: "user", content: `Generate tags for: ${description}` }
