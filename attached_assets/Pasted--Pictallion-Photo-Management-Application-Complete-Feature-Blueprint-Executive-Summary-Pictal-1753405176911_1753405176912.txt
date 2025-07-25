@@ -1,0 +1,568 @@
+# Pictallion Photo Management Application - Complete Feature Blueprint
+
+## Executive Summary
+
+Pictallion is a comprehensive photo and video management application that processes media through a tiered architecture (Bronze → Silver → Gold) with AI-powered features for face recognition, tagging, and smart organization. The system is designed for both casual users and power users, providing automated ingestion, intelligent processing, and manual curation workflows.
+
+## Core Architecture Principles
+
+### Tiered Processing System
+The application operates on a three-tier processing model:
+- **Bronze Tier**: Raw ingested media with basic metadata
+- **Silver Tier**: AI-processed media with enriched metadata
+- **Gold Tier**: Curated, finalized media with embedded metadata
+
+### Media Asset Lifecycle
+Each piece of media follows a structured lifecycle:
+1. **Ingestion**: Files enter through dropzone → Bronze tier
+2. **Processing**: Bronze → Silver with AI enrichment
+3. **Review**: Human validation and editing of Silver metadata
+4. **Promotion**: Silver → Gold with embedded metadata
+5. **Archive**: Long-term storage and backup
+
+## Detailed Feature Specifications
+
+### 1. Media Directory Management
+
+**Purpose**: Establish and maintain the foundational directory structure for all media processing.
+
+**Core Functionality**:
+- Static media directory at `/data/media` (configured via Docker volume mounts)
+- Automatic creation of required subdirectories:
+  - `/dropzone` - Incoming files
+  - `/bronze` - Raw ingested files organized in batches
+  - `/silver` - AI-processed files organized by date (YYYY/MM)
+  - `/gold` - Curated files with embedded metadata
+  - `/archive` - Long-term storage
+  - `/dropzone/duplicates` - Duplicate file handling
+
+**Technical Requirements**:
+- Directory validation at application startup
+- Batch organization for Bronze tier (max 500 files per batch: `batch_xxx_YYYY-MM-DD`)
+- Permission validation and error handling
+- Comprehensive logging of all directory operations
+
+**User Experience**:
+- No user configuration required (security by design)
+- Automatic folder creation without data loss
+- Clear error messages for permission issues
+
+### 2. Automated Media Ingestion (Dropzone → Bronze)
+
+**Purpose**: Automatically detect, validate, and ingest new media files from the dropzone.
+
+**Core Functionality**:
+- **File Detection**: 2-second polling interval for new files in dropzone
+- **Format Validation**: Support for images (JPEG, PNG, TIFF, RAW) and videos (MP4, MOV, AVI)
+- **Duplicate Prevention**: MD5 hash-based deduplication across all existing files
+- **Metadata Extraction**: Comprehensive EXIF, XMP, IPTC data extraction
+- **Batch Organization**: Automatic organization into Bronze batches
+
+**Data Model**:
+```
+MediaAsset {
+  id: UUID (persistent identifier)
+  original_filename: string
+  created_at: timestamp
+}
+
+FileVersion {
+  id: UUID
+  media_asset_id: UUID (foreign key)
+  tier: enum (Bronze, Silver, Gold)
+  file_path: string
+  file_hash: string (MD5)
+  metadata: JSON (extracted metadata)
+  is_reviewed: boolean (for Silver tier)
+  created_at: timestamp
+}
+
+AssetHistory {
+  id: UUID
+  media_asset_id: UUID (foreign key)
+  action: enum (INGESTED, PROMOTED, METADATA_EDITED, etc.)
+  details: string
+  timestamp: timestamp
+}
+```
+
+**Processing Flow**:
+1. Scanner detects new file in dropzone
+2. Calculate MD5 hash and check for duplicates
+3. If duplicate: move to `/dropzone/duplicates`
+4. If unique: create new MediaAsset record
+5. Extract comprehensive metadata (EXIF, XMP, IPTC)
+6. Move file to appropriate Bronze batch folder
+7. Create Bronze FileVersion record
+8. Log INGESTED action in AssetHistory
+
+**User Interface**:
+- **Drag-and-Drop Upload**: Multi-file support with progress indicators
+- **File Validation**: Real-time feedback on supported/unsupported formats
+- **Duplicate Notification**: Clear messaging when duplicates are detected
+- **Batch Status**: Visual feedback on upload progress and completion
+- **Accessibility**: Full keyboard navigation and screen reader support
+
+### 3. AI-Powered Silver Tier Processing
+
+**Purpose**: Transform Bronze media into enriched Silver versions using AI analysis.
+
+**Core AI Features**:
+- **Image Tagging**: Generate 5-10 descriptive tags using vision models
+- **Face Detection**: Identify and group faces for person recognition
+- **Event Detection**: Automatically detect holidays and custom events
+- **Description Generation**: Create short (100 chars) and long descriptions
+- **Location Enhancement**: GPS coordinate to place name resolution
+- **Similarity Grouping**: Perceptual hash-based image clustering
+
+**AI Provider Integration**:
+- **Primary**: Ollama (local) with llava model
+- **Fallback**: OpenAI Vision API
+- **Configuration**: User-selectable provider and model
+- **Error Handling**: Graceful degradation with fallback providers
+
+**Processing Workflow**:
+1. User triggers Bronze → Silver promotion
+2. Copy file from Bronze to Silver directory structure (`/silver/YYYY/MM/`)
+3. Apply configurable naming pattern (YYYYMMDD_HHMMSS, event-based, custom)
+4. Run comprehensive AI analysis
+5. Store all AI metadata in Silver FileVersion record
+6. Create AssetHistory entry for PROMOTED action
+7. Mark for user review
+
+**AI Metadata Structure**:
+```json
+{
+  "ai_tags": ["outdoor", "landscape", "mountain"],
+  "short_description": "Mountain landscape at sunset",
+  "long_description": "Detailed description of the scene...",
+  "detected_faces": [
+    {
+      "face_id": "uuid",
+      "person_name": "John Doe",
+      "confidence": 0.85,
+      "bounding_box": [x, y, width, height]
+    }
+  ],
+  "detected_events": [
+    {
+      "event_type": "holiday",
+      "event_name": "Christmas",
+      "confidence": 0.9
+    }
+  ],
+  "place_name": "Yosemite National Park",
+  "perceptual_hash": "hash_value",
+  "ai_confidence_scores": {...}
+}
+```
+
+**Performance Optimization**:
+- **Caching**: AI results cached to prevent reprocessing
+- **Async Processing**: Batch processing with configurable concurrency
+- **Progress Tracking**: Real-time progress updates for long operations
+- **Error Recovery**: Retry mechanisms and graceful failure handling
+
+### 4. Review and Metadata Editing Interface
+
+**Purpose**: Provide comprehensive human-in-the-loop validation and editing of AI-generated metadata.
+
+**Core Functionality**:
+- **Metadata Editing**: Full CRUD operations on all AI-generated data
+- **Face Management**: Assign names to detected faces, create person records
+- **Tag Management**: Add, remove, edit tags with hierarchical support
+- **Event Management**: Create, edit, assign events with date ranges
+- **Collection Management**: Group related photos into custom collections
+- **Validation Rules**: Enforce required fields before Gold promotion
+
+**User Interface Components**:
+- **Image Viewer**: High-resolution preview with zoom and pan
+- **Metadata Panel**: Tabbed interface for different metadata types
+- **Face Annotation**: Click-to-assign faces with confidence indicators
+- **Tag Editor**: Autocomplete with existing tags, hierarchical display
+- **Event Timeline**: Visual timeline for event assignment
+- **Batch Operations**: Multi-select for bulk metadata changes
+
+**Validation System**:
+- **Required Fields**: Configurable validation rules
+- **Data Consistency**: Cross-reference validation (dates, locations)
+- **Quality Checks**: Confidence score thresholds
+- **User Feedback**: Clear error messages and guidance
+
+**Review Workflow**:
+1. User selects Silver FileVersion for review
+2. Load all associated metadata for editing
+3. Present comprehensive editing interface
+4. Apply validation rules on save
+5. Mark as `is_reviewed: true` when approved
+6. Log all changes in AssetHistory
+7. Enable Gold promotion eligibility
+
+### 5. Gold Tier Promotion and Metadata Embedding
+
+**Purpose**: Create final, portable versions of media with all metadata permanently embedded.
+
+**Core Functionality**:
+- **File Copying**: Create new Gold file from reviewed Silver version
+- **Metadata Embedding**: Write all validated metadata directly into file
+- **Standard Compliance**: Use EXIF, XMP, IPTC standards for portability
+- **Organization Schemes**: User-configurable Gold directory structure
+- **Backup Capability**: "Seed from Gold" database reconstruction
+
+**Metadata Embedding Standards**:
+- **EXIF Fields**:
+  - ImageDescription → long_description
+  - XPKeywords → ai_tags (semicolon-separated)
+  - XPSubject → short_description
+  - Artist → person names from faces
+  - UserComment → JSON with events, collections, AI confidence
+
+- **XMP Fields**:
+  - dc:description → long_description
+  - dc:subject → ai_tags array
+  - lr:hierarchicalSubject → hierarchical tags
+  - Custom namespace for Pictallion-specific data
+
+- **Video Handling**:
+  - Poster frame embedding when possible
+  - XMP sidecar files for metadata
+  - JSON sidecar files for complex data structures
+
+**Organization Schemes**:
+- **Date-based**: `/gold/YYYY/MM/filename.ext`
+- **Album-based**: `/gold/albums/album_name/filename.ext`
+- **Event-based**: `/gold/events/event_name/filename.ext`
+- **Custom**: User-defined patterns
+
+**Backup and Recovery**:
+- **Seed from Gold**: Scan Gold files and reconstruct database
+- **Metadata Reading**: Extract all embedded metadata
+- **Database Recreation**: Rebuild all records from embedded data
+- **Audit Trail**: Maintain complete history during restoration
+
+### 6. Gallery and Search Interface
+
+**Purpose**: Provide fast, intuitive browsing and searching across all media tiers.
+
+**Core Features**:
+- **Multi-Tier View**: Filter by Bronze, Silver, Gold with visual indicators
+- **Advanced Filtering**: By tags, events, people, dates, locations, collections
+- **Smart Search**: Natural language queries with structured fallback
+- **Sorting Options**: Date, event, location, rating, processing status
+- **View Modes**: Grid, list, timeline, map-based views
+- **Batch Operations**: Multi-select for bulk actions
+
+**Search Capabilities**:
+- **Text Search**: Full-text search across descriptions and tags
+- **Metadata Search**: Filter by EXIF data, camera models, settings
+- **Face Search**: Find photos by person
+- **Location Search**: Geographic and place name search
+- **Date Range**: Flexible date filtering with presets
+- **AI Confidence**: Filter by AI processing confidence levels
+
+**User Interface**:
+- **Responsive Grid**: Adaptive layout for different screen sizes
+- **Thumbnail Generation**: Multiple sizes with smart cropping option
+- **Infinite Scroll**: Performance-optimized loading
+- **Quick Actions**: Hover/tap actions for common operations
+- **Keyboard Navigation**: Full keyboard accessibility
+- **Dark Mode**: Complete dark theme support
+
+**Performance Features**:
+- **Virtual Scrolling**: Handle large collections efficiently
+- **Image Optimization**: Progressive loading and caching
+- **Search Indexing**: Fast full-text search capabilities
+- **Filter Persistence**: Remember user preferences
+
+### 7. Dashboard and Analytics
+
+**Purpose**: Provide comprehensive insights into media collection and processing status.
+
+**Essential Statistics**:
+- **Tier Distribution**: Count and percentage by tier
+- **Storage Usage**: Breakdown by tier, year, media type
+- **Processing Status**: Items pending review, promotion
+- **Duplicate Statistics**: Detected and eliminated duplicates
+- **Import History**: Timeline of ingestion activity
+
+**Engaging Visualizations**:
+- **Activity Heatmap**: GitHub-style contribution calendar
+- **Geographic Map**: Interactive map with photo clusters
+- **Device Analytics**: Camera and device usage charts
+- **People Analytics**: Most photographed people, co-appearances
+- **Tag Cloud**: Frequency-based tag visualization
+- **Event Timeline**: Chronological event distribution
+
+**Nerdy Statistics**:
+- **Photo Streaks**: Longest consecutive days with photos
+- **Temporal Analysis**: Oldest/newest media, date ranges
+- **File Analysis**: Size distribution, format breakdown
+- **Location Insights**: Most photographed locations
+- **AI Performance**: Model usage, confidence distributions
+- **Processing Metrics**: Average processing times, success rates
+
+**Interactive Features**:
+- **Drill-Down Navigation**: Click charts to filter gallery
+- **Real-Time Updates**: Live data as processing occurs
+- **Export Capabilities**: Download reports and statistics
+- **Customizable Dashboard**: User-configurable widgets
+
+### 8. Face Recognition and People Management
+
+**Purpose**: Identify, group, and manage people across the photo collection.
+
+**Core Functionality**:
+- **Face Detection**: Automatic face detection in all images
+- **Face Clustering**: Group similar faces using embeddings
+- **Person Creation**: Manual and automatic person record creation
+- **Face Training**: User feedback to improve recognition accuracy
+- **Relationship Mapping**: Track people relationships and co-appearances
+
+**Technical Implementation**:
+- **Face Embeddings**: High-dimensional vectors for similarity matching
+- **Clustering Algorithms**: Configurable similarity thresholds
+- **Training Feedback**: User corrections improve future recognition
+- **Privacy Controls**: Opt-out options for face recognition
+
+**User Interface**:
+- **Face Grid**: Visual interface for face management
+- **Person Profiles**: Detailed person pages with all photos
+- **Training Interface**: Easy correction and confirmation tools
+- **Batch Assignment**: Bulk face-to-person assignments
+- **Relationship Visualization**: Network graphs of people connections
+
+### 9. Event Detection and Management
+
+**Purpose**: Automatically detect and manually manage events across the photo timeline.
+
+**Automatic Detection**:
+- **Holiday Recognition**: Major holidays based on dates
+- **Custom Events**: User-defined recurring events
+- **Time Clustering**: Group photos by temporal proximity
+- **Location Events**: Detect events by location patterns
+- **Activity Recognition**: AI-based activity and scene detection
+
+**Manual Management**:
+- **Event Creation**: Create custom events with date ranges
+- **Photo Assignment**: Assign photos to events manually
+- **Event Editing**: Modify event details and date ranges
+- **Event Hierarchy**: Parent-child event relationships
+- **Event Templates**: Reusable event patterns
+
+**Integration Features**:
+- **Calendar View**: Timeline visualization of events
+- **Event Statistics**: Analytics on event frequency and size
+- **Export Options**: Share events as albums or collections
+- **Search Integration**: Find photos by event quickly
+
+### 10. Collection and Album Management
+
+**Purpose**: Organize photos into meaningful groups beyond chronological order.
+
+**Collection Types**:
+- **Smart Collections**: Auto-updating based on criteria
+- **Manual Collections**: User-curated photo groups
+- **Similarity Collections**: AI-grouped similar photos
+- **Legacy Collections**: Imported photo albums
+- **Event Collections**: Event-based groupings
+
+**Management Features**:
+- **Collection Creation**: Multiple creation methods
+- **Photo Assignment**: Drag-and-drop and bulk operations
+- **Collection Editing**: Modify criteria and contents
+- **Sharing Options**: Export and share collections
+- **Collection Analytics**: Statistics on collection usage
+
+### 11. Advanced Configuration and Settings
+
+**Purpose**: Provide comprehensive configuration options for power users.
+
+**AI Configuration**:
+- **Provider Selection**: Choose between Ollama, OpenAI, others
+- **Model Selection**: Configure specific AI models
+- **Processing Options**: Batch sizes, concurrency limits
+- **Quality Settings**: Confidence thresholds, fallback behavior
+- **Feature Toggles**: Enable/disable specific AI features
+
+**Processing Configuration**:
+- **Naming Patterns**: Customize file naming schemes
+- **Organization**: Configure directory structures
+- **Batch Settings**: Adjust batch sizes and processing intervals
+- **Performance Tuning**: Memory limits, worker counts
+- **Caching Options**: Configure cache sizes and TTL
+
+**User Interface Configuration**:
+- **Theme Settings**: Dark/light mode, custom themes
+- **Layout Options**: Grid sizes, thumbnail preferences
+- **Default Filters**: Set default gallery filters
+- **Keyboard Shortcuts**: Customize hotkeys
+- **Accessibility**: Screen reader and navigation options
+
+### 12. Import and Export Capabilities
+
+**Purpose**: Enable data portability and integration with external systems.
+
+**Import Features**:
+- **Bulk Import**: Import existing photo collections
+- **Metadata Preservation**: Maintain existing EXIF/XMP data
+- **Duplicate Handling**: Smart duplicate detection during import
+- **Progress Tracking**: Visual progress for large imports
+- **Error Handling**: Graceful handling of problematic files
+
+**Export Features**:
+- **Selective Export**: Export filtered subsets of collection
+- **Metadata Options**: Choose embedded vs. sidecar metadata
+- **Format Options**: Original, processed, or multiple formats
+- **Batch Export**: Efficient bulk export operations
+- **Archive Creation**: Create portable archive packages
+
+### 13. Performance and Optimization Features
+
+**Purpose**: Ensure responsive performance across all operations.
+
+**Caching Strategy**:
+- **AI Result Caching**: Cache expensive AI operations
+- **Thumbnail Caching**: Multi-resolution thumbnail storage
+- **Metadata Caching**: Fast metadata retrieval
+- **Search Index Caching**: Optimized search performance
+
+**Async Processing**:
+- **Background Jobs**: Non-blocking long operations
+- **Progress Tracking**: Real-time progress updates
+- **Queue Management**: Prioritized job processing
+- **Error Recovery**: Automatic retry mechanisms
+
+**Database Optimization**:
+- **Indexing Strategy**: Optimized database indexes
+- **Query Optimization**: Efficient data retrieval
+- **Connection Pooling**: Database connection management
+- **Migration Support**: Schema evolution support
+
+### 14. Security and Privacy Features
+
+**Purpose**: Protect user data and provide privacy controls.
+
+**Access Control**:
+- **User Authentication**: Secure login system
+- **Role-Based Access**: Different permission levels
+- **Session Management**: Secure session handling
+- **API Security**: Protected API endpoints
+
+**Privacy Controls**:
+- **Face Recognition Opt-Out**: Disable face detection
+- **Data Anonymization**: Remove personal metadata
+- **Secure Storage**: Encrypted sensitive data
+- **Audit Logging**: Track all system access
+
+### 15. Monitoring and Maintenance
+
+**Purpose**: Provide system health monitoring and maintenance tools.
+
+**System Monitoring**:
+- **Health Checks**: System status endpoints
+- **Performance Metrics**: Response times, throughput
+- **Error Tracking**: Comprehensive error logging
+- **Resource Usage**: Memory, disk, CPU monitoring
+
+**Maintenance Tools**:
+- **Database Cleanup**: Remove orphaned records
+- **Cache Management**: Clear and rebuild caches
+- **File Integrity**: Verify file consistency
+- **Backup Verification**: Validate backup integrity
+
+## Technical Architecture Requirements
+
+### Backend Requirements
+- **Language**: Python with FastAPI framework
+- **Database**: PostgreSQL (production) / SQLite (development)
+- **ORM**: SQLModel for type-safe database operations
+- **Validation**: Pydantic for data validation and serialization
+- **AI Integration**: Ollama (primary) / OpenAI (fallback)
+- **Async Support**: Full async/await support for I/O operations
+- **Testing**: 90% minimum test coverage with pytest
+
+### Frontend Requirements
+- **Language**: TypeScript with React framework
+- **Build Tool**: Vite for fast development and building
+- **UI Library**: shadcn/ui components with Tailwind CSS
+- **State Management**: Zustand for application state
+- **API Client**: OpenAPI-generated client with openapi-fetch
+- **Testing**: Vitest for unit tests, Playwright for E2E
+- **Accessibility**: WCAG AA compliance
+
+### Infrastructure Requirements
+- **Containerization**: Docker for deployment
+- **File Storage**: Local filesystem with volume mounts
+- **Caching**: Redis for session and result caching
+- **Monitoring**: Health check endpoints and logging
+- **Backup**: Automated backup strategies
+
+## Data Flow Architecture
+
+### Ingestion Flow
+```
+Dropzone → File Detection → Duplicate Check → Metadata Extraction → Bronze Storage → Database Record → History Log
+```
+
+### Processing Flow
+```
+Bronze File → AI Analysis → Metadata Enrichment → Silver Storage → Database Update → Review Queue
+```
+
+### Review Flow
+```
+Silver File → User Review → Metadata Editing → Validation → Approval → Gold Eligibility
+```
+
+### Promotion Flow
+```
+Reviewed Silver → Metadata Embedding → Gold Storage → Database Update → Final Archive
+```
+
+## User Journey Specifications
+
+### Casual User Journey
+1. **Upload**: Drag photos to web interface
+2. **Automatic Processing**: System handles ingestion and AI processing
+3. **Simple Review**: Quick approval of AI suggestions
+4. **Browse**: Use gallery to view and search photos
+5. **Share**: Export collections or individual photos
+
+### Power User Journey
+1. **Bulk Import**: Import large existing collections
+2. **Advanced Configuration**: Customize AI settings and processing
+3. **Detailed Review**: Comprehensive metadata editing
+4. **Complex Organization**: Create custom collections and events
+5. **Analytics**: Use dashboard for collection insights
+6. **Batch Operations**: Perform bulk operations on large sets
+
+### Administrator Journey
+1. **System Setup**: Configure directories and AI providers
+2. **User Management**: Manage access and permissions
+3. **Performance Monitoring**: Track system health and usage
+4. **Maintenance**: Perform cleanup and optimization tasks
+5. **Backup Management**: Ensure data protection and recovery
+
+## Quality Assurance Requirements
+
+### Testing Strategy
+- **Unit Tests**: Test individual components in isolation
+- **Integration Tests**: Test component interactions
+- **End-to-End Tests**: Test complete user workflows
+- **Performance Tests**: Validate response times and throughput
+- **Accessibility Tests**: Ensure WCAG compliance
+
+### Performance Benchmarks
+- **Gallery Load**: < 2 seconds for 1000 items
+- **Search Response**: < 500ms for text queries
+- **AI Processing**: < 30 seconds per image
+- **File Upload**: Support for 100+ concurrent uploads
+- **Database Queries**: < 100ms for standard operations
+
+### Reliability Requirements
+- **Uptime**: 99.9% availability target
+- **Data Integrity**: Zero data loss tolerance
+- **Error Recovery**: Graceful handling of all error conditions
+- **Backup Recovery**: < 1 hour recovery time objective
+
+This comprehensive blueprint provides the foundation for rebuilding Pictallion in any programming language while maintaining all core functionality and user experience requirements.
