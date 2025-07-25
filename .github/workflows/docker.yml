@@ -44,8 +44,9 @@ jobs:
 
       - name: 🚀 Build Docker setup
         run: |
-          # FORCE CREATE CORRECT DOCKERFILE (no caching)
-          echo "🔄 Creating fresh Dockerfile..."
+          # COMPLETELY REMOVE ANY EXISTING DOCKER FILES
+          rm -f Dockerfile docker-compose.yml .dockerignore
+          echo "🔄 Creating completely fresh Dockerfile..."
           
           cat > Dockerfile << 'DOCKERFILE_EOF'
 # Multi-stage build for Pictallion
@@ -108,9 +109,32 @@ DOCKERFILE_EOF
           
           # Verify no client references
           if grep -q "client/" Dockerfile; then
-            echo "❌ Dockerfile contains client/ references"
+            echo "❌ Generated Dockerfile still contains client/ references"
+            echo "Content of generated Dockerfile:"
+            cat Dockerfile
             exit 1
           fi
+          
+          echo "✅ Dockerfile verified - no client/ references"
+          echo "First 20 lines of generated Dockerfile:"
+          head -20 Dockerfile
+          
+          # Also create .dockerignore to ensure clean build context
+          cat > .dockerignore << 'DOCKERIGNORE_EOF'
+node_modules
+.git
+.github
+*.tar.gz
+dist-package
+uploads
+data
+*.log
+.env
+.env.*
+!.env.example
+DOCKERIGNORE_EOF
+          
+          echo "✅ .dockerignore created"
 
       - name: 🏗️ Build Docker image
         uses: docker/build-push-action@v5
