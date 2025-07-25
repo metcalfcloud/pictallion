@@ -356,6 +356,99 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // People & Faces routes
+  app.get("/api/people", async (req, res) => {
+    try {
+      const people = await storage.getPeople();
+      
+      // Add face count and photo count to each person
+      const peopleWithStats = await Promise.all(
+        people.map(async (person) => {
+          const faces = await storage.getFacesByPerson(person.id);
+          const photoIds = [...new Set(faces.map(face => face.photoId))];
+          
+          return {
+            ...person,
+            faceCount: faces.length,
+            photoCount: photoIds.length,
+            coverPhoto: faces[0]?.photo?.filePath || null
+          };
+        })
+      );
+      
+      res.json(peopleWithStats);
+    } catch (error) {
+      console.error("Error fetching people:", error);
+      res.status(500).json({ message: "Failed to fetch people" });
+    }
+  });
+
+  app.post("/api/people", async (req, res) => {
+    try {
+      const person = await storage.createPerson(req.body);
+      res.json(person);
+    } catch (error) {
+      console.error("Error creating person:", error);
+      res.status(500).json({ message: "Failed to create person" });
+    }
+  });
+
+  app.get("/api/people/:id/photos", async (req, res) => {
+    try {
+      const photos = await storage.getPersonPhotos ? await storage.getPersonPhotos(req.params.id) : [];
+      res.json(photos);
+    } catch (error) {
+      console.error("Error fetching person photos:", error);
+      res.status(500).json({ message: "Failed to fetch person photos" });
+    }
+  });
+
+  app.get("/api/faces", async (req, res) => {
+    try {
+      const faces = await storage.getAllFaces();
+      
+      // Add photo information to each face
+      const facesWithPhotos = await Promise.all(
+        faces.map(async (face) => {
+          const photo = await storage.getFileVersion(face.photoId);
+          if (photo) {
+            const asset = await storage.getMediaAsset(photo.mediaAssetId);
+            return {
+              ...face,
+              photo: {
+                ...photo,
+                mediaAsset: asset
+              }
+            };
+          }
+          return face;
+        })
+      );
+      
+      res.json(facesWithPhotos);
+    } catch (error) {
+      console.error("Error fetching faces:", error);
+      res.status(500).json({ message: "Failed to fetch faces" });
+    }
+  });
+
+  app.post("/api/faces/assign", async (req, res) => {
+    try {
+      const { faceIds, personId } = req.body;
+      
+      for (const faceId of faceIds) {
+        if (storage.assignFaceToPerson) {
+          await storage.assignFaceToPerson(faceId, personId);
+        }
+      }
+      
+      res.json({ success: true, assigned: faceIds.length });
+    } catch (error) {
+      console.error("Error assigning faces:", error);
+      res.status(500).json({ message: "Failed to assign faces" });
+    }
+  });
+
   // Collections routes
   app.get("/api/collections", async (req, res) => {
     try {

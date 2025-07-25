@@ -304,6 +304,26 @@ export class DatabaseStorage implements IStorage {
       .set({ personId })
       .where(eq(faces.id, faceId));
   }
+
+  async assignFaceToPerson(faceId: string, personId: string): Promise<void> {
+    await this.linkFaceToPerson(faceId, personId);
+  }
+
+  async getPersonPhotos(personId: string): Promise<Array<FileVersion & { mediaAsset: MediaAsset }>> {
+    const personFaces = await this.getFacesByPerson(personId);
+    const photoIds = [...new Set(personFaces.map(face => face.photoId))];
+    
+    const photos = [];
+    for (const photoId of photoIds) {
+      const photo = await this.getFileVersion(photoId);
+      if (photo) {
+        const asset = await this.getMediaAsset(photo.mediaAssetId);
+        photos.push({ ...photo, mediaAsset: asset });
+      }
+    }
+    
+    return photos;
+  }
 }
 
 export const storage = new DatabaseStorage();

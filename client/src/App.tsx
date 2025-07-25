@@ -7,6 +7,7 @@ import Dashboard from "@/pages/dashboard";
 import Gallery from "@/pages/gallery";
 import Upload from "@/pages/upload";
 import Collections from "@/pages/collections";
+import People from "@/pages/people";
 import NotFound from "@/pages/not-found";
 import Sidebar from "@/components/sidebar";
 
@@ -21,6 +22,7 @@ function Router() {
           <Route path="/gallery" component={Gallery} />
           <Route path="/upload" component={Upload} />
           <Route path="/collections" component={Collections} />
+          <Route path="/people" component={People} />
           <Route component={NotFound} />
         </Switch>
       </main>

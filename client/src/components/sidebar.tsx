@@ -9,7 +9,8 @@ import {
   Settings, 
   Search,
   Bell,
-  Brain
+  Brain,
+  Users
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
@@ -22,6 +23,7 @@ const navigationItems = [
   { path: "/gallery", label: "Gallery", icon: Images },
   { path: "/upload", label: "Upload", icon: Upload },
   { path: "/collections", label: "Collections", icon: Images },
+  { path: "/people", label: "People & Faces", icon: Users },
   { path: "/search", label: "Search", icon: Search },
 ];
 
