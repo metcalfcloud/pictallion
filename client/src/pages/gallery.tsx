@@ -4,9 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
-import { Search, Grid, List, Filter, Bot, Star, Eye } from "lucide-react";
+import { Search, Grid, List, Filter, Bot, Star, Eye, CheckSquare, Square, MoreHorizontal } from "lucide-react";
 import PhotoGrid from "@/components/photo-grid";
 import PhotoDetailModal from "@/components/photo-detail-modal";
+import AdvancedSearch from "@/components/advanced-search";
+import BatchOperations from "@/components/batch-operations";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -17,6 +19,23 @@ export default function Gallery() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [tierFilter, setTierFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedPhotos, setSelectedPhotos] = useState<string[]>([]);
+  const [showBatchOperations, setShowBatchOperations] = useState(false);
+  const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
+  const [searchFilters, setSearchFilters] = useState({
+    query: '',
+    tier: [],
+    dateRange: {},
+    camera: '',
+    tags: [],
+    location: '',
+    aiConfidence: [0, 100],
+    fileType: [],
+    fileSize: [0, 100],
+    hasGPS: false,
+    hasFaces: false,
+    people: []
+  });
   const queryClient = useQueryClient();
   const { toast } = useToast();
 

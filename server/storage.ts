@@ -3,6 +3,10 @@ import {
   mediaAssets, 
   fileVersions, 
   assetHistory,
+  collections,
+  collectionPhotos,
+  people,
+  faces,
   type User, 
   type InsertUser,
   type MediaAsset,
@@ -10,7 +14,14 @@ import {
   type FileVersion,
   type InsertFileVersion,
   type AssetHistory,
-  type InsertAssetHistory
+  type InsertAssetHistory,
+  type Collection,
+  type InsertCollection,
+  type InsertCollectionPhoto,
+  type Person,
+  type InsertPerson,
+  type Face,
+  type InsertFace
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, count, sql } from "drizzle-orm";
@@ -53,6 +64,21 @@ export interface IStorage {
   
   // Recent photos with metadata
   getRecentPhotos(limit?: number): Promise<Array<FileVersion & { mediaAsset: MediaAsset }>>;
+
+  // Collections methods
+  createCollection(collection: InsertCollection): Promise<Collection>;
+  getCollections(): Promise<Collection[]>;
+  getCollection(id: string): Promise<Collection | undefined>;
+  addPhotoToCollection(collectionId: string, photoId: string): Promise<void>;
+  getCollectionPhotos(collectionId: string): Promise<Array<FileVersion & { mediaAsset: MediaAsset }>>;
+
+  // People & Faces methods
+  createPerson(person: InsertPerson): Promise<Person>;
+  getPeople(): Promise<Person[]>;
+  createFace(face: InsertFace): Promise<Face>;
+  getAllFaces(): Promise<Face[]>;
+  getFacesByPerson(personId: string): Promise<Face[]>;
+  linkFaceToPerson(faceId: string, personId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -201,6 +227,82 @@ export class DatabaseStorage implements IStorage {
       ...result.file_versions,
       mediaAsset: result.media_assets!
     }));
+  }
+
+  // Collections methods
+  async createCollection(collection: InsertCollection): Promise<Collection> {
+    const [newCollection] = await db
+      .insert(collections)
+      .values(collection)
+      .returning();
+    return newCollection;
+  }
+
+  async getCollections(): Promise<Collection[]> {
+    return await db.select().from(collections).orderBy(desc(collections.createdAt));
+  }
+
+  async getCollection(id: string): Promise<Collection | undefined> {
+    const [collection] = await db.select().from(collections).where(eq(collections.id, id));
+    return collection || undefined;
+  }
+
+  async addPhotoToCollection(collectionId: string, photoId: string): Promise<void> {
+    await db.insert(collectionPhotos).values({
+      collectionId,
+      photoId,
+    });
+  }
+
+  async getCollectionPhotos(collectionId: string): Promise<Array<FileVersion & { mediaAsset: MediaAsset }>> {
+    const photos = await db
+      .select()
+      .from(collectionPhotos)
+      .leftJoin(fileVersions, eq(collectionPhotos.photoId, fileVersions.id))
+      .leftJoin(mediaAssets, eq(fileVersions.mediaAssetId, mediaAssets.id))
+      .where(eq(collectionPhotos.collectionId, collectionId))
+      .orderBy(desc(collectionPhotos.addedAt));
+
+    return photos.map(row => ({
+      ...row.file_versions!,
+      mediaAsset: row.media_assets!,
+    }));
+  }
+
+  // People & Faces methods
+  async createPerson(person: InsertPerson): Promise<Person> {
+    const [newPerson] = await db
+      .insert(people)
+      .values(person)
+      .returning();
+    return newPerson;
+  }
+
+  async getPeople(): Promise<Person[]> {
+    return await db.select().from(people).orderBy(desc(people.createdAt));
+  }
+
+  async createFace(face: InsertFace): Promise<Face> {
+    const [newFace] = await db
+      .insert(faces)
+      .values(face)
+      .returning();
+    return newFace;
+  }
+
+  async getAllFaces(): Promise<Face[]> {
+    return await db.select().from(faces);
+  }
+
+  async getFacesByPerson(personId: string): Promise<Face[]> {
+    return await db.select().from(faces).where(eq(faces.personId, personId));
+  }
+
+  async linkFaceToPerson(faceId: string, personId: string): Promise<void> {
+    await db
+      .update(faces)
+      .set({ personId })
+      .where(eq(faces.id, faceId));
   }
 }
 

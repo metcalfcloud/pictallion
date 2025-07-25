@@ -20,6 +20,7 @@ const navigationItems = [
   { path: "/dashboard", label: "Dashboard", icon: ChartLine },
   { path: "/gallery", label: "Gallery", icon: Images },
   { path: "/upload", label: "Upload", icon: Upload },
+  { path: "/collections", label: "Collections", icon: Images },
   { path: "/search", label: "Search", icon: Search },
 ];
 

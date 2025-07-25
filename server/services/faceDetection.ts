@@ -70,8 +70,8 @@ class FaceDetectionService {
     const similarFaces: string[] = [];
     
     for (const face of allFaces) {
-      if (face.embedding) {
-        const similarity = this.calculateSimilarity(faceEmbedding, face.embedding);
+      if (face.embedding && Array.isArray(face.embedding)) {
+        const similarity = this.calculateSimilarity(faceEmbedding, face.embedding as number[]);
         if (similarity > threshold) {
           similarFaces.push(face.id);
         }
@@ -117,7 +117,7 @@ class FaceDetectionService {
 
   async getPersonPhotos(personId: string): Promise<any[]> {
     const faces = await storage.getFacesByPerson(personId);
-    const photoIds = [...new Set(faces.map(face => face.photoId))];
+    const photoIds = Array.from(new Set(faces.map(face => face.photoId)));
     
     const photos = [];
     for (const photoId of photoIds) {

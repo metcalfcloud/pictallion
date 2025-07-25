@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import Dashboard from "@/pages/dashboard";
 import Gallery from "@/pages/gallery";
 import Upload from "@/pages/upload";
+import Collections from "@/pages/collections";
 import NotFound from "@/pages/not-found";
 import Sidebar from "@/components/sidebar";
 
@@ -19,6 +20,7 @@ function Router() {
           <Route path="/dashboard" component={Dashboard} />
           <Route path="/gallery" component={Gallery} />
           <Route path="/upload" component={Upload} />
+          <Route path="/collections" component={Collections} />
           <Route component={NotFound} />
         </Switch>
       </main>

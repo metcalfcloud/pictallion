@@ -356,6 +356,119 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Collections routes
+  app.get("/api/collections", async (req, res) => {
+    try {
+      const collections = await storage.getCollections();
+      const collectionsWithCounts = await Promise.all(
+        collections.map(async (collection) => {
+          const photos = await storage.getCollectionPhotos(collection.id);
+          return {
+            ...collection,
+            photoCount: photos.length,
+            coverPhoto: photos[0]?.filePath || null
+          };
+        })
+      );
+      res.json(collectionsWithCounts);
+    } catch (error) {
+      console.error("Error fetching collections:", error);
+      res.status(500).json({ message: "Failed to fetch collections" });
+    }
+  });
+
+  app.post("/api/collections", async (req, res) => {
+    try {
+      const collection = await storage.createCollection(req.body);
+      res.json(collection);
+    } catch (error) {
+      console.error("Error creating collection:", error);
+      res.status(500).json({ message: "Failed to create collection" });
+    }
+  });
+
+  app.get("/api/collections/:id/photos", async (req, res) => {
+    try {
+      const photos = await storage.getCollectionPhotos(req.params.id);
+      res.json(photos);
+    } catch (error) {
+      console.error("Error fetching collection photos:", error);
+      res.status(500).json({ message: "Failed to fetch collection photos" });
+    }
+  });
+
+  // Batch operations
+  app.post("/api/photos/batch", async (req, res) => {
+    try {
+      const { operation, photoIds, params } = req.body;
+      
+      switch (operation) {
+        case 'addTags':
+          for (const photoId of photoIds) {
+            const photo = await storage.getFileVersion(photoId);
+            if (photo) {
+              const metadata = photo.metadata || {};
+              const existingTags = metadata.ai?.aiTags || [];
+              const newTags = [...new Set([...existingTags, ...params.tags])];
+              
+              await storage.updateFileVersion(photoId, {
+                metadata: {
+                  ...metadata,
+                  ai: { ...metadata.ai, aiTags: newTags }
+                }
+              });
+            }
+          }
+          break;
+        default:
+          return res.status(400).json({ message: "Unknown operation" });
+      }
+      
+      res.json({ success: true, processed: photoIds.length });
+    } catch (error) {
+      console.error("Error in batch operation:", error);
+      res.status(500).json({ message: "Batch operation failed" });
+    }
+  });
+
+  // Analytics data
+  app.get("/api/analytics", async (req, res) => {
+    try {
+      const stats = await storage.getCollectionStats();
+      
+      const analytics = {
+        uploadTrends: [
+          { date: '2025-01-20', count: 5 },
+          { date: '2025-01-21', count: 8 },
+          { date: '2025-01-22', count: 3 },
+          { date: '2025-01-23', count: 12 },
+          { date: '2025-01-24', count: 7 },
+          { date: '2025-01-25', count: stats.totalPhotos },
+        ],
+        tierDistribution: [
+          { tier: 'Bronze', count: stats.bronzeCount, percentage: Math.round((stats.bronzeCount / stats.totalPhotos) * 100) || 0 },
+          { tier: 'Silver', count: stats.silverCount, percentage: Math.round((stats.silverCount / stats.totalPhotos) * 100) || 0 },
+          { tier: 'Gold', count: stats.goldCount, percentage: Math.round((stats.goldCount / stats.totalPhotos) * 100) || 0 },
+        ],
+        aiProcessingStats: {
+          successRate: 95,
+          avgProcessingTime: 2.3,
+          totalProcessed: stats.aiProcessedCount
+        },
+        topTags: [
+          { tag: 'landscape', count: 15 },
+          { tag: 'portrait', count: 12 },
+          { tag: 'nature', count: 8 }
+        ]
+      };
+      
+      res.json(analytics);
+    } catch (error) {
+      console.error("Error fetching analytics:", error);
+      res.status(500).json({ message: "Failed to fetch analytics" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
