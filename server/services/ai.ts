@@ -1,5 +1,6 @@
 import fs from "fs/promises";
 import path from "path";
+import sharp from "sharp";
 import type { AIMetadata } from "@shared/schema";
 
 // AI Provider configuration
@@ -164,17 +165,22 @@ Rules:
             "aiTags": ["tag1", "tag2", "tag3", "tag4", "tag5"],
             "shortDescription": "Brief description under 100 characters",
             "longDescription": "Detailed description of the image content, scene, mood, and notable aspects",
-            "detectedObjects": [{"name": "object_name", "confidence": 0.95}],
+            "detectedObjects": [{"name": "object_name", "confidence": 0.95, "boundingBox": [x,y,w,h]}],
+            "detectedFaces": [{"faceId": "uuid", "personName": null, "confidence": 0.95, "boundingBox": [x,y,w,h]}],
+            "detectedEvents": [{"eventType": "holiday", "eventName": "Christmas", "confidence": 0.9}],
             "placeName": "Location or place name if identifiable",
-            "aiConfidenceScores": {"tags": 0.9, "description": 0.85, "objects": 0.8, "place": 0.7}
-          }`
+            "gpsCoordinates": {"latitude": 40.7128, "longitude": -74.0060},
+            "aiConfidenceScores": {"tags": 0.9, "description": 0.85, "objects": 0.8, "faces": 0.7, "events": 0.6, "place": 0.7}
+          }
+          
+          For events, detect holidays (Christmas, Halloween, Birthday, New Year), celebrations (wedding, graduation, party), activities (vacation, sports, concert), and life events. For faces, generate unique IDs but leave personName null (will be assigned later).`
         },
         {
           role: "user",
           content: [
             {
               type: "text",
-              text: "Analyze this image and provide detailed metadata in the specified JSON format."
+              text: "Analyze this image and provide comprehensive metadata in the specified JSON format. Focus on accurate object detection, face detection, event recognition, and location identification if possible."
             },
             {
               type: "image_url",
@@ -184,21 +190,30 @@ Rules:
         },
       ],
       response_format: { type: "json_object" },
-      max_tokens: 1000,
+      max_tokens: 1500,
     });
 
     const aiResult = JSON.parse(response.choices[0].message.content || '{}');
+
+    // Generate perceptual hash for similarity detection
+    const perceptualHash = await this.generatePerceptualHash(imagePath);
 
     return {
       aiTags: Array.isArray(aiResult.aiTags) ? aiResult.aiTags.slice(0, 8) : [],
       shortDescription: aiResult.shortDescription || "OpenAI analysis unavailable",
       longDescription: aiResult.longDescription || "Detailed OpenAI analysis unavailable for this image.",
       detectedObjects: Array.isArray(aiResult.detectedObjects) ? aiResult.detectedObjects : [],
+      detectedFaces: Array.isArray(aiResult.detectedFaces) ? aiResult.detectedFaces : [],
+      detectedEvents: Array.isArray(aiResult.detectedEvents) ? aiResult.detectedEvents : [],
       placeName: aiResult.placeName || undefined,
+      gpsCoordinates: aiResult.gpsCoordinates || undefined,
+      perceptualHash: perceptualHash,
       aiConfidenceScores: aiResult.aiConfidenceScores || {
         tags: 0.8,
         description: 0.8,
         objects: 0.7,
+        faces: 0.7,
+        events: 0.6,
         place: 0.6
       }
     };
@@ -244,13 +259,77 @@ Rules:
       shortDescription,
       longDescription: "Basic metadata generated from filename. AI analysis requires Ollama to be running locally with a vision model like llava:latest.",
       detectedObjects: [],
+      detectedFaces: [],
+      detectedEvents: [],
+      placeName: undefined,
+      gpsCoordinates: undefined,
+      perceptualHash: await this.generatePerceptualHash(imagePath),
       aiConfidenceScores: {
         tags: 0.3,
         description: 0.2,
         objects: 0.0,
+        faces: 0.0,
+        events: 0.0,
         place: 0.0
       }
     };
+  }
+
+  /**
+   * Generate perceptual hash for visual similarity detection
+   */
+  async generatePerceptualHash(imagePath: string): Promise<string> {
+    try {
+      const fullPath = path.join(process.cwd(), 'data', imagePath);
+      
+      // Resize image to 8x8 grayscale and get average pixel value
+      const { data, info } = await sharp(fullPath)
+        .resize(8, 8)
+        .greyscale()
+        .raw()
+        .toBuffer({ resolveWithObject: true });
+      
+      // Calculate average pixel value
+      const totalPixels = data.length;
+      let sum = 0;
+      for (let i = 0; i < totalPixels; i++) {
+        sum += data[i];
+      }
+      const average = sum / totalPixels;
+      
+      // Generate hash: 1 if pixel > average, 0 otherwise
+      let hash = '';
+      for (let i = 0; i < totalPixels; i++) {
+        hash += data[i] > average ? '1' : '0';
+      }
+      
+      // Convert binary string to hex for compact storage
+      let hexHash = '';
+      for (let i = 0; i < hash.length; i += 4) {
+        const binary = hash.substring(i, i + 4);
+        hexHash += parseInt(binary, 2).toString(16);
+      }
+      
+      return hexHash;
+    } catch (error) {
+      console.error("Failed to generate perceptual hash:", error);
+      return "0000000000000000"; // fallback hash
+    }
+  }
+
+  /**
+   * Calculate Hamming distance between two perceptual hashes (similarity measure)
+   */
+  calculateHashSimilarity(hash1: string, hash2: string): number {
+    if (hash1.length !== hash2.length) return 0;
+    
+    let differences = 0;
+    for (let i = 0; i < hash1.length; i++) {
+      if (hash1[i] !== hash2[i]) differences++;
+    }
+    
+    // Return similarity as percentage (0-100)
+    return Math.round((1 - differences / hash1.length) * 100);
   }
 
   async generateTags(description: string, preferredProvider?: AIProvider): Promise<string[]> {

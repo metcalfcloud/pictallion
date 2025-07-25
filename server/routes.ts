@@ -7,6 +7,8 @@ import crypto from "crypto";
 import { storage } from "./storage";
 import { aiService, AIProvider } from "./services/ai";
 import { fileManager } from "./services/fileManager.js";
+import { advancedSearch } from "./services/advancedSearch";
+import { metadataEmbedding } from "./services/metadataEmbedding";
 
 // Similarity detection function
 async function findSimilarPhotos(photos: any[]): Promise<any[]> {
@@ -652,6 +654,132 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching analytics:", error);
       res.status(500).json({ message: "Failed to fetch analytics" });
+    }
+  });
+
+  // Advanced search endpoint
+  app.post("/api/photos/search", async (req, res) => {
+    try {
+      const { filters = {}, sort = { field: 'createdAt', direction: 'desc' }, limit = 50, offset = 0 } = req.body;
+      
+      const results = await advancedSearch.searchPhotos(filters, sort, limit, offset);
+      res.json(results);
+    } catch (error) {
+      console.error("Error in advanced search:", error);
+      res.status(500).json({ message: "Search failed" });
+    }
+  });
+
+  // Find similar photos
+  app.get("/api/photos/:id/similar", async (req, res) => {
+    try {
+      const { threshold = 85, limit = 20 } = req.query;
+      const similarPhotos = await advancedSearch.findSimilarPhotos(
+        req.params.id, 
+        Number(threshold), 
+        Number(limit)
+      );
+      res.json(similarPhotos);
+    } catch (error) {
+      console.error("Error finding similar photos:", error);
+      res.status(500).json({ message: "Failed to find similar photos" });
+    }
+  });
+
+  // Update photo rating
+  app.patch("/api/photos/:id/rating", async (req, res) => {
+    try {
+      const { rating } = req.body;
+      if (rating < 0 || rating > 5) {
+        return res.status(400).json({ message: "Rating must be between 0 and 5" });
+      }
+
+      await storage.updateFileVersion(req.params.id, { rating });
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error updating rating:", error);
+      res.status(500).json({ message: "Failed to update rating" });
+    }
+  });
+
+  // Update photo metadata
+  app.patch("/api/photos/:id/metadata", async (req, res) => {
+    try {
+      const { keywords, eventType, eventName, location } = req.body;
+      
+      const updates: any = {};
+      if (keywords !== undefined) updates.keywords = keywords;
+      if (eventType !== undefined) updates.eventType = eventType;
+      if (eventName !== undefined) updates.eventName = eventName;
+      if (location !== undefined) updates.location = location;
+
+      await storage.updateFileVersion(req.params.id, updates);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error updating metadata:", error);
+      res.status(500).json({ message: "Failed to update metadata" });
+    }
+  });
+
+  // Embed metadata to file (Gold tier promotion)
+  app.post("/api/photos/:id/embed-metadata", async (req, res) => {
+    try {
+      const photo = await storage.getFileVersion(req.params.id);
+      if (!photo) {
+        return res.status(404).json({ message: "Photo not found" });
+      }
+
+      if (photo.tier !== 'silver') {
+        return res.status(400).json({ message: "Only Silver tier photos can be promoted to Gold" });
+      }
+
+      // Embed metadata and create Gold version
+      const goldPath = await metadataEmbedding.embedMetadataToFile(
+        photo,
+        photo.metadata || {},
+        { preserveOriginal: true }
+      );
+
+      // Create Gold file version
+      const goldVersion = await storage.createFileVersion({
+        mediaAssetId: photo.mediaAssetId,
+        tier: 'gold',
+        filePath: goldPath,
+        fileHash: photo.fileHash,
+        fileSize: photo.fileSize,
+        mimeType: photo.mimeType,
+        metadata: photo.metadata,
+        isReviewed: photo.isReviewed,
+        rating: photo.rating,
+        keywords: photo.keywords,
+        location: photo.location,
+        eventType: photo.eventType,
+        eventName: photo.eventName,
+        perceptualHash: photo.perceptualHash,
+      });
+
+      // Log promotion
+      await storage.createAssetHistory({
+        mediaAssetId: photo.mediaAssetId,
+        action: 'PROMOTED_TO_GOLD',
+        details: 'Photo promoted to Gold tier with embedded metadata',
+      });
+
+      res.json({ success: true, goldVersion });
+    } catch (error) {
+      console.error("Error embedding metadata:", error);
+      res.status(500).json({ message: "Failed to embed metadata" });
+    }
+  });
+
+  // Update smart collections
+  app.post("/api/collections/smart/update", async (req, res) => {
+    try {
+      await advancedSearch.updateSmartCollections();
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error updating smart collections:", error);
+      res.status(500).json({ message: "Failed to update smart collections" });
     }
   });
 

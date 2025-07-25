@@ -26,6 +26,12 @@ export const fileVersions = pgTable("file_versions", {
   mimeType: text("mime_type").notNull(),
   metadata: jsonb("metadata"),
   isReviewed: boolean("is_reviewed").default(false),
+  rating: integer("rating").default(0), // 0-5 star rating
+  keywords: text("keywords").array().default(sql`'{}'`), // searchable keywords
+  location: text("location"), // GPS coordinates or place name
+  eventType: text("event_type"), // holiday, birthday, vacation, etc.
+  eventName: text("event_name"), // specific event name
+  perceptualHash: text("perceptual_hash"), // for visual similarity detection
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -43,6 +49,8 @@ export const collections = pgTable("collections", {
   description: text("description"),
   isPublic: boolean("is_public").default(false),
   coverPhoto: text("cover_photo"),
+  isSmartCollection: boolean("is_smart_collection").default(false),
+  smartRules: jsonb("smart_rules"), // JSON rules for auto-updating collections
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -191,7 +199,23 @@ export interface AIMetadata {
     confidence: number;
     boundingBox?: [number, number, number, number];
   }>;
+  detectedFaces?: Array<{
+    faceId: string;
+    personName?: string;
+    confidence: number;
+    boundingBox: [number, number, number, number];
+  }>;
+  detectedEvents?: Array<{
+    eventType: string;
+    eventName: string;
+    confidence: number;
+  }>;
   placeName?: string;
+  gpsCoordinates?: {
+    latitude: number;
+    longitude: number;
+  };
+  perceptualHash?: string;
   aiConfidenceScores: Record<string, number>;
 }
 
@@ -210,4 +234,16 @@ export interface ExifMetadata {
 export interface CombinedMetadata {
   exif?: ExifMetadata;
   ai?: AIMetadata;
+}
+
+// Smart Collection Rules
+export interface SmartCollectionRule {
+  field: string; // rating, keywords, eventType, location, etc.
+  operator: 'equals' | 'contains' | 'greater_than' | 'less_than' | 'between' | 'in';
+  value: any;
+}
+
+export interface SmartCollectionRules {
+  rules: SmartCollectionRule[];
+  operator: 'AND' | 'OR'; // how to combine multiple rules
 }

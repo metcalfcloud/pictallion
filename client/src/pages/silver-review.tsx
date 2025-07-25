@@ -1,470 +1,709 @@
-import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLocation, Link } from "wouter";
+import { ChevronLeft, ChevronRight, Star, Tag, MapPin, Calendar, Camera, Eye, ThumbsUp, ThumbsDown, Upload, Search, Filter, RotateCcw, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
-
-import { 
-  Eye, 
-  Edit, 
-  Crown, 
-  CheckCircle, 
-  XCircle,
-  Star,
-  Copy,
-  Calendar,
-  Camera,
-  MapPin,
-  Tag,
-  Zap,
-  Users,
-  Image,
-  MoreHorizontal,
-  Shuffle
-} from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { RatingSystem, QuickRating } from "@/components/rating-system";
+import { AdvancedSearch } from "@/components/advanced-search";
+import type { SearchFilters } from "@/components/advanced-search";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 interface Photo {
   id: string;
-  mediaAssetId: string;
-  tier: string;
+  tier: 'bronze' | 'silver' | 'gold';
   filePath: string;
+  mimeType: string;
+  fileSize: number;
   metadata: any;
   isReviewed: boolean;
+  rating?: number;
+  keywords?: string[];
+  location?: string;
+  eventType?: string;
+  eventName?: string;
+  perceptualHash?: string;
   createdAt: string;
   mediaAsset: {
+    id: string;
     originalFilename: string;
   };
 }
 
-interface SimilarGroup {
-  photos: Photo[];
-  similarityScore: number;
-  suggested: Photo;
-}
-
-export default function SilverReviewPage() {
-  const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
-  const [viewMode, setViewMode] = useState<'grid' | 'similarity'>('grid');
-  const [filterReviewed, setFilterReviewed] = useState<'all' | 'reviewed' | 'unreviewed'>('unreviewed');
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editingMetadata, setEditingMetadata] = useState<any>({});
-  
-  const queryClient = useQueryClient();
+export default function SilverReview() {
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
-
-  const { data: silverPhotos = [], isLoading: photosLoading } = useQuery<Photo[]>({
-    queryKey: ["/api/photos", { tier: "silver" }],
-  });
-
-  const { data: similarGroups = [], isLoading: similarityLoading } = useQuery<SimilarGroup[]>({
-    queryKey: ["/api/photos/similarity", { tier: "silver" }],
-    enabled: viewMode === 'similarity',
-  });
-
-  const updatePhotoMutation = useMutation({
-    mutationFn: async ({ photoId, updates }: { photoId: string; updates: any }) => {
-      const response = await fetch(`/api/photos/${photoId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updates),
+  const queryClient = useQueryClient();
+  
+  const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(0);
+  const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
+  const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = useState(false);
+  const [searchFilters, setSearchFilters] = useState<SearchFilters>({ tier: 'silver' });
+  const [showOnlyUnreviewed, setShowOnlyUnreviewed] = useState(true);
+  
+  // Fetch photos with advanced search
+  const { data: searchResults, isLoading, refetch } = useQuery({
+    queryKey: ['/api/photos/search', searchFilters, showOnlyUnreviewed],
+    queryFn: async () => {
+      const filters = {
+        ...searchFilters,
+        tier: 'silver' as const,
+        isReviewed: showOnlyUnreviewed ? false : undefined
+      };
+      
+      return await apiRequest('/api/photos/search', {
+        method: 'POST',
+        body: { filters, limit: 100 }
       });
-      if (!response.ok) throw new Error('Failed to update photo');
-      return response.json();
+    }
+  });
+
+  const photos = searchResults?.photos || [];
+  const selectedPhoto = photos[selectedPhotoIndex];
+
+  // Navigation handlers
+  const goToPrevious = () => {
+    setSelectedPhotoIndex(prev => prev > 0 ? prev - 1 : photos.length - 1);
+  };
+
+  const goToNext = () => {
+    setSelectedPhotoIndex(prev => prev < photos.length - 1 ? prev + 1 : 0);
+  };
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      
+      switch (e.key) {
+        case 'ArrowLeft':
+        case 'a':
+          e.preventDefault();
+          goToPrevious();
+          break;
+        case 'ArrowRight':
+        case 'd':
+          e.preventDefault();
+          goToNext();
+          break;
+        case 'r':
+          e.preventDefault();
+          markAsReviewed();
+          break;
+        case '1':
+        case '2':
+        case '3':
+        case '4':
+        case '5':
+          e.preventDefault();
+          updateRating(parseInt(e.key));
+          break;
+        case 'p':
+          e.preventDefault();
+          promoteToGold();
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [selectedPhoto]);
+
+  // Update rating mutation
+  const updateRatingMutation = useMutation({
+    mutationFn: async ({ photoId, rating }: { photoId: string; rating: number }) => {
+      return await apiRequest(`/api/photos/${photoId}/rating`, {
+        method: 'PATCH',
+        body: { rating }
+      });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/photos"] });
-      setIsEditModalOpen(false);
-      toast({ title: "Photo updated successfully" });
-    },
-    onError: () => {
-      toast({ title: "Failed to update photo", variant: "destructive" });
-    },
+      queryClient.invalidateQueries({ queryKey: ['/api/photos/search'] });
+      toast({ title: "Rating updated successfully" });
+    }
   });
 
+  // Update metadata mutation
+  const updateMetadataMutation = useMutation({
+    mutationFn: async ({ photoId, metadata }: { photoId: string; metadata: any }) => {
+      return await apiRequest(`/api/photos/${photoId}/metadata`, {
+        method: 'PATCH',
+        body: metadata
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/photos/search'] });
+      toast({ title: "Metadata updated successfully" });
+    }
+  });
+
+  // Mark as reviewed mutation
+  const markReviewedMutation = useMutation({
+    mutationFn: async (photoId: string) => {
+      return await apiRequest(`/api/photos/${photoId}/metadata`, {
+        method: 'PATCH',
+        body: { isReviewed: true }
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/photos/search'] });
+      if (showOnlyUnreviewed && selectedPhotoIndex >= photos.length - 1) {
+        setSelectedPhotoIndex(0);
+      }
+      toast({ title: "Photo marked as reviewed" });
+    }
+  });
+
+  // Promote to gold mutation
   const promoteToGoldMutation = useMutation({
     mutationFn: async (photoId: string) => {
-      const response = await fetch(`/api/photos/${photoId}/promote`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      return await apiRequest(`/api/photos/${photoId}/embed-metadata`, {
+        method: 'POST'
       });
-      if (!response.ok) throw new Error('Failed to promote photo');
-      return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/photos"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
-      toast({ 
-        title: "Promoted to Gold", 
-        description: "Photo has been promoted to Gold tier with finalized metadata." 
-      });
-    },
-    onError: () => {
-      toast({ title: "Failed to promote photo", variant: "destructive" });
-    },
+      queryClient.invalidateQueries({ queryKey: ['/api/photos/search'] });
+      toast({ title: "Photo promoted to Gold tier with embedded metadata!" });
+      goToNext();
+    }
   });
 
-  const batchPromoteMutation = useMutation({
-    mutationFn: async (photoIds: string[]) => {
-      const response = await fetch(`/api/photos/batch-promote`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ photoIds }),
-      });
-      if (!response.ok) throw new Error('Failed to batch promote photos');
-      return response.json();
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/photos"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
-      toast({ 
-        title: "Batch Promotion Complete", 
-        description: `${data.promoted} photos promoted to Gold tier.` 
-      });
-    },
-  });
-
-  const filteredPhotos = silverPhotos.filter(photo => {
-    if (filterReviewed === 'reviewed') return photo.isReviewed;
-    if (filterReviewed === 'unreviewed') return !photo.isReviewed;
-    return true;
-  });
-
-  const handleEditMetadata = (photo: Photo) => {
-    setSelectedPhoto(photo);
-    setEditingMetadata(photo.metadata || {});
-    setIsEditModalOpen(true);
-  };
-
-  const handleSaveMetadata = () => {
+  // Helper functions
+  const updateRating = (rating: number) => {
     if (!selectedPhoto) return;
+    updateRatingMutation.mutate({ photoId: selectedPhoto.id, rating });
+  };
+
+  const updateMetadata = (metadata: any) => {
+    if (!selectedPhoto) return;
+    updateMetadataMutation.mutate({ photoId: selectedPhoto.id, metadata });
+  };
+
+  const markAsReviewed = () => {
+    if (!selectedPhoto) return;
+    markReviewedMutation.mutate(selectedPhoto.id);
+  };
+
+  const promoteToGold = () => {
+    if (!selectedPhoto) return;
+    promoteToGoldMutation.mutate(selectedPhoto.id);
+  };
+
+  const togglePhotoSelection = (photoId: string) => {
+    const newSelected = new Set(selectedPhotos);
+    if (newSelected.has(photoId)) {
+      newSelected.delete(photoId);
+    } else {
+      newSelected.add(photoId);
+    }
+    setSelectedPhotos(newSelected);
+  };
+
+  const batchPromote = async () => {
+    if (selectedPhotos.size === 0) return;
     
-    updatePhotoMutation.mutate({
-      photoId: selectedPhoto.id,
-      updates: { 
-        metadata: editingMetadata,
-        isReviewed: true 
+    try {
+      for (const photoId of Array.from(selectedPhotos)) {
+        await promoteToGoldMutation.mutateAsync(photoId);
       }
-    });
+      setSelectedPhotos(new Set());
+      toast({ title: `${selectedPhotos.size} photos promoted to Gold tier!` });
+    } catch (error) {
+      toast({ title: "Error promoting photos", variant: "destructive" });
+    }
   };
 
-  const handlePromotePhoto = (photoId: string) => {
-    promoteToGoldMutation.mutate(photoId);
-  };
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <Sparkles className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-500" />
+          <p>Loading Silver tier photos...</p>
+        </div>
+      </div>
+    );
+  }
 
-  const handlePromoteBest = (group: SimilarGroup) => {
-    promoteToGoldMutation.mutate(group.suggested.id);
-  };
-
-  const updateTagsInMetadata = (tags: string[]) => {
-    setEditingMetadata((prev: any) => ({
-      ...prev,
-      ai: {
-        ...prev.ai,
-        aiTags: tags
-      }
-    }));
-  };
-
-  const updateDescriptionInMetadata = (field: string, value: string) => {
-    setEditingMetadata((prev: any) => ({
-      ...prev,
-      ai: {
-        ...prev.ai,
-        [field]: value
-      }
-    }));
-  };
-
-  return (
-    <>
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-6 py-4">
+  if (photos.length === 0) {
+    return (
+      <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-semibold text-gray-900">Silver Review</h2>
-            <p className="text-sm text-gray-500">Review AI-processed photos and promote the best to Gold tier</p>
-          </div>
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2 bg-gray-100 rounded-lg p-1">
-              <Button
-                variant={viewMode === 'grid' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('grid')}
-              >
-                <Image className="w-4 h-4 mr-2" />
-                Grid View
+          <h1 className="text-3xl font-bold">Silver Tier Review</h1>
+          <Button onClick={() => setLocation("/upload")} className="flex items-center gap-2">
+            <Upload className="h-4 w-4" />
+            Upload Photos
+          </Button>
+        </div>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>No Silver Photos Found</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground mb-4">
+              {showOnlyUnreviewed 
+                ? "All Silver tier photos have been reviewed. Great job!" 
+                : "No Silver tier photos available for review."
+              }
+            </p>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setShowOnlyUnreviewed(!showOnlyUnreviewed)}>
+                {showOnlyUnreviewed ? "Show All Photos" : "Show Only Unreviewed"}
               </Button>
-              <Button
-                variant={viewMode === 'similarity' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('similarity')}
-              >
-                <Shuffle className="w-4 h-4 mr-2" />
-                Similarity
+              <Button asChild>
+                <Link href="/upload">Upload New Photos</Link>
               </Button>
             </div>
-            <Select value={filterReviewed} onValueChange={(value: any) => setFilterReviewed(value)}>
-              <SelectTrigger className="w-40">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Photos</SelectItem>
-                <SelectItem value="unreviewed">Unreviewed</SelectItem>
-                <SelectItem value="reviewed">Reviewed</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button 
-              onClick={() => batchPromoteMutation.mutate(filteredPhotos.filter(p => p.isReviewed).map(p => p.id))}
-              disabled={!filteredPhotos.some(p => p.isReviewed) || batchPromoteMutation.isPending}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const aiData = selectedPhoto?.metadata?.ai || {};
+  const exifData = selectedPhoto?.metadata?.exif || {};
+
+  return (
+    <div className="space-y-6">
+      {/* Header with controls */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Silver Tier Review</h1>
+          <p className="text-muted-foreground">
+            Reviewing {selectedPhotoIndex + 1} of {photos.length} photos
+            {showOnlyUnreviewed && " (unreviewed only)"}
+          </p>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="unreviewed"
+              checked={showOnlyUnreviewed}
+              onCheckedChange={(checked) => setShowOnlyUnreviewed(!!checked)}
+            />
+            <Label htmlFor="unreviewed">Unreviewed only</Label>
+          </div>
+          
+          <Dialog open={isAdvancedSearchOpen} onOpenChange={setIsAdvancedSearchOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="flex items-center gap-2">
+                <Search className="h-4 w-4" />
+                Advanced Search
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Advanced Photo Search</DialogTitle>
+              </DialogHeader>
+              <AdvancedSearch
+                filters={searchFilters}
+                onFiltersChange={setSearchFilters}
+                onSearch={() => {
+                  refetch();
+                  setIsAdvancedSearchOpen(false);
+                  setSelectedPhotoIndex(0);
+                }}
+              />
+            </DialogContent>
+          </Dialog>
+
+          {selectedPhotos.size > 0 && (
+            <Button onClick={batchPromote} className="flex items-center gap-2">
+              <ThumbsUp className="h-4 w-4" />
+              Promote {selectedPhotos.size} to Gold
+            </Button>
+          )}
+
+          <Button onClick={() => setLocation("/upload")} variant="outline">
+            <Upload className="h-4 w-4 mr-2" />
+            Upload More
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Photo viewer */}
+        <div className="lg:col-span-2 space-y-4">
+          <Card>
+            <CardContent className="p-0">
+              <div className="relative bg-black">
+                <img
+                  src={`/api/files/${selectedPhoto?.filePath}`}
+                  alt={selectedPhoto?.mediaAsset.originalFilename}
+                  className="w-full h-[500px] object-contain"
+                  onError={(e) => {
+                    e.currentTarget.src = '/placeholder-image.svg';
+                  }}
+                />
+                
+                {/* Selection checkbox */}
+                <div className="absolute top-4 left-4">
+                  <Checkbox
+                    checked={selectedPhotos.has(selectedPhoto?.id || '')}
+                    onCheckedChange={() => selectedPhoto && togglePhotoSelection(selectedPhoto.id)}
+                    className="bg-white border-white"
+                  />
+                </div>
+
+                {/* Navigation arrows */}
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="absolute left-4 top-1/2 transform -translate-y-1/2"
+                  onClick={goToPrevious}
+                >
+                  <ChevronLeft className="h-6 w-6" />
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2"
+                  onClick={goToNext}
+                >
+                  <ChevronRight className="h-6 w-6" />
+                </Button>
+
+                {/* Rating overlay */}
+                <div className="absolute top-4 right-4 bg-black/50 p-2 rounded">
+                  <QuickRating
+                    rating={selectedPhoto?.rating || 0}
+                    onRatingChange={updateRating}
+                  />
+                </div>
+
+                {/* Review status */}
+                <div className="absolute bottom-4 left-4">
+                  <Badge variant={selectedPhoto?.isReviewed ? "default" : "secondary"}>
+                    {selectedPhoto?.isReviewed ? "Reviewed" : "Unreviewed"}
+                  </Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Action buttons */}
+          <div className="flex gap-2 justify-center">
+            <Button
+              onClick={markAsReviewed}
+              variant="outline"
+              className="flex items-center gap-2"
+              disabled={selectedPhoto?.isReviewed}
             >
-              <Crown className="w-4 h-4 mr-2" />
-              Promote Reviewed
+              <Eye className="h-4 w-4" />
+              Mark Reviewed (R)
+            </Button>
+            
+            <Button
+              onClick={promoteToGold}
+              className="flex items-center gap-2"
+              disabled={!selectedPhoto?.isReviewed || (selectedPhoto?.rating || 0) < 3}
+            >
+              <ThumbsUp className="h-4 w-4" />
+              Promote to Gold (P)
             </Button>
           </div>
-        </div>
-      </header>
 
-      {/* Content */}
-      <div className="flex-1 p-6 overflow-y-auto">
-        {/* Grid View */}
-        {viewMode === 'grid' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredPhotos.map((photo) => (
-              <Card key={photo.id} className="cursor-pointer hover:shadow-lg transition-shadow">
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Badge variant={photo.isReviewed ? "default" : "secondary"}>
-                        {photo.isReviewed ? "Reviewed" : "Pending"}
-                      </Badge>
-                      {photo.metadata?.ai?.aiConfidenceScores?.tags && (
-                        <Badge variant="outline">
-                          {Math.round(photo.metadata.ai.aiConfidenceScores.tags * 100)}% AI
+          {/* Keyboard shortcuts */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Keyboard Shortcuts</CardTitle>
+            </CardHeader>
+            <CardContent className="text-xs space-y-1">
+              <div className="grid grid-cols-2 gap-2">
+                <span>← / A: Previous photo</span>
+                <span>→ / D: Next photo</span>
+                <span>1-5: Rate photo</span>
+                <span>R: Mark reviewed</span>
+                <span>P: Promote to Gold</span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Metadata panel */}
+        <div className="space-y-4">
+          {/* Basic info */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Camera className="h-4 w-4" />
+                Photo Info
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div>
+                <Label className="text-xs text-muted-foreground">Filename</Label>
+                <p className="text-sm font-mono break-all">{selectedPhoto?.mediaAsset.originalFilename}</p>
+              </div>
+              
+              <div>
+                <Label className="text-xs text-muted-foreground">Size</Label>
+                <p className="text-sm">{Math.round((selectedPhoto?.fileSize || 0) / 1024 / 1024 * 100) / 100} MB</p>
+              </div>
+
+              <div>
+                <Label className="text-xs text-muted-foreground">Type</Label>
+                <p className="text-sm">{selectedPhoto?.mimeType}</p>
+              </div>
+
+              <div>
+                <Label className="text-xs text-muted-foreground">Upload Date</Label>
+                <p className="text-sm">{new Date(selectedPhoto?.createdAt || '').toLocaleDateString()}</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Rating */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Star className="h-4 w-4" />
+                Rating
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <RatingSystem
+                rating={selectedPhoto?.rating || 0}
+                onRatingChange={updateRating}
+                size="lg"
+              />
+            </CardContent>
+          </Card>
+
+          {/* AI Analysis */}
+          {aiData.shortDescription && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4" />
+                  AI Analysis
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Description</Label>
+                  <p className="text-sm">{aiData.shortDescription}</p>
+                </div>
+
+                {aiData.aiTags && aiData.aiTags.length > 0 && (
+                  <div>
+                    <Label className="text-xs text-muted-foreground">AI Tags</Label>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {aiData.aiTags.map((tag: string, index: number) => (
+                        <Badge key={index} variant="secondary" className="text-xs">
+                          {tag}
                         </Badge>
-                      )}
+                      ))}
                     </div>
-                    <Button variant="ghost" size="sm">
-                      <MoreHorizontal className="w-4 h-4" />
-                    </Button>
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="aspect-video rounded-lg overflow-hidden bg-gray-100">
+                )}
+
+                {aiData.detectedObjects && aiData.detectedObjects.length > 0 && (
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Detected Objects</Label>
+                    <div className="space-y-1 mt-1">
+                      {aiData.detectedObjects.map((obj: any, index: number) => (
+                        <div key={index} className="flex justify-between text-xs">
+                          <span>{obj.name}</span>
+                          <span className="text-muted-foreground">{Math.round(obj.confidence * 100)}%</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {aiData.aiConfidenceScores && (
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Confidence</Label>
+                    <div className="text-xs space-y-1">
+                      <div className="flex justify-between">
+                        <span>Tags:</span>
+                        <span>{Math.round((aiData.aiConfidenceScores.tags || 0) * 100)}%</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Description:</span>
+                        <span>{Math.round((aiData.aiConfidenceScores.description || 0) * 100)}%</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Objects:</span>
+                        <span>{Math.round((aiData.aiConfidenceScores.objects || 0) * 100)}%</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Manual metadata */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Tag className="h-4 w-4" />
+                Manual Tags & Info
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div>
+                <Label htmlFor="keywords" className="text-xs">Keywords (comma-separated)</Label>
+                <Input
+                  id="keywords"
+                  value={(selectedPhoto?.keywords || []).join(', ')}
+                  onChange={(e) => {
+                    const keywords = e.target.value.split(',').map(k => k.trim()).filter(k => k);
+                    updateMetadata({ keywords });
+                  }}
+                  placeholder="Add keywords..."
+                  className="mt-1"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="location" className="text-xs">Location</Label>
+                <Input
+                  id="location"
+                  value={selectedPhoto?.location || ''}
+                  onChange={(e) => updateMetadata({ location: e.target.value })}
+                  placeholder="Location..."
+                  className="mt-1"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="eventType" className="text-xs">Event Type</Label>
+                <Select
+                  value={selectedPhoto?.eventType || ''}
+                  onValueChange={(value) => updateMetadata({ eventType: value })}
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select event type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="holiday">Holiday</SelectItem>
+                    <SelectItem value="birthday">Birthday</SelectItem>
+                    <SelectItem value="wedding">Wedding</SelectItem>
+                    <SelectItem value="vacation">Vacation</SelectItem>
+                    <SelectItem value="party">Party</SelectItem>
+                    <SelectItem value="sports">Sports</SelectItem>
+                    <SelectItem value="concert">Concert</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="eventName" className="text-xs">Event Name</Label>
+                <Input
+                  id="eventName"
+                  value={selectedPhoto?.eventName || ''}
+                  onChange={(e) => updateMetadata({ eventName: e.target.value })}
+                  placeholder="Event name..."
+                  className="mt-1"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* EXIF data */}
+          {exifData && Object.keys(exifData).length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Camera className="h-4 w-4" />
+                  Camera Info
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-xs">
+                {exifData.camera && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Camera:</span>
+                    <span>{exifData.camera}</span>
+                  </div>
+                )}
+                {exifData.lens && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Lens:</span>
+                    <span>{exifData.lens}</span>
+                  </div>
+                )}
+                {exifData.focalLength && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Focal Length:</span>
+                    <span>{exifData.focalLength}mm</span>
+                  </div>
+                )}
+                {exifData.aperture && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Aperture:</span>
+                    <span>f/{exifData.aperture}</span>
+                  </div>
+                )}
+                {exifData.shutterSpeed && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Shutter:</span>
+                    <span>{exifData.shutterSpeed}s</span>
+                  </div>
+                )}
+                {exifData.iso && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">ISO:</span>
+                    <span>{exifData.iso}</span>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Photo thumbnails */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Photo Navigation</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-3 gap-2 max-h-40 overflow-y-auto">
+                {photos.slice(Math.max(0, selectedPhotoIndex - 6), selectedPhotoIndex + 6).map((photo, index) => {
+                  const actualIndex = Math.max(0, selectedPhotoIndex - 6) + index;
+                  return (
+                    <div
+                      key={photo.id}
+                      className={`relative cursor-pointer border-2 rounded ${
+                        actualIndex === selectedPhotoIndex ? 'border-blue-500' : 'border-transparent'
+                      }`}
+                      onClick={() => setSelectedPhotoIndex(actualIndex)}
+                    >
                       <img
                         src={`/api/files/${photo.filePath}`}
                         alt={photo.mediaAsset.originalFilename}
-                        className="w-full h-full object-cover"
+                        className="w-full h-16 object-cover rounded"
+                        onError={(e) => {
+                          e.currentTarget.src = '/placeholder-image.svg';
+                        }}
                       />
-                    </div>
-                    
-                    <div>
-                      <h3 className="font-medium text-sm truncate">{photo.mediaAsset.originalFilename}</h3>
-                      {photo.metadata?.ai?.shortDescription && (
-                        <p className="text-xs text-gray-600 mt-1 line-clamp-2">{photo.metadata.ai.shortDescription}</p>
+                      {!photo.isReviewed && (
+                        <div className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></div>
+                      )}
+                      {selectedPhotos.has(photo.id) && (
+                        <div className="absolute top-1 left-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
+                          <span className="text-white text-xs">✓</span>
+                        </div>
                       )}
                     </div>
-
-                    {photo.metadata?.ai?.aiTags && (
-                      <div className="flex flex-wrap gap-1">
-                        {photo.metadata.ai.aiTags.slice(0, 3).map((tag: string, idx: number) => (
-                          <Badge key={idx} variant="outline" className="text-xs">{tag}</Badge>
-                        ))}
-                        {photo.metadata.ai.aiTags.length > 3 && (
-                          <Badge variant="outline" className="text-xs">+{photo.metadata.ai.aiTags.length - 3}</Badge>
-                        )}
-                      </div>
-                    )}
-
-                    <div className="flex items-center space-x-2">
-                      <Button size="sm" variant="outline" className="flex-1" onClick={() => handleEditMetadata(photo)}>
-                        <Edit className="w-4 h-4 mr-1" />
-                        Review
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="default" 
-                        onClick={() => handlePromotePhoto(photo.id)}
-                        disabled={promoteToGoldMutation.isPending}
-                      >
-                        <Crown className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-
-        {/* Similarity View */}
-        {viewMode === 'similarity' && (
-          <div className="space-y-8">
-            {similarGroups.map((group, groupIndex) => (
-              <Card key={groupIndex}>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">
-                      Similar Photos ({group.photos.length} photos, {Math.round(group.similarityScore * 100)}% similar)
-                    </CardTitle>
-                    <div className="flex items-center space-x-2">
-                      <Badge variant="outline">Suggested: {group.suggested.mediaAsset.originalFilename}</Badge>
-                      <Button size="sm" onClick={() => handlePromoteBest(group)}>
-                        <Crown className="w-4 h-4 mr-2" />
-                        Promote Best
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {group.photos.map((photo) => (
-                      <div 
-                        key={photo.id}
-                        className={`relative border-2 rounded-lg p-2 ${
-                          photo.id === group.suggested.id ? 'border-yellow-400 bg-yellow-50' : 'border-gray-200'
-                        }`}
-                      >
-                        {photo.id === group.suggested.id && (
-                          <div className="absolute -top-2 -right-2 bg-yellow-400 rounded-full p-1">
-                            <Star className="w-4 h-4 text-white" />
-                          </div>
-                        )}
-                        <img
-                          src={`/api/files/${photo.filePath}`}
-                          alt={photo.mediaAsset.originalFilename}
-                          className="w-full aspect-video object-cover rounded"
-                        />
-                        <p className="text-xs mt-2 truncate">{photo.mediaAsset.originalFilename}</p>
-                        <div className="flex items-center justify-between mt-2">
-                          <Badge variant={photo.isReviewed ? "default" : "secondary"} className="text-xs">
-                            {photo.isReviewed ? "Reviewed" : "Pending"}
-                          </Badge>
-                          <Button size="sm" variant="ghost" onClick={() => handleEditMetadata(photo)}>
-                            <Edit className="w-3 h-3" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-
-        {/* Empty State */}
-        {filteredPhotos.length === 0 && !photosLoading && (
-          <div className="text-center py-12">
-            <Eye className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No photos to review</h3>
-            <p className="text-gray-600">
-              {filterReviewed === 'unreviewed' 
-                ? 'All Silver tier photos have been reviewed.' 
-                : 'No Silver tier photos found.'}
-            </p>
-          </div>
-        )}
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
-
-      {/* Edit Metadata Modal */}
-      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Review & Edit Metadata</DialogTitle>
-          </DialogHeader>
-          
-          {selectedPhoto && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Image Preview */}
-              <div className="space-y-4">
-                <img
-                  src={`/api/files/${selectedPhoto.filePath}`}
-                  alt={selectedPhoto.mediaAsset.originalFilename}
-                  className="w-full rounded-lg"
-                />
-                <div className="text-sm text-gray-600">
-                  <p><strong>Filename:</strong> {selectedPhoto.mediaAsset.originalFilename}</p>
-                  <p><strong>Created:</strong> {new Date(selectedPhoto.createdAt).toLocaleDateString()}</p>
-                  {editingMetadata.ai?.aiConfidenceScores && (
-                    <p><strong>AI Confidence:</strong> {Math.round(editingMetadata.ai.aiConfidenceScores.tags * 100)}%</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Metadata Editing */}
-              <div className="space-y-6">
-                <div>
-                  <Label htmlFor="shortDescription">Short Description</Label>
-                  <Input
-                    id="shortDescription"
-                    value={editingMetadata.ai?.shortDescription || ''}
-                    onChange={(e) => updateDescriptionInMetadata('shortDescription', e.target.value)}
-                    placeholder="Brief description of the image"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="longDescription">Detailed Description</Label>
-                  <Textarea
-                    id="longDescription"
-                    value={editingMetadata.ai?.longDescription || ''}
-                    onChange={(e) => updateDescriptionInMetadata('longDescription', e.target.value)}
-                    placeholder="Detailed description for searchability"
-                    rows={3}
-                  />
-                </div>
-
-                <div>
-                  <Label>Tags (comma-separated)</Label>
-                  <Input
-                    value={editingMetadata.ai?.aiTags?.join(', ') || ''}
-                    onChange={(e) => updateTagsInMetadata(e.target.value.split(',').map(tag => tag.trim()).filter(Boolean))}
-                    placeholder="tag1, tag2, tag3"
-                  />
-                  {editingMetadata.ai?.aiTags && (
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {editingMetadata.ai.aiTags.map((tag: string, idx: number) => (
-                        <Badge key={idx} variant="outline">{tag}</Badge>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <Label htmlFor="placeName">Location</Label>
-                  <Input
-                    id="placeName"
-                    value={editingMetadata.ai?.placeName || ''}
-                    onChange={(e) => updateDescriptionInMetadata('placeName', e.target.value)}
-                    placeholder="Location where photo was taken"
-                  />
-                </div>
-
-                <div className="flex justify-end space-x-2">
-                  <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button 
-                    onClick={handleSaveMetadata}
-                    disabled={updatePhotoMutation.isPending}
-                  >
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    Save & Mark Reviewed
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-    </>
+    </div>
   );
 }

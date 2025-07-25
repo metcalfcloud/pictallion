@@ -1,357 +1,444 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { Search, Filter, X, Calendar, MapPin, Tag, Star, Camera, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Search, 
-  Calendar as CalendarIcon, 
-  Camera, 
-  MapPin, 
-  Tag, 
-  Star,
-  X,
-  Filter
-} from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { RatingFilter } from "./rating-system";
 import { cn } from "@/lib/utils";
-import { format } from "date-fns";
 
 export interface SearchFilters {
-  query: string;
-  tier: string[];
-  dateRange: {
-    from?: Date;
-    to?: Date;
-  };
-  camera: string;
-  tags: string[];
-  location: string;
-  aiConfidence: [number, number];
-  fileType: string[];
-  fileSize: [number, number]; // in MB
-  hasGPS: boolean;
+  query?: string;
+  tier?: 'bronze' | 'silver' | 'gold';
+  rating?: { min?: number; max?: number };
+  dateRange?: { start?: Date; end?: Date };
+  keywords?: string[];
+  eventType?: string[];
+  eventName?: string;
+  location?: string;
+  mimeType?: string[];
+  camera?: string;
+  lens?: string;
+  minConfidence?: number;
+  peopleIds?: string[];
+  hasGPS?: boolean;
+  collections?: string[];
   isReviewed?: boolean;
-  hasFaces: boolean;
-  people: string[];
 }
 
 interface AdvancedSearchProps {
   filters: SearchFilters;
   onFiltersChange: (filters: SearchFilters) => void;
-  availableTags: string[];
-  availableCameras: string[];
-  availablePeople: string[];
   onSearch: () => void;
-  onReset: () => void;
+  className?: string;
 }
 
-export default function AdvancedSearch({
-  filters,
-  onFiltersChange,
-  availableTags,
-  availableCameras,
-  availablePeople,
+export function AdvancedSearch({ 
+  filters, 
+  onFiltersChange, 
   onSearch,
-  onReset
+  className 
 }: AdvancedSearchProps) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [activeFilters, setActiveFilters] = useState<string[]>([]);
 
-  const updateFilters = (updates: Partial<SearchFilters>) => {
-    onFiltersChange({ ...filters, ...updates });
+  // Update active filters count
+  useEffect(() => {
+    const active = [];
+    if (filters.query) active.push('query');
+    if (filters.tier) active.push('tier');
+    if (filters.rating?.min || filters.rating?.max) active.push('rating');
+    if (filters.dateRange?.start || filters.dateRange?.end) active.push('date');
+    if (filters.keywords?.length) active.push('keywords');
+    if (filters.eventType?.length) active.push('events');
+    if (filters.location) active.push('location');
+    if (filters.mimeType?.length) active.push('filetype');
+    if (filters.camera) active.push('camera');
+    if (filters.minConfidence) active.push('confidence');
+    if (filters.hasGPS) active.push('gps');
+    if (filters.isReviewed !== undefined) active.push('reviewed');
+    
+    setActiveFilters(active);
+  }, [filters]);
+
+  const updateFilter = (key: keyof SearchFilters, value: any) => {
+    onFiltersChange({
+      ...filters,
+      [key]: value
+    });
   };
 
-  const toggleArrayFilter = (key: keyof SearchFilters, value: string) => {
-    const currentArray = filters[key] as string[];
-    const newArray = currentArray.includes(value)
-      ? currentArray.filter(item => item !== value)
-      : [...currentArray, value];
-    updateFilters({ [key]: newArray });
+  const clearFilters = () => {
+    onFiltersChange({});
   };
 
-  const removeTag = (key: keyof SearchFilters, value: string) => {
-    const currentArray = filters[key] as string[];
-    updateFilters({ [key]: currentArray.filter(item => item !== value) });
+  const removeFilter = (filterKey: string) => {
+    const newFilters = { ...filters };
+    switch (filterKey) {
+      case 'query':
+        delete newFilters.query;
+        break;
+      case 'tier':
+        delete newFilters.tier;
+        break;
+      case 'rating':
+        delete newFilters.rating;
+        break;
+      case 'date':
+        delete newFilters.dateRange;
+        break;
+      case 'keywords':
+        delete newFilters.keywords;
+        break;
+      case 'events':
+        delete newFilters.eventType;
+        delete newFilters.eventName;
+        break;
+      case 'location':
+        delete newFilters.location;
+        break;
+      case 'filetype':
+        delete newFilters.mimeType;
+        break;
+      case 'camera':
+        delete newFilters.camera;
+        break;
+      case 'confidence':
+        delete newFilters.minConfidence;
+        break;
+      case 'gps':
+        delete newFilters.hasGPS;
+        break;
+      case 'reviewed':
+        delete newFilters.isReviewed;
+        break;
+    }
+    onFiltersChange(newFilters);
   };
-
-  const activeFiltersCount = 
-    (filters.query ? 1 : 0) +
-    filters.tier.length +
-    (filters.dateRange.from || filters.dateRange.to ? 1 : 0) +
-    (filters.camera ? 1 : 0) +
-    filters.tags.length +
-    (filters.location ? 1 : 0) +
-    (filters.aiConfidence[0] > 0 || filters.aiConfidence[1] < 100 ? 1 : 0) +
-    filters.fileType.length +
-    (filters.fileSize[0] > 0 || filters.fileSize[1] < 100 ? 1 : 0) +
-    (filters.hasGPS ? 1 : 0) +
-    (filters.isReviewed !== undefined ? 1 : 0) +
-    (filters.hasFaces ? 1 : 0) +
-    filters.people.length;
 
   return (
-    <div className="w-full">
-      {/* Quick Search Bar */}
-      <div className="flex items-center space-x-2 mb-4">
+    <div className={cn("space-y-4", className)}>
+      {/* Main search bar */}
+      <div className="flex gap-2">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search photos by filename, tags, or description..."
-            value={filters.query}
-            onChange={(e) => updateFilters({ query: e.target.value })}
+            placeholder="Search photos by filename, description, tags, location..."
+            value={filters.query || ""}
+            onChange={(e) => updateFilter('query', e.target.value)}
             className="pl-10"
             onKeyDown={(e) => e.key === 'Enter' && onSearch()}
           />
         </div>
+        
         <Button
           variant="outline"
-          onClick={() => setIsOpen(!isOpen)}
-          className={cn(activeFiltersCount > 0 && "border-blue-500 bg-blue-50")}
+          onClick={() => setIsExpanded(!isExpanded)}
+          className={cn(
+            "flex items-center gap-2",
+            activeFilters.length > 0 && "border-blue-500 text-blue-600 dark:text-blue-400"
+          )}
         >
-          <Filter className="h-4 w-4 mr-2" />
+          <Filter className="h-4 w-4" />
           Filters
-          {activeFiltersCount > 0 && (
-            <Badge variant="secondary" className="ml-2 text-xs">
-              {activeFiltersCount}
+          {activeFilters.length > 0 && (
+            <Badge variant="secondary" className="ml-1">
+              {activeFilters.length}
             </Badge>
           )}
         </Button>
-        <Button onClick={onSearch}>Search</Button>
+        
+        <Button onClick={onSearch}>
+          Search
+        </Button>
       </div>
 
-      {/* Active Filters */}
-      {activeFiltersCount > 0 && (
-        <div className="flex flex-wrap gap-2 mb-4">
-          {filters.tier.map(tier => (
-            <Badge key={tier} variant="secondary" className="cursor-pointer">
-              Tier: {tier}
-              <X className="h-3 w-3 ml-1" onClick={() => removeTag('tier', tier)} />
+      {/* Active filters */}
+      {activeFilters.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {activeFilters.map((filterKey) => (
+            <Badge key={filterKey} variant="secondary" className="flex items-center gap-1">
+              {filterKey}
+              <X 
+                className="h-3 w-3 cursor-pointer hover:text-red-500" 
+                onClick={() => removeFilter(filterKey)}
+              />
             </Badge>
           ))}
-          {filters.tags.map(tag => (
-            <Badge key={tag} variant="secondary" className="cursor-pointer">
-              Tag: {tag}
-              <X className="h-3 w-3 ml-1" onClick={() => removeTag('tags', tag)} />
-            </Badge>
-          ))}
-          {filters.people.map(person => (
-            <Badge key={person} variant="secondary" className="cursor-pointer">
-              Person: {person}
-              <X className="h-3 w-3 ml-1" onClick={() => removeTag('people', person)} />
-            </Badge>
-          ))}
-          <Button variant="ghost" size="sm" onClick={onReset}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={clearFilters}
+            className="h-6 px-2 text-xs"
+          >
             Clear all
           </Button>
         </div>
       )}
 
-      {/* Advanced Filters Panel */}
-      {isOpen && (
-        <Card className="mb-4">
-          <CardHeader>
-            <CardTitle className="text-lg">Advanced Filters</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Advanced filters */}
+      <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
+        <CollapsibleContent className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            
+            {/* Basic Filters */}
+            <div className="space-y-4">
+              <h3 className="font-medium flex items-center gap-2">
+                <Tag className="h-4 w-4" />
+                Basic Filters
+              </h3>
               
-              {/* Tier Filter */}
-              <div className="space-y-2">
-                <Label>Tier</Label>
-                <div className="space-y-2">
-                  {['bronze', 'silver', 'gold'].map(tier => (
-                    <div key={tier} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={tier}
-                        checked={filters.tier.includes(tier)}
-                        onCheckedChange={() => toggleArrayFilter('tier', tier)}
-                      />
-                      <Label htmlFor={tier} className="capitalize">{tier}</Label>
-                    </div>
-                  ))}
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="tier">Tier</Label>
+                  <Select value={filters.tier || ""} onValueChange={(value) => updateFilter('tier', value || undefined)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All tiers" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All tiers</SelectItem>
+                      <SelectItem value="bronze">Bronze</SelectItem>
+                      <SelectItem value="silver">Silver</SelectItem>
+                      <SelectItem value="gold">Gold</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="filetype">File Type</Label>
+                  <Select 
+                    value={filters.mimeType?.[0] || ""} 
+                    onValueChange={(value) => updateFilter('mimeType', value ? [value] : undefined)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="All types" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All types</SelectItem>
+                      <SelectItem value="image/jpeg">JPEG</SelectItem>
+                      <SelectItem value="image/png">PNG</SelectItem>
+                      <SelectItem value="image/tiff">TIFF</SelectItem>
+                      <SelectItem value="video/mp4">MP4</SelectItem>
+                      <SelectItem value="video/quicktime">MOV</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="reviewed"
+                    checked={filters.isReviewed || false}
+                    onCheckedChange={(checked) => updateFilter('isReviewed', checked ? true : undefined)}
+                  />
+                  <Label htmlFor="reviewed">Only reviewed photos</Label>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="hasGPS"
+                    checked={filters.hasGPS || false}
+                    onCheckedChange={(checked) => updateFilter('hasGPS', checked ? true : undefined)}
+                  />
+                  <Label htmlFor="hasGPS">Has GPS location</Label>
                 </div>
               </div>
+            </div>
 
-              {/* Date Range */}
-              <div className="space-y-2">
-                <Label>Date Range</Label>
-                <div className="flex space-x-2">
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-full justify-start text-left font-normal">
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {filters.dateRange.from ? format(filters.dateRange.from, "PPP") : "From date"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={filters.dateRange.from}
-                        onSelect={(date) => updateFilters({ 
-                          dateRange: { ...filters.dateRange, from: date } 
-                        })}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-full justify-start text-left font-normal">
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {filters.dateRange.to ? format(filters.dateRange.to, "PPP") : "To date"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={filters.dateRange.to}
-                        onSelect={(date) => updateFilters({ 
-                          dateRange: { ...filters.dateRange, to: date } 
-                        })}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              </div>
+            {/* Rating and Quality */}
+            <div className="space-y-4">
+              <h3 className="font-medium flex items-center gap-2">
+                <Star className="h-4 w-4" />
+                Rating & Quality
+              </h3>
+              
+              <RatingFilter
+                minRating={filters.rating?.min || 0}
+                maxRating={filters.rating?.max || 5}
+                onRatingRangeChange={(min, max) => {
+                  updateFilter('rating', 
+                    min === 0 && max === 5 ? undefined : { min, max }
+                  );
+                }}
+              />
 
-              {/* Camera */}
-              <div className="space-y-2">
-                <Label>Camera</Label>
-                <Select value={filters.camera} onValueChange={(value) => updateFilters({ camera: value })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select camera" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">All cameras</SelectItem>
-                    {availableCameras.map(camera => (
-                      <SelectItem key={camera} value={camera}>{camera}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Location */}
-              <div className="space-y-2">
-                <Label>Location</Label>
-                <Input
-                  placeholder="Enter location..."
-                  value={filters.location}
-                  onChange={(e) => updateFilters({ location: e.target.value })}
-                />
-              </div>
-
-              {/* AI Confidence */}
-              <div className="space-y-2">
-                <Label>AI Confidence ({filters.aiConfidence[0]}% - {filters.aiConfidence[1]}%)</Label>
+              <div>
+                <Label>AI Confidence (min {filters.minConfidence || 0}%)</Label>
                 <Slider
-                  value={filters.aiConfidence}
-                  onValueChange={(value) => updateFilters({ aiConfidence: value as [number, number] })}
+                  value={[filters.minConfidence || 0]}
+                  onValueChange={([value]) => updateFilter('minConfidence', value > 0 ? value : undefined)}
                   max={100}
-                  min={0}
                   step={5}
-                  className="w-full"
+                  className="mt-2"
                 />
               </div>
+            </div>
 
-              {/* File Type */}
-              <div className="space-y-2">
-                <Label>File Type</Label>
-                <div className="space-y-2">
-                  {['image/jpeg', 'image/png', 'image/tiff', 'video/mp4'].map(type => (
-                    <div key={type} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={type}
-                        checked={filters.fileType.includes(type)}
-                        onCheckedChange={() => toggleArrayFilter('fileType', type)}
-                      />
-                      <Label htmlFor={type}>{type.split('/')[1].toUpperCase()}</Label>
-                    </div>
-                  ))}
+            {/* Camera and Technical */}
+            <div className="space-y-4">
+              <h3 className="font-medium flex items-center gap-2">
+                <Camera className="h-4 w-4" />
+                Camera & Technical
+              </h3>
+              
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="camera">Camera</Label>
+                  <Input
+                    id="camera"
+                    placeholder="e.g. Canon EOS R5"
+                    value={filters.camera || ""}
+                    onChange={(e) => updateFilter('camera', e.target.value || undefined)}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="lens">Lens</Label>
+                  <Input
+                    id="lens"
+                    placeholder="e.g. 24-70mm f/2.8"
+                    value={filters.lens || ""}
+                    onChange={(e) => updateFilter('lens', e.target.value || undefined)}
+                  />
                 </div>
               </div>
             </div>
 
-            {/* Tags */}
-            <div className="space-y-2">
-              <Label>Tags</Label>
-              <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
-                {availableTags.map(tag => (
-                  <Badge
-                    key={tag}
-                    variant={filters.tags.includes(tag) ? "default" : "outline"}
-                    className="cursor-pointer"
-                    onClick={() => toggleArrayFilter('tags', tag)}
+            {/* Location and Events */}
+            <div className="space-y-4">
+              <h3 className="font-medium flex items-center gap-2">
+                <MapPin className="h-4 w-4" />
+                Location & Events
+              </h3>
+              
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="location">Location</Label>
+                  <Input
+                    id="location"
+                    placeholder="e.g. Paris, beach, home"
+                    value={filters.location || ""}
+                    onChange={(e) => updateFilter('location', e.target.value || undefined)}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="eventName">Event</Label>
+                  <Input
+                    id="eventName"
+                    placeholder="e.g. wedding, vacation, birthday"
+                    value={filters.eventName || ""}
+                    onChange={(e) => updateFilter('eventName', e.target.value || undefined)}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="eventType">Event Type</Label>
+                  <Select 
+                    value={filters.eventType?.[0] || ""} 
+                    onValueChange={(value) => updateFilter('eventType', value ? [value] : undefined)}
                   >
-                    <Tag className="h-3 w-3 mr-1" />
-                    {tag}
-                  </Badge>
-                ))}
+                    <SelectTrigger>
+                      <SelectValue placeholder="All events" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All events</SelectItem>
+                      <SelectItem value="holiday">Holiday</SelectItem>
+                      <SelectItem value="birthday">Birthday</SelectItem>
+                      <SelectItem value="wedding">Wedding</SelectItem>
+                      <SelectItem value="vacation">Vacation</SelectItem>
+                      <SelectItem value="party">Party</SelectItem>
+                      <SelectItem value="sports">Sports</SelectItem>
+                      <SelectItem value="concert">Concert</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
 
-            {/* People */}
-            <div className="space-y-2">
-              <Label>People</Label>
-              <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
-                {availablePeople.map(person => (
-                  <Badge
-                    key={person}
-                    variant={filters.people.includes(person) ? "default" : "outline"}
-                    className="cursor-pointer"
-                    onClick={() => toggleArrayFilter('people', person)}
-                  >
-                    {person}
-                  </Badge>
-                ))}
+            {/* Date Range */}
+            <div className="space-y-4">
+              <h3 className="font-medium flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                Date Range
+              </h3>
+              
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="startDate">From</Label>
+                  <Input
+                    id="startDate"
+                    type="date"
+                    value={filters.dateRange?.start?.toISOString().split('T')[0] || ""}
+                    onChange={(e) => {
+                      const date = e.target.value ? new Date(e.target.value) : undefined;
+                      updateFilter('dateRange', {
+                        ...filters.dateRange,
+                        start: date
+                      });
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="endDate">To</Label>
+                  <Input
+                    id="endDate"
+                    type="date"
+                    value={filters.dateRange?.end?.toISOString().split('T')[0] || ""}
+                    onChange={(e) => {
+                      const date = e.target.value ? new Date(e.target.value) : undefined;
+                      updateFilter('dateRange', {
+                        ...filters.dateRange,
+                        end: date
+                      });
+                    }}
+                  />
+                </div>
               </div>
             </div>
 
-            {/* Boolean Filters */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="hasGPS"
-                  checked={filters.hasGPS}
-                  onCheckedChange={(checked) => updateFilters({ hasGPS: !!checked })}
+            {/* Keywords */}
+            <div className="space-y-4">
+              <h3 className="font-medium flex items-center gap-2">
+                <Tag className="h-4 w-4" />
+                Keywords & Tags
+              </h3>
+              
+              <div>
+                <Label htmlFor="keywords">Keywords (comma-separated)</Label>
+                <Input
+                  id="keywords"
+                  placeholder="e.g. landscape, sunset, mountain"
+                  value={filters.keywords?.join(', ') || ""}
+                  onChange={(e) => {
+                    const keywords = e.target.value
+                      .split(',')
+                      .map(k => k.trim())
+                      .filter(k => k.length > 0);
+                    updateFilter('keywords', keywords.length > 0 ? keywords : undefined);
+                  }}
                 />
-                <Label htmlFor="hasGPS">Has GPS</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="hasFaces"
-                  checked={filters.hasFaces}
-                  onCheckedChange={(checked) => updateFilters({ hasFaces: !!checked })}
-                />
-                <Label htmlFor="hasFaces">Has Faces</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="isReviewed"
-                  checked={filters.isReviewed === true}
-                  onCheckedChange={(checked) => updateFilters({ 
-                    isReviewed: checked ? true : undefined 
-                  })}
-                />
-                <Label htmlFor="isReviewed">Reviewed</Label>
               </div>
             </div>
+          </div>
 
-            {/* Action Buttons */}
-            <div className="flex justify-end space-x-2 pt-4 border-t">
-              <Button variant="outline" onClick={onReset}>
-                Reset Filters
-              </Button>
-              <Button onClick={onSearch}>
-                Apply Filters
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+          <Separator />
+
+          <div className="flex justify-between">
+            <Button variant="outline" onClick={clearFilters}>
+              Clear All Filters
+            </Button>
+            <Button onClick={onSearch}>
+              Apply Filters
+            </Button>
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
     </div>
   );
 }

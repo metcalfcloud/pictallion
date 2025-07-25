@@ -42,6 +42,7 @@ export interface IStorage {
   getFileVersion(id: string): Promise<FileVersion | undefined>;
   getFileVersionsByAsset(assetId: string): Promise<FileVersion[]>;
   getFileVersionsByTier(tier: "bronze" | "silver" | "gold"): Promise<FileVersion[]>;
+  getAllFileVersions(): Promise<FileVersion[]>;
   updateFileVersion(id: string, updates: Partial<FileVersion>): Promise<FileVersion>;
   getFileByHash(hash: string): Promise<FileVersion | undefined>;
   
@@ -144,6 +145,10 @@ export class DatabaseStorage implements IStorage {
       .from(fileVersions)
       .where(eq(fileVersions.tier, tier))
       .orderBy(desc(fileVersions.createdAt));
+  }
+
+  async getAllFileVersions(): Promise<FileVersion[]> {
+    return await db.select().from(fileVersions).orderBy(desc(fileVersions.createdAt));
   }
 
   async updateFileVersion(id: string, updates: Partial<FileVersion>): Promise<FileVersion> {
