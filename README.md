@@ -1,9 +1,12 @@
 # Pictallion - AI-Powered Photo Management
 
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/yourusername/pictallion/releases)
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.6+-blue.svg)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-18+-blue.svg)](https://reactjs.org/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![CI](https://github.com/yourusername/pictallion/workflows/CI%2FCD/badge.svg)](https://github.com/yourusername/pictallion/actions)
+[![Docker](https://img.shields.io/badge/Docker-Available-blue.svg)](https://github.com/yourusername/pictallion/pkgs/container/pictallion)
 
 A modern photo management platform with intelligent tiered processing (Bronze → Silver → Gold) and AI-powered metadata generation. Supports both local AI processing with Ollama and cloud processing with OpenAI.
 

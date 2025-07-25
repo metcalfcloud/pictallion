@@ -1,0 +1,117 @@
+name: 🐳 Docker
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'server/**'
+      - 'client/**'
+      - 'shared/**'
+      - 'Dockerfile'
+      - 'docker-compose.yml'
+  pull_request:
+    branches: [main]
+
+jobs:
+  docker:
+    name: 🐳 Build & Test Docker
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🐳 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🔑 Login to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 📋 Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha
+
+      - name: 🚀 Build Docker setup
+        run: |
+          chmod +x scripts/build-docker.sh
+          ./scripts/build-docker.sh
+
+      - name: 🏗️ Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: 🧪 Test Docker image
+        run: |
+          docker run --rm -d --name pictallion-test \
+            -e DATABASE_URL=postgresql://test:test@localhost:5432/test \
+            ghcr.io/${{ github.repository }}:${{ steps.meta.outputs.version }}
+          
+          # Wait for container to start
+          sleep 10
+          
+          # Test if container is running
+          docker ps | grep pictallion-test
+          
+          # Cleanup
+          docker stop pictallion-test
+
+  docker-compose:
+    name: 🐙 Test Docker Compose
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🚀 Build Docker setup
+        run: |
+          chmod +x scripts/build-docker.sh
+          ./scripts/build-docker.sh
+
+      - name: 🐙 Test Docker Compose
+        run: |
+          # Create test environment
+          cat > .env << EOF
+          DATABASE_URL=postgresql://pictallion:pictallion_password_change_me@postgres:5432/pictallion
+          AI_PROVIDER=ollama
+          OLLAMA_BASE_URL=http://ollama:11434
+          EOF
+          
+          # Start services
+          docker-compose up -d postgres
+          
+          # Wait for postgres
+          sleep 10
+          
+          # Build and start main app
+          docker-compose up -d pictallion
+          
+          # Wait for app to start
+          sleep 15
+          
+          # Check if services are running
+          docker-compose ps
+          
+          # Test if app responds
+          timeout 30 bash -c 'until curl -f http://localhost:5000; do sleep 1; done'
+          
+          # Cleanup
+          docker-compose down -v

@@ -1,0 +1,271 @@
+name: 🚀 Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  test:
+    name: 🧪 Test Suite
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: pictallion_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 🔧 Install dependencies
+        run: npm ci
+
+      - name: 🏗️ Build client
+        run: cd client && npm run build
+
+      - name: ✅ Type check
+        run: npm run check
+
+      - name: 🔍 Database setup
+        run: npm run db:push
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/pictallion_test
+
+  build:
+    name: 📦 Build Packages
+    needs: test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 🔧 Install dependencies
+        run: npm ci
+
+      - name: 🏗️ Build application
+        run: |
+          chmod +x scripts/package.sh
+          ./scripts/package.sh
+        shell: bash
+
+      - name: 📋 Get version
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        shell: bash
+
+      - name: 📦 Create platform archive
+        run: |
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            PLATFORM="windows"
+            ARCHIVE_EXT="zip"
+          elif [ "${{ matrix.os }}" = "macos-latest" ]; then
+            PLATFORM="macos"
+            ARCHIVE_EXT="tar.gz"
+          else
+            PLATFORM="linux"
+            ARCHIVE_EXT="tar.gz"
+          fi
+          
+          cd dist
+          if [ "$ARCHIVE_EXT" = "zip" ]; then
+            zip -r "../pictallion-${{ steps.version.outputs.VERSION }}-${PLATFORM}.zip" .
+          else
+            tar -czf "../pictallion-${{ steps.version.outputs.VERSION }}-${PLATFORM}.tar.gz" .
+          fi
+        shell: bash
+
+      - name: 📤 Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: pictallion-${{ matrix.os }}
+          path: pictallion-${{ steps.version.outputs.VERSION }}-*
+
+  docker:
+    name: 🐳 Build Docker Images
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🐳 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🔑 Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 📋 Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=ref,event=tag
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+
+      - name: 🚀 Build Docker setup
+        run: |
+          chmod +x scripts/build-docker.sh
+          ./scripts/build-docker.sh
+
+      - name: 🏗️ Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  release:
+    name: 🎉 Create Release
+    needs: [test, build, docker]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 📤 Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+
+      - name: 📋 Get version and changelog
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          
+          # Generate changelog since last tag
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          if [ -n "$PREVIOUS_TAG" ]; then
+            CHANGELOG=$(git log $PREVIOUS_TAG..HEAD --pretty=format:"- %s (%h)" --no-merges)
+          else
+            CHANGELOG=$(git log --pretty=format:"- %s (%h)" --no-merges)
+          fi
+          
+          # Create release notes
+          cat > release_notes.md << EOF
+          # Pictallion $VERSION
+          
+          ## 🎯 What's New
+          
+          $CHANGELOG
+          
+          ## 📦 Installation
+          
+          ### Quick Install (Recommended)
+          
+          **Linux/macOS:**
+          \`\`\`bash
+          wget https://github.com/${{ github.repository }}/releases/download/$VERSION/pictallion-$VERSION-linux.tar.gz
+          tar -xzf pictallion-$VERSION-linux.tar.gz
+          cd dist && ./install.sh
+          \`\`\`
+          
+          **Windows:**
+          1. Download \`pictallion-$VERSION-windows.zip\`
+          2. Extract the archive
+          3. Run \`install.bat\`
+          4. Follow the setup instructions
+          
+          ### Docker Installation
+          \`\`\`bash
+          docker run -d \\
+            --name pictallion \\
+            -p 5000:5000 \\
+            -v pictallion_data:/app/data \\
+            -e DATABASE_URL=your_database_url \\
+            ghcr.io/${{ github.repository }}:$VERSION
+          \`\`\`
+          
+          ## 🔧 Configuration
+          
+          1. Set up your PostgreSQL database
+          2. Configure AI providers (Ollama or OpenAI)
+          3. Start the application: \`node start.js\`
+          4. Open http://localhost:5000
+          
+          ## 🆕 Features in this Release
+          
+          - AI-powered photo analysis with Ollama and OpenAI support
+          - Tiered processing system (Bronze → Silver → Gold)
+          - Advanced search and filtering capabilities
+          - Modern React interface with dark mode support
+          - Comprehensive deployment options
+          
+          ## 🐛 Bug Fixes & Improvements
+          
+          See the full changelog above for all changes in this release.
+          
+          ## 📚 Documentation
+          
+          - [Installation Guide](https://github.com/${{ github.repository }}#-quick-start)
+          - [Deployment Guide](https://github.com/${{ github.repository }}/blob/main/DEPLOYMENT.md)
+          - [Contributing](https://github.com/${{ github.repository }}/blob/main/CONTRIBUTING.md)
+          
+          ## 🙏 Contributors
+          
+          Thank you to everyone who contributed to this release!
+          EOF
+
+      - name: 📁 Organize release assets
+        run: |
+          mkdir -p release_assets
+          find artifacts -name "pictallion-*" -type f -exec cp {} release_assets/ \;
+          ls -la release_assets/
+
+      - name: 🎉 Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Pictallion ${{ steps.version.outputs.VERSION }}
+          body_path: release_notes.md
+          files: release_assets/*
+          draft: false
+          prerelease: ${{ contains(steps.version.outputs.VERSION, 'alpha') || contains(steps.version.outputs.VERSION, 'beta') || contains(steps.version.outputs.VERSION, 'rc') }}
+          generate_release_notes: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

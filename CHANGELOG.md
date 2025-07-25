@@ -1,0 +1,43 @@
+# Changelog
+
+All notable changes to Pictallion will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+### Added
+- Initial release of Pictallion photo management platform
+- AI-powered photo analysis with Ollama and OpenAI support
+- Tiered processing system (Bronze → Silver → Gold)
+- Modern React frontend with TypeScript and Tailwind CSS
+- Express.js backend with PostgreSQL database
+- Comprehensive packaging and deployment system
+- Docker support with automated setup
+- GitHub Actions CI/CD pipeline
+- Professional issue templates and contribution guidelines
+
+### Features
+- **Photo Management**: Upload, organize, and manage photo collections
+- **AI Processing**: Automatic tagging, description generation, and metadata extraction
+- **Tiered Workflow**: Bronze (raw) → Silver (AI processed) → Gold (curated)
+- **Search & Filter**: Advanced search capabilities across metadata and content
+- **Modern UI**: Responsive design with dark mode support
+- **Multi-Platform**: Windows, macOS, and Linux support
+- **Flexible Deployment**: Native packages, Docker, and cloud deployment options
+
+### Security
+- Environment-based configuration for sensitive data
+- Session-based authentication
+- Input validation and sanitization
+- SQL injection prevention
+- File upload security checks
+
+### Development
+- TypeScript throughout the codebase
+- Comprehensive build and packaging scripts
+- Automated testing and security scanning
+- Docker containerization
+- Professional GitHub workflows
+- Detailed documentation and contribution guidelines

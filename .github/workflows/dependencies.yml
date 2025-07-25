@@ -1,0 +1,87 @@
+name: 🔧 Dependencies
+
+on:
+  schedule:
+    - cron: '0 0 * * 1' # Weekly on Monday
+  workflow_dispatch:
+
+jobs:
+  update:
+    name: 📦 Update Dependencies
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 🔍 Check for updates
+        run: |
+          npm outdated || true
+          cd client && npm outdated || true
+
+      - name: 🔒 Security audit
+        run: |
+          npm audit --audit-level=moderate
+          cd client && npm audit --audit-level=moderate
+
+      - name: 📊 Generate dependency report
+        run: |
+          echo "# Dependency Status Report" > dependency-report.md
+          echo "Generated on: $(date)" >> dependency-report.md
+          echo "" >> dependency-report.md
+          
+          echo "## Root Dependencies" >> dependency-report.md
+          echo "\`\`\`" >> dependency-report.md
+          npm list --depth=0 >> dependency-report.md || true
+          echo "\`\`\`" >> dependency-report.md
+          echo "" >> dependency-report.md
+          
+          echo "## Client Dependencies" >> dependency-report.md
+          echo "\`\`\`" >> dependency-report.md
+          cd client && npm list --depth=0 >> ../dependency-report.md || true
+          echo "\`\`\`" >> ../dependency-report.md
+
+      - name: 📤 Upload dependency report
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-report
+          path: dependency-report.md
+
+  vulnerability-scan:
+    name: 🔍 Vulnerability Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 🔧 Install dependencies
+        run: npm ci
+
+      - name: 🔍 Run Snyk security scan
+        uses: snyk/actions/node@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=medium
+
+      - name: 📊 Upload Snyk results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: snyk.sarif

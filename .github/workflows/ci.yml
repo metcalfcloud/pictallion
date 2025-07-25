@@ -1,0 +1,122 @@
+name: 🔄 CI/CD
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  test:
+    name: 🧪 Test & Lint
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: pictallion_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 🔧 Install dependencies
+        run: npm ci
+
+      - name: 🎨 Lint code
+        run: |
+          # Add linting when available
+          echo "Linting step - add ESLint/Prettier when configured"
+
+      - name: 🏗️ Build client
+        run: cd client && npm run build
+
+      - name: ✅ Type check
+        run: npm run check
+
+      - name: 🔍 Database setup
+        run: npm run db:push
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/pictallion_test
+
+      - name: 🧪 Run tests
+        run: |
+          # Add test runner when tests are available
+          echo "Test step - add Jest/Vitest when configured"
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/pictallion_test
+
+  build:
+    name: 🏗️ Build Check
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 🔧 Install dependencies
+        run: npm ci
+
+      - name: 🏗️ Build application
+        run: |
+          chmod +x scripts/package.sh
+          ./scripts/package.sh
+
+      - name: 📦 Test Docker build
+        run: |
+          chmod +x scripts/build-docker.sh
+          ./scripts/build-docker.sh
+          docker build -t pictallion:test .
+
+  security:
+    name: 🔒 Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 🔧 Install dependencies
+        run: npm ci
+
+      - name: 🔍 Run security audit
+        run: npm audit --audit-level=moderate
+
+      - name: 🔒 CodeQL Analysis
+        uses: github/codeql-action/init@v3
+        with:
+          languages: typescript, javascript
+
+      - name: 🏗️ Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: 🔍 Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3

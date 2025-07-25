@@ -1,0 +1,135 @@
+name: 📋 Release Notes
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  notify:
+    name: 📢 Notify Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 📊 Extract release info
+        id: release
+        run: |
+          echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          echo "PRERELEASE=${{ github.event.release.prerelease }}" >> $GITHUB_OUTPUT
+
+      - name: 📈 Update repository topics
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: repo } = await github.rest.repos.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            });
+            
+            const topics = [
+              'photo-management',
+              'ai-powered',
+              'typescript',
+              'react',
+              'nodejs',
+              'postgresql',
+              'ollama',
+              'openai',
+              'docker',
+              'self-hosted'
+            ];
+            
+            await github.rest.repos.replaceAllTopics({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              names: topics
+            });
+
+      - name: 📝 Update README badges
+        run: |
+          VERSION="${{ steps.release.outputs.VERSION }}"
+          
+          # Update version badge in README
+          sed -i "s/version-[^-]*-blue/version-${VERSION#v}-blue/g" README.md
+          
+          # Commit if there are changes
+          if ! git diff --quiet; then
+            git config --local user.email "action@github.com"
+            git config --local user.name "GitHub Action"
+            git add README.md
+            git commit -m "docs: update version badge to ${VERSION}"
+            git push
+          fi
+
+  social:
+    name: 📱 Social Media
+    runs-on: ubuntu-latest
+    if: "!github.event.release.prerelease"
+
+    steps:
+      - name: 🐦 Tweet about release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const version = '${{ steps.release.outputs.VERSION }}';
+            const releaseUrl = '${{ github.event.release.html_url }}';
+            
+            console.log(`🎉 Pictallion ${version} is now available!`);
+            console.log(`📦 Download: ${releaseUrl}`);
+            console.log(`🤖 AI-powered photo management with Ollama & OpenAI support`);
+            console.log(`🔗 #PhotoManagement #AI #OpenSource #SelfHosted`);
+
+  stats:
+    name: 📊 Release Statistics
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 📊 Generate release stats
+        run: |
+          VERSION="${{ github.event.release.tag_name }}"
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          
+          echo "# Release Statistics for $VERSION" > release-stats.md
+          echo "" >> release-stats.md
+          
+          if [ -n "$PREVIOUS_TAG" ]; then
+            echo "## Changes since $PREVIOUS_TAG" >> release-stats.md
+            echo "" >> release-stats.md
+            
+            # Commit count
+            COMMIT_COUNT=$(git rev-list --count $PREVIOUS_TAG..HEAD)
+            echo "- **Commits**: $COMMIT_COUNT" >> release-stats.md
+            
+            # File changes
+            FILES_CHANGED=$(git diff --name-only $PREVIOUS_TAG..HEAD | wc -l)
+            echo "- **Files changed**: $FILES_CHANGED" >> release-stats.md
+            
+            # Contributors
+            CONTRIBUTORS=$(git log $PREVIOUS_TAG..HEAD --format='%an' | sort -u | wc -l)
+            echo "- **Contributors**: $CONTRIBUTORS" >> release-stats.md
+            
+            echo "" >> release-stats.md
+            echo "## Top Contributors" >> release-stats.md
+            git log $PREVIOUS_TAG..HEAD --format='%an' | sort | uniq -c | sort -nr | head -5 | while read count name; do
+              echo "- $name ($count commits)" >> release-stats.md
+            done
+          fi
+          
+          echo "" >> release-stats.md
+          echo "## Repository Stats" >> release-stats.md
+          echo "- **Total commits**: $(git rev-list --count HEAD)" >> release-stats.md
+          echo "- **Total releases**: $(git tag | wc -l)" >> release-stats.md
+          echo "- **Lines of code**: $(find . -name '*.ts' -o -name '*.tsx' -o -name '*.js' -o -name '*.jsx' | xargs wc -l | tail -1 | awk '{print $1}')" >> release-stats.md
+
+      - name: 📤 Upload release stats
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-stats-${{ github.event.release.tag_name }}
+          path: release-stats.md

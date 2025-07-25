@@ -1,0 +1,109 @@
+name: ✨ Feature Request
+description: Suggest a new feature for Pictallion
+title: "[Feature]: "
+labels: ["enhancement", "triage"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a new feature! Please provide as much detail as possible.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: 🎯 Problem Statement
+      description: Is your feature request related to a problem? Please describe.
+      placeholder: I'm always frustrated when...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: 💡 Proposed Solution
+      description: Describe the solution you'd like
+      placeholder: I would like to be able to...
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 🔄 Alternatives Considered
+      description: Describe any alternative solutions or features you've considered
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: 📂 Feature Category
+      description: What category does this feature fall into?
+      options:
+        - AI/ML Processing
+        - User Interface
+        - Photo Management
+        - Search & Filtering
+        - Import/Export
+        - Performance
+        - Security
+        - Deployment
+        - API
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 🔥 Priority
+      description: How important is this feature to you?
+      options:
+        - Low - Nice to have
+        - Medium - Would be helpful
+        - High - Important for my workflow
+        - Critical - Blocking my usage
+    validations:
+      required: true
+
+  - type: textarea
+    id: use-case
+    attributes:
+      label: 🎬 Use Case
+      description: Describe your specific use case and how this feature would help
+      placeholder: As a photographer, I want to...
+
+  - type: textarea
+    id: mockups
+    attributes:
+      label: 🎨 Mockups/Examples
+      description: If applicable, add mockups, screenshots, or examples
+
+  - type: checkboxes
+    id: implementation
+    attributes:
+      label: 🛠️ Implementation
+      description: Are you interested in implementing this feature?
+      options:
+        - label: I would like to implement this feature myself
+        - label: I can help with testing and feedback
+        - label: I can provide design input
+        - label: I would like someone else to implement this
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: 💬 Additional Context
+      description: Add any other context, screenshots, or examples about the feature request
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: ✅ Checklist
+      description: Please confirm the following
+      options:
+        - label: I have searched existing issues to ensure this is not a duplicate
+          required: true
+        - label: This feature aligns with Pictallion's goals as a photo management platform
+          required: true
+        - label: I have provided sufficient detail about the proposed feature
+          required: true
