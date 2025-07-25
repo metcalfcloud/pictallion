@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import Dashboard from "@/pages/dashboard";
 import Gallery from "@/pages/gallery";
 import Upload from "@/pages/upload";
+import Search from "@/pages/search";
 import Collections from "@/pages/collections";
 import SilverReview from "@/pages/silver-review";
 import People from "@/pages/people";
@@ -22,6 +23,7 @@ function Router() {
           <Route path="/dashboard" component={Dashboard} />
           <Route path="/gallery" component={Gallery} />
           <Route path="/upload" component={Upload} />
+          <Route path="/search" component={Search} />
           <Route path="/collections" component={Collections} />
           <Route path="/silver-review" component={SilverReview} />
           <Route path="/people" component={People} />

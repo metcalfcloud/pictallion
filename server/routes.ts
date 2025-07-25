@@ -662,7 +662,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { filters = {}, sort = { field: 'createdAt', direction: 'desc' }, limit = 50, offset = 0 } = req.body;
       
-      const results = await advancedSearch.searchPhotos(filters, sort, limit, offset);
+      // For now, use the existing silver photos endpoint as a fallback
+      // TODO: Implement full advanced search functionality
+      const allPhotos = await storage.getFileVersionsByTier('silver');
+      const photosWithAssets = [];
+      
+      for (const photo of allPhotos) {
+        const asset = await storage.getMediaAsset(photo.mediaAssetId);
+        if (asset) {
+          photosWithAssets.push({
+            ...photo,
+            mediaAsset: asset
+          });
+        }
+      }
+      
+      // Simple filtering by query if provided
+      let filteredPhotos = photosWithAssets;
+      if (filters.query) {
+        const query = filters.query.toLowerCase();
+        filteredPhotos = photosWithAssets.filter(photo => {
+          const filename = photo.mediaAsset.originalFilename.toLowerCase();
+          const location = (photo.location || '').toLowerCase();
+          const keywords = (photo.keywords || []).join(' ').toLowerCase();
+          return filename.includes(query) || location.includes(query) || keywords.includes(query);
+        });
+      }
+      
+      // Apply tier filter
+      if (filters.tier) {
+        filteredPhotos = filteredPhotos.filter(photo => photo.tier === filters.tier);
+      }
+      
+      // Apply rating filter
+      if (filters.rating?.min !== undefined || filters.rating?.max !== undefined) {
+        filteredPhotos = filteredPhotos.filter(photo => {
+          const rating = photo.rating || 0;
+          if (filters.rating?.min !== undefined && rating < filters.rating.min) return false;
+          if (filters.rating?.max !== undefined && rating > filters.rating.max) return false;
+          return true;
+        });
+      }
+      
+      // Simple facets
+      const facets = {
+        tiers: { silver: filteredPhotos.length },
+        ratings: {},
+        mimeTypes: {},
+        eventTypes: {}
+      };
+      
+      const results = {
+        photos: filteredPhotos.slice(offset, offset + limit),
+        totalCount: filteredPhotos.length,
+        facets
+      };
+      
       res.json(results);
     } catch (error) {
       console.error("Error in advanced search:", error);
