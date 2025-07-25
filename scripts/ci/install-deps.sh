@@ -1,6 +1,6 @@
 #!/bin/bash
 # Windows-specific npm install with retry logic
-if [ "${{ matrix.os }}" = "windows-latest" ]; then
+if [ "$OS" = "windows-latest" ]; then
   echo "🪟 Installing dependencies for Windows..."
   npm config set fetch-retry-mintimeout 20000
   npm config set fetch-retry-maxtimeout 120000
