@@ -290,6 +290,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Photo must be in Bronze tier for processing" });
       }
 
+      // Check if this asset already has a Silver version
+      const existingSilver = await storage.getFileVersionsByAsset(photo.mediaAssetId);
+      const hasSilver = existingSilver.some(version => version.tier === 'silver');
+      if (hasSilver) {
+        return res.status(400).json({ message: "This photo has already been processed to Silver tier" });
+      }
+
       // Check if file is an image (AI processing currently only supports images)
       if (!photo.mimeType.startsWith('image/')) {
         return res.status(400).json({ message: "AI processing currently only supports images" });
@@ -298,8 +305,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Copy file to Silver tier
       const silverPath = await fileManager.copyToSilver(photo.filePath);
 
-      // Run AI analysis
-      const aiMetadata = await aiService.analyzeImage(photo.filePath);
+      // Run AI analysis with OpenAI as preferred provider
+      const aiMetadata = await aiService.analyzeImage(photo.filePath, "openai");
 
       // Combine existing metadata with AI metadata
       const existingMetadata = photo.metadata || {};
@@ -316,7 +323,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fileHash: photo.fileHash,
         fileSize: photo.fileSize,
         mimeType: photo.mimeType,
-        metadata: combinedMetadata,
+        metadata: combinedMetadata as any,
         isReviewed: false,
       });
 

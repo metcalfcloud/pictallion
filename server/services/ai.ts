@@ -19,7 +19,7 @@ interface AIConfig {
 }
 
 const DEFAULT_CONFIG: AIConfig = {
-  provider: (process.env.AI_PROVIDER as AIProvider) || "ollama",
+  provider: (process.env.AI_PROVIDER as AIProvider) || (process.env.OPENAI_API_KEY ? "openai" : "ollama"),
   ollama: {
     baseUrl: process.env.OLLAMA_BASE_URL || "http://localhost:11434",
     visionModel: process.env.OLLAMA_MODEL || "llava:latest",
@@ -46,7 +46,20 @@ class AIService {
     const provider = preferredProvider || this.config.provider;
     
     try {
-      // Try primary provider first
+      // Try OpenAI first if it's the preferred provider or available
+      if ((provider === "openai" || provider === "both") && this.config.openai.apiKey) {
+        console.log("Using OpenAI for image analysis with API key:", this.config.openai.apiKey ? "present" : "missing");
+        try {
+          return await this.analyzeWithOpenAI(imagePath);
+        } catch (openaiError) {
+          console.error("OpenAI analysis failed:", openaiError);
+          // Continue to try Ollama if OpenAI fails
+        }
+      } else {
+        console.log("OpenAI not available - provider:", provider, "apiKey:", this.config.openai.apiKey ? "present" : "missing");
+      }
+
+      // Try Ollama if OpenAI failed or if it's the preferred provider
       if (provider === "ollama" || provider === "both") {
         const isOllamaAvailable = await this.checkOllamaAvailability();
         if (isOllamaAvailable) {
@@ -56,12 +69,6 @@ class AIService {
           console.log("Ollama not available, falling back to basic metadata");
           return this.generateBasicMetadata(imagePath);
         }
-      }
-
-      // Try OpenAI if Ollama failed or if it's the preferred provider
-      if ((provider === "openai" || provider === "both") && this.config.openai.apiKey) {
-        console.log("Using OpenAI for image analysis");
-        return await this.analyzeWithOpenAI(imagePath);
       }
 
       // Fallback to basic metadata
