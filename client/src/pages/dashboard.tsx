@@ -108,7 +108,7 @@ export default function Dashboard() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-semibold text-gray-900">Dashboard</h2>
-            <p className="text-sm text-gray-500">Overview of your photo collection</p>
+            <p className="text-sm text-gray-500">Welcome to Pictallion - Overview of your photo collection</p>
           </div>
           <div className="flex items-center space-x-4">
             <div className="relative">

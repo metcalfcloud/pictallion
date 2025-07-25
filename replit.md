@@ -7,6 +7,7 @@ Pictallion is a comprehensive photo and video management application built with 
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+App name: Pictallion (combination of "pictures" + "medallion" - chosen by Paul to reflect the tiered system and the precious nature of photos)
 
 ## System Architecture
 
