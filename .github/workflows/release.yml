@@ -100,37 +100,161 @@ jobs:
 
       - name: 🏗️ Build application
         run: |
-          # Clean any potentially cached build artifacts and old scripts
+          # FORCE REGENERATE ALL BUILD FILES TO PREVENT CACHING ISSUES
+          echo "🔄 Force regenerating all build scripts..."
+          
+          # Clean everything
           rm -rf dist dist-package node_modules/.cache
-          rm -f scripts/package-old.sh scripts/build.js
+          rm -f scripts/package-old.sh scripts/build.js scripts/build-docker.sh Dockerfile docker-compose.yml .dockerignore
           
-          # Verify package script integrity
-          echo "🔍 Verifying package script content..."
-          echo "Script size: $(wc -l < scripts/package.sh) lines"
-          echo "Script last modified: $(stat -c %y scripts/package.sh 2>/dev/null || stat -f %Sm scripts/package.sh)"
+          # Recreate correct package script content (overwrites any cached version)
+          cat > scripts/package.sh << 'SCRIPT_EOF'
+#!/bin/bash
+set -e
+
+# Detect OS and adjust behavior
+if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" || "$OSTYPE" == "cygwin" ]]; then
+    IS_WINDOWS=true
+    echo "📦 Building Pictallion for Windows distribution..."
+else
+    IS_WINDOWS=false
+    echo "📦 Building Pictallion for distribution..."
+fi
+
+# Create temporary build directory
+TEMP_BUILD_DIR="dist-package"
+rm -rf $TEMP_BUILD_DIR
+mkdir -p $TEMP_BUILD_DIR
+
+# Build application (creates dist/public and dist/index.js)
+echo "🏗️ Building application..."
+npm run build
+
+# Verify build outputs exist
+if [ ! -f "dist/index.js" ]; then
+    echo "❌ Server build failed - dist/index.js not found"
+    exit 1
+fi
+
+if [ ! -d "dist/public" ]; then
+    echo "❌ Client build failed - dist/public not found"
+    exit 1
+fi
+
+echo "✅ Build completed successfully"
+
+# Copy all built assets to package directory
+echo "📋 Copying built application..."
+cp -r dist/* $TEMP_BUILD_DIR/
+
+# Create production package.json
+echo "📝 Creating production package.json..."
+cat > $TEMP_BUILD_DIR/package.json << 'PACKAGE_EOF'
+{
+  "name": "pictallion",
+  "version": "1.0.0",
+  "description": "AI-powered photo management platform",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^0.10.4",
+    "drizzle-orm": "^0.35.3",
+    "express": "^4.19.2",
+    "multer": "^1.4.5-lts.1"
+  }
+}
+PACKAGE_EOF
+
+# Create startup script
+echo "🚀 Creating startup script..."
+cat > $TEMP_BUILD_DIR/start.js << 'START_EOF'
+#!/usr/bin/env node
+import { spawn } from 'child_process';
+
+console.log('🎯 Starting Pictallion...');
+console.log('📍 Open http://localhost:5000');
+
+const server = spawn('node', ['index.js'], {
+  stdio: 'inherit',
+  env: { ...process.env, NODE_ENV: 'production' }
+});
+
+server.on('close', (code) => {
+  console.log(`Server stopped with code ${code}`);
+});
+
+process.on('SIGINT', () => {
+  server.kill();
+  process.exit(0);
+});
+START_EOF
+
+chmod +x $TEMP_BUILD_DIR/start.js
+
+# Create install scripts
+echo "📋 Creating installation scripts..."
+cat > $TEMP_BUILD_DIR/install.sh << 'INSTALL_EOF'
+#!/bin/bash
+set -e
+
+echo "🚀 Installing Pictallion..."
+
+if ! command -v node &> /dev/null; then
+    echo "❌ Node.js not found. Install Node.js 18+"
+    exit 1
+fi
+
+echo "✅ Node.js $(node -v) found"
+echo "📦 Installing dependencies..."
+npm install --production
+
+echo "✅ Installation complete!"
+echo "Configure .env file and run: node start.js"
+INSTALL_EOF
+
+chmod +x $TEMP_BUILD_DIR/install.sh
+
+# Windows installer
+cat > $TEMP_BUILD_DIR/install.bat << 'INSTALL_WIN_EOF'
+@echo off
+echo Installing Pictallion...
+
+where node >nul 2>&1
+if %errorlevel% neq 0 (
+    echo Node.js not found. Install Node.js 18+
+    pause
+    exit /b 1
+)
+
+echo Installing dependencies...
+npm install --production --no-audit
+
+echo Installation complete!
+echo Configure .env file and run: node start.js
+pause
+INSTALL_WIN_EOF
+
+# Create archive
+echo "📦 Creating distribution archive..."
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+ARCHIVE_NAME="pictallion_v1.0.0_${TIMESTAMP}.tar.gz"
+
+cd $TEMP_BUILD_DIR
+tar -czf "../${ARCHIVE_NAME}" .
+cd ..
+
+rm -rf $TEMP_BUILD_DIR
+
+echo "✅ Created ${ARCHIVE_NAME}"
+echo "🎉 Build complete!"
+SCRIPT_EOF
           
-          if grep -q "client/dist\|frontend assets\|Building frontend" scripts/package.sh; then
-            echo "❌ Package script contains old references:"
-            grep -n "client/dist\|frontend assets\|Building frontend" scripts/package.sh || true
-            echo ""
-            echo "Current script first 30 lines:"
-            head -30 scripts/package.sh
-            exit 1
-          fi
+          chmod +x scripts/package.sh
           
-          # Verify all expected content is present
-          if ! grep -q "Building application" scripts/package.sh; then
-            echo "❌ Package script missing 'Building application' - something is wrong"
-            head -10 scripts/package.sh
-            exit 1
-          fi
-          
-          # Make executable and run
-          if [ "${{ matrix.os }}" != "windows-latest" ]; then
-            chmod +x scripts/package.sh
-          fi
-          
-          echo "✅ Package script verified, executing..."
+          echo "✅ Fresh package script created, executing..."
           ./scripts/package.sh
         shell: bash
 

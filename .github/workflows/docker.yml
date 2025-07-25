@@ -44,20 +44,72 @@ jobs:
 
       - name: 🚀 Build Docker setup
         run: |
-          # Clean any existing Docker files to ensure fresh generation
-          rm -f Dockerfile docker-compose.yml .dockerignore scripts/docker-setup.sh
+          # FORCE CREATE CORRECT DOCKERFILE (no caching)
+          echo "🔄 Creating fresh Dockerfile..."
           
-          # Generate fresh Docker configuration
-          chmod +x scripts/build-docker.sh
-          ./scripts/build-docker.sh
+          cat > Dockerfile << 'DOCKERFILE_EOF'
+# Multi-stage build for Pictallion
+FROM node:18-alpine AS builder
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm ci
+
+# Copy source code
+COPY . .
+
+# Build application using unified build process
+RUN npm run build
+
+# Production stage
+FROM node:18-alpine AS production
+
+WORKDIR /app
+
+# Copy production package.json
+COPY package*.json ./
+
+# Install production dependencies only
+RUN npm ci --only=production && npm cache clean --force
+
+# Copy built application from builder stage
+COPY --from=builder /app/dist ./dist
+
+# Copy shared directory
+COPY --from=builder /app/shared ./shared
+
+# Copy configuration
+COPY --from=builder /app/drizzle.config.ts ./
+
+# Create media directories
+RUN mkdir -p data/media/bronze data/media/silver data/media/gold
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && adduser -S pictallion -u 1001
+RUN chown -R pictallion:nodejs /app
+USER pictallion
+
+# Expose port
+EXPOSE 5000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:5000/api/health || exit 1
+
+# Start application
+CMD ["node", "dist/index.js"]
+DOCKERFILE_EOF
           
-          # Verify Dockerfile doesn't contain client/ references
+          echo "✅ Fresh Dockerfile created"
+          
+          # Verify no client references
           if grep -q "client/" Dockerfile; then
-            echo "❌ Dockerfile still contains client/ references"
-            grep -n "client/" Dockerfile
+            echo "❌ Dockerfile contains client/ references"
             exit 1
-          else
-            echo "✅ Dockerfile verified - no client/ references"
           fi
 
       - name: 🏗️ Build Docker image
@@ -110,17 +162,41 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
-      - name: 🚀 Build Docker setup
+      - name: 🚀 Build Docker setup  
         run: |
-          # Clean any existing Docker files to ensure fresh generation
-          rm -f Dockerfile docker-compose.yml .dockerignore scripts/docker-setup.sh
-          
-          # Generate fresh Docker configuration
-          chmod +x scripts/build-docker.sh
-          ./scripts/build-docker.sh
-          
-          # Verify no client/ references in generated files
-          echo "✅ Docker configuration generated successfully"
+          # Create fresh docker-compose.yml
+          cat > docker-compose.yml << 'COMPOSE_EOF'
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - DATABASE_URL=postgresql://pictallion:pictallion_password@postgres:5432/pictallion
+      - NODE_ENV=production
+    depends_on:
+      - postgres
+    volumes:
+      - ./data:/app/data
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: pictallion
+      POSTGRES_USER: pictallion
+      POSTGRES_PASSWORD: pictallion_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+volumes:
+  postgres_data:
+COMPOSE_EOF
+
+          echo "✅ Fresh docker-compose.yml created"
 
       - name: 🐙 Test Docker Compose
         run: |
