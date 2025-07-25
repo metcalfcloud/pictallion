@@ -15,6 +15,7 @@ import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { AISettingsModal } from "./ai-settings-modal";
+import pictallionLogo from "../assets/pictallion-logo.png";
 
 const navigationItems = [
   { path: "/dashboard", label: "Dashboard", icon: ChartLine },
@@ -40,8 +41,12 @@ export default function Sidebar() {
       {/* Logo */}
       <div className="p-6 border-b border-gray-200">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-            <Camera className="text-white text-lg" />
+          <div className="w-10 h-10 flex items-center justify-center">
+            <img 
+              src={pictallionLogo} 
+              alt="Pictallion Logo" 
+              className="w-10 h-10 object-contain filter drop-shadow-sm"
+            />
           </div>
           <div>
             <h1 className="text-xl font-bold text-gray-900">Pictallion</h1>

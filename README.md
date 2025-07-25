@@ -8,6 +8,12 @@
 [![CI](https://github.com/yourusername/pictallion/workflows/CI%2FCD/badge.svg)](https://github.com/yourusername/pictallion/actions)
 [![Docker](https://img.shields.io/badge/Docker-Available-blue.svg)](https://github.com/yourusername/pictallion/pkgs/container/pictallion)
 
+<div align="center">
+  <img src="docs/pictallion-logo.png" alt="Pictallion Logo" width="400"/>
+  <h1>Pictallion</h1>
+  <p><em>AI-Powered Photo Management Platform</em></p>
+</div>
+
 A comprehensive photo management platform with intelligent tiered processing (Bronze → Silver → Gold) and AI-powered metadata generation. Features professional-grade capabilities including face recognition, advanced search, collections management, and batch operations.
 
 ![Pictallion Dashboard](docs/dashboard-screenshot.png)
