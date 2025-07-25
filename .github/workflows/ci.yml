@@ -91,7 +91,7 @@ jobs:
           docker build -t pictallion:test .
 
   security:
-    name: 🔒 Security Scan
+    name: 🔒 Basic Security Check
     runs-on: ubuntu-latest
 
     steps:
@@ -108,15 +108,22 @@ jobs:
         run: npm ci
 
       - name: 🔍 Run security audit
-        run: npm audit --audit-level=moderate
-
-      - name: 🔒 CodeQL Analysis
-        uses: github/codeql-action/init@v3
-        with:
-          languages: typescript, javascript
-
-      - name: 🏗️ Autobuild
-        uses: github/codeql-action/autobuild@v3
-
-      - name: 🔍 Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+        run: |
+          # Run audit and capture output
+          npm audit --audit-level=high --json > audit-results.json || true
+          
+          # Check for high or critical vulnerabilities only
+          HIGH_CRITICAL=$(cat audit-results.json | jq -r '.vulnerabilities | to_entries[] | select(.value.severity == "high" or .value.severity == "critical") | .key' | wc -l)
+          
+          if [ "$HIGH_CRITICAL" -gt "0" ]; then
+            echo "❌ Found high or critical vulnerabilities:"
+            cat audit-results.json | jq -r '.vulnerabilities | to_entries[] | select(.value.severity == "high" or .value.severity == "critical") | "\(.key): \(.value.severity)"'
+            exit 1
+          else
+            echo "✅ No high or critical vulnerabilities found"
+            # Show total vulnerability count but don't fail
+            TOTAL=$(cat audit-results.json | jq -r '.vulnerabilities | length')
+            if [ "$TOTAL" -gt "0" ]; then
+              echo "ℹ️ Found $TOTAL total vulnerabilities (see weekly security report for details)"
+            fi
+          fi

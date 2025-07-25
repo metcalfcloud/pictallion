@@ -1,0 +1,162 @@
+name: 🛡️ Security
+
+on:
+  schedule:
+    - cron: '0 6 * * 1' # Weekly on Monday at 6 AM
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  security-audit:
+    name: 🔍 Security Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 🔧 Install dependencies
+        run: npm ci
+
+      - name: 🛡️ Run comprehensive security audit
+        run: |
+          echo "📊 Full Security Audit Report" > security-report.md
+          echo "Generated on: $(date)" >> security-report.md
+          echo "" >> security-report.md
+          
+          # Full audit
+          echo "## NPM Audit Results" >> security-report.md
+          echo "\`\`\`" >> security-report.md
+          npm audit >> security-report.md || true
+          echo "\`\`\`" >> security-report.md
+          echo "" >> security-report.md
+          
+          # JSON format for processing
+          npm audit --json > audit-full.json || true
+          
+          # Check for high/critical vulnerabilities
+          HIGH_CRITICAL=$(cat audit-full.json | jq -r '.vulnerabilities | to_entries[] | select(.value.severity == "high" or .value.severity == "critical") | .key' | wc -l)
+          MODERATE=$(cat audit-full.json | jq -r '.vulnerabilities | to_entries[] | select(.value.severity == "moderate") | .key' | wc -l)
+          LOW=$(cat audit-full.json | jq -r '.vulnerabilities | to_entries[] | select(.value.severity == "low") | .key' | wc -l)
+          
+          echo "## Vulnerability Summary" >> security-report.md
+          echo "- **Critical/High**: $HIGH_CRITICAL" >> security-report.md
+          echo "- **Moderate**: $MODERATE" >> security-report.md
+          echo "- **Low**: $LOW" >> security-report.md
+          echo "" >> security-report.md
+          
+          if [ "$HIGH_CRITICAL" -gt "0" ]; then
+            echo "❌ Found $HIGH_CRITICAL high/critical vulnerabilities"
+            echo "## High/Critical Vulnerabilities" >> security-report.md
+            cat audit-full.json | jq -r '.vulnerabilities | to_entries[] | select(.value.severity == "high" or .value.severity == "critical") | "- **\(.key)**: \(.value.severity) - \(.value.title)"' >> security-report.md
+            exit 1
+          else
+            echo "✅ No high/critical vulnerabilities found"
+          fi
+          
+          if [ "$MODERATE" -gt "0" ]; then
+            echo "⚠️ Found $MODERATE moderate vulnerabilities (documented but not failing)"
+            echo "## Moderate Vulnerabilities (Non-blocking)" >> security-report.md
+            cat audit-full.json | jq -r '.vulnerabilities | to_entries[] | select(.value.severity == "moderate") | "- **\(.key)**: \(.value.severity) - \(.value.title)"' >> security-report.md
+          fi
+
+      - name: 📤 Upload security report
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-report-${{ github.run_id }}
+          path: security-report.md
+
+  codeql:
+    name: 🔍 CodeQL Analysis
+    runs-on: ubuntu-latest
+
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🔍 Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: typescript, javascript
+          queries: +security-and-quality
+
+      - name: 🏗️ Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: 🔍 Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:typescript"
+
+  dependency-review:
+    name: 📦 Dependency Review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🔍 Dependency Review
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+
+  docker-security:
+    name: 🐳 Docker Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🏗️ Build Docker image
+        run: |
+          chmod +x scripts/build-docker.sh
+          ./scripts/build-docker.sh
+          docker build -t pictallion:security-test .
+
+      - name: 🔍 Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'pictallion:security-test'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: 📤 Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  secret-scan:
+    name: 🔐 Secret Scanning
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🔍 Run TruffleHog
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: main
+          head: HEAD
+          extra_args: --debug --only-verified

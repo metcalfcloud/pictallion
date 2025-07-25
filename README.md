@@ -185,8 +185,8 @@ npm run db:push      # Push database schema changes
 
 - [Deployment Guide](DEPLOYMENT.md) - Comprehensive deployment options
 - [Ollama Setup](OLLAMA_SETUP.md) - Local AI processing setup
-- [API Documentation](docs/api.md) - Backend API reference
 - [Contributing Guide](CONTRIBUTING.md) - Development guidelines
+- [Security Policy](SECURITY.md) - Security best practices and reporting
 
 ## 🔒 Security
 
