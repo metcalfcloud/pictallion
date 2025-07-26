@@ -22,20 +22,7 @@ export default function Gallery() {
   const [selectedPhotos, setSelectedPhotos] = useState<string[]>([]);
   const [showBatchOperations, setShowBatchOperations] = useState(false);
   const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
-  const [searchFilters, setSearchFilters] = useState({
-    query: '',
-    tier: [],
-    dateRange: {},
-    camera: '',
-    tags: [],
-    location: '',
-    aiConfidence: [0, 100],
-    fileType: [],
-    fileSize: [0, 100],
-    hasGPS: false,
-    hasFaces: false,
-    people: []
-  });
+  const [searchFilters, setSearchFilters] = useState<import("@/components/advanced-search").SearchFilters>({});
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -205,7 +192,11 @@ export default function Gallery() {
               </SelectContent>
             </Select>
 
-            <Button variant="outline" size="sm">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setShowAdvancedSearch(!showAdvancedSearch)}
+            >
               <Filter className="w-4 h-4 mr-2" />
               More Filters
             </Button>
@@ -261,6 +252,20 @@ export default function Gallery() {
             </Button>
           </div>
         </div>
+
+        {/* Advanced Search */}
+        {showAdvancedSearch && (
+          <div className="mb-6">
+            <AdvancedSearch
+              filters={searchFilters}
+              onFiltersChange={setSearchFilters}
+              onSearch={() => {
+                // Apply advanced search filters here
+                console.log('Advanced search filters:', searchFilters);
+              }}
+            />
+          </div>
+        )}
 
         {/* Results Summary */}
         <div className="mb-6">
