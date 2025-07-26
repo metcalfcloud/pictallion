@@ -201,24 +201,30 @@ class FaceDetectionService {
       const faceCenterX = x + width / 2;
       const faceCenterY = y + height / 2;
       
-      // 2. Calculate crop size - use 3x the face size for proper portrait framing
+      // 2. Calculate crop size - use much larger area for context 
       const faceSize = Math.max(width, height);
-      const cropSize = faceSize * 3; // 3x face size for good portrait framing
+      const cropSize = Math.min(faceSize * 5, Math.min(imageWidth, imageHeight) * 0.3); // 5x face size or 30% of image, whichever is smaller
       
-      // 3. Position crop area centered on face, but adjust for portrait composition
-      // Move crop up slightly to show more shoulder/body context below face
+      // 3. Position crop area centered on face
       const cropX = Math.max(0, faceCenterX - cropSize / 2);
-      const cropY = Math.max(0, faceCenterY - cropSize * 0.4); // Face in upper 40% of crop
+      const cropY = Math.max(0, faceCenterY - cropSize / 2);
       
-      // 4. Ensure crop doesn't exceed image boundaries
-      const finalCropX = Math.min(cropX, imageWidth - cropSize);
-      const finalCropY = Math.min(cropY, imageHeight - cropSize);
-      const finalCropSize = Math.min(cropSize, Math.min(imageWidth - finalCropX, imageHeight - finalCropY));
+      // 4. Ensure crop doesn't exceed image boundaries and adjust if needed
+      let finalCropX = Math.min(cropX, imageWidth - cropSize);
+      let finalCropY = Math.min(cropY, imageHeight - cropSize);
+      let finalCropSize = Math.min(cropSize, Math.min(imageWidth - finalCropX, imageHeight - finalCropY));
+      
+      // If crop is still too small, fall back to showing larger area around face
+      if (finalCropSize < faceSize * 2) {
+        finalCropX = Math.max(0, faceCenterX - imageWidth * 0.15);
+        finalCropY = Math.max(0, faceCenterY - imageHeight * 0.15);
+        finalCropSize = Math.min(Math.min(imageWidth, imageHeight) * 0.3, imageWidth - finalCropX, imageHeight - finalCropY);
+      }
       
       console.log(`Face framing: face [${x}, ${y}, ${width}x${height}] center [${faceCenterX}, ${faceCenterY}] → crop [${finalCropX}, ${finalCropY}, ${finalCropSize}x${finalCropSize}] from ${imageWidth}x${imageHeight}`);
       
       // Create face crop using standard portrait framing
-      const imageBuffer = await sharp(fullImagePath)
+      let imageBuffer = await sharp(fullImagePath)
         .extract({
           left: Math.round(finalCropX),
           top: Math.round(finalCropY),
@@ -231,6 +237,32 @@ class FaceDetectionService {
         })
         .jpeg({ quality: 85 })
         .toBuffer();
+
+      // Check if the crop is too dark (indicates bad coordinates)
+      const stats = await sharp(imageBuffer).stats();
+      const avgBrightness = (stats.channels[0].mean + stats.channels[1].mean + stats.channels[2].mean) / 3;
+      
+      // If crop is very dark (brightness < 30), try a larger context area
+      if (avgBrightness < 30) {
+        console.log(`Dark crop detected (brightness: ${avgBrightness.toFixed(1)}), using larger context area`);
+        const largeCropSize = Math.min(imageWidth, imageHeight) * 0.4; // 40% of image
+        const largeCropX = Math.max(0, faceCenterX - largeCropSize / 2);
+        const largeCropY = Math.max(0, faceCenterY - largeCropSize / 2);
+        
+        imageBuffer = await sharp(fullImagePath)
+          .extract({
+            left: Math.round(largeCropX),
+            top: Math.round(largeCropY),
+            width: Math.round(Math.min(largeCropSize, imageWidth - largeCropX)),
+            height: Math.round(Math.min(largeCropSize, imageHeight - largeCropY))
+          })
+          .resize(200, 200, {
+            fit: 'cover',
+            position: 'center'
+          })
+          .jpeg({ quality: 85 })
+          .toBuffer();
+      }
 
       // Save crop to temporary location  
       const cropFileName = `face_crop_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.jpg`;
