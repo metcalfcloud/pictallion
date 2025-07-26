@@ -415,7 +415,7 @@ class FaceDetectionService {
     
     // Group unassigned faces by similarity
     for (const faceId of unassignedFaceIds) {
-      const face = await storage.getFaceById?.(faceId);
+      const face = await storage.getFaceById(faceId);
       if (!face || !face.embedding) continue;
       
       const similarFaces = await this.findSimilarFaces(face.embedding, 0.7);
@@ -449,6 +449,34 @@ class FaceDetectionService {
     }
     
     return suggestions;
+  }
+
+  async reprocessUnassignedFaces(): Promise<Array<{
+    suggestedPersonId?: string,
+    suggestedPersonName?: string,
+    confidence: number,
+    faceIds: string[]
+  }>> {
+    const unassignedFaces = await storage.getUnassignedFaces();
+    const unassignedFaceIds = unassignedFaces.map(face => face.id);
+    return await this.generateFaceSuggestions(unassignedFaceIds);
+  }
+
+  async batchAssignFaces(assignments: Array<{faceId: string, personId: string}>): Promise<{success: number, failed: number}> {
+    let success = 0;
+    let failed = 0;
+
+    for (const assignment of assignments) {
+      try {
+        await storage.assignFaceToPerson(assignment.faceId, assignment.personId);
+        success++;
+      } catch (error) {
+        console.error(`Failed to assign face ${assignment.faceId} to person ${assignment.personId}:`, error);
+        failed++;
+      }
+    }
+
+    return { success, failed };
   }
 
   async generateFaceCrop(imagePath: string, boundingBox: [number, number, number, number]): Promise<string> {

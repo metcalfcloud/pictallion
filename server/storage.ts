@@ -319,6 +319,11 @@ export class DatabaseStorage implements IStorage {
     return face || undefined;
   }
 
+  async getFaceById(faceId: string): Promise<Face | undefined> {
+    const [face] = await db.select().from(faces).where(eq(faces.id, faceId));
+    return face || undefined;
+  }
+
   async getPerson(personId: string): Promise<Person | undefined> {
     const [person] = await db.select().from(people).where(eq(people.id, personId));
     return person || undefined;
