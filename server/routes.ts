@@ -542,22 +542,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const faces = await storage.getFacesByPerson(person.id);
           const photoIds = Array.from(new Set(faces.map(face => face.photoId)));
           
-          // Generate face crop for thumbnail using the first face
+          // Generate face crop for thumbnail - use selected thumbnail or first face
           let coverPhotoPath = null;
           if (faces.length > 0) {
-            const firstFace = faces[0];
-            const firstPhoto = await storage.getFileVersion(firstFace.photoId);
+            let selectedFace = faces[0]; // Default to first face
             
-            if (firstPhoto && firstFace.boundingBox) {
+            // Use selected thumbnail face if one is set
+            if (person.selectedThumbnailFaceId) {
+              const thumbnailFace = faces.find(f => f.id === person.selectedThumbnailFaceId);
+              if (thumbnailFace) {
+                selectedFace = thumbnailFace;
+              }
+            }
+            
+            const photo = await storage.getFileVersion(selectedFace.photoId);
+            
+            if (photo && selectedFace.boundingBox) {
               try {
                 // Generate a face crop for better thumbnail
                 coverPhotoPath = await faceDetectionService.generateFaceCrop(
-                  firstPhoto.filePath, 
-                  firstFace.boundingBox as [number, number, number, number]
+                  photo.filePath, 
+                  selectedFace.boundingBox as [number, number, number, number]
                 );
               } catch (error) {
                 console.error('Failed to generate face crop for thumbnail:', error);
-                coverPhotoPath = firstPhoto.filePath; // Fallback to full image
+                coverPhotoPath = photo.filePath; // Fallback to full image
               }
             }
           }
@@ -608,6 +617,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting person:", error);
       res.status(500).json({ message: "Failed to delete person" });
+    }
+  });
+
+  app.put("/api/people/:id/thumbnail", async (req, res) => {
+    try {
+      const { faceId } = req.body;
+      
+      if (!faceId) {
+        return res.status(400).json({ message: "Face ID is required" });
+      }
+      
+      // Verify the face belongs to this person
+      const face = await storage.getFace(faceId);
+      if (!face || face.personId !== req.params.id) {
+        return res.status(400).json({ message: "Face does not belong to this person" });
+      }
+      
+      await storage.setPersonThumbnail(req.params.id, faceId);
+      res.json({ success: true, message: "Thumbnail updated successfully" });
+    } catch (error) {
+      console.error("Error updating person thumbnail:", error);
+      res.status(500).json({ message: "Failed to update thumbnail" });
     }
   });
 

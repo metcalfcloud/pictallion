@@ -27,7 +27,8 @@ import {
   Calendar,
   Tag,
   User,
-  Sparkles
+  Sparkles,
+  Image
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -71,6 +72,7 @@ export default function PeoplePage() {
   const [isMergeFacesOpen, setIsMergeFacesOpen] = useState(false);
   const [isEditPersonOpen, setIsEditPersonOpen] = useState(false);
   const [isViewPhotosOpen, setIsViewPhotosOpen] = useState(false);
+  const [isSelectThumbnailOpen, setIsSelectThumbnailOpen] = useState(false);
   const [editingPerson, setEditingPerson] = useState<Person | null>(null);
   const [newPersonName, setNewPersonName] = useState('');
   const [newPersonNotes, setNewPersonNotes] = useState('');
@@ -158,6 +160,30 @@ export default function PeoplePage() {
     },
     onError: () => {
       toast({ title: "Failed to assign faces", variant: "destructive" });
+    },
+  });
+
+  // Set thumbnail mutation
+  const setThumbnailMutation = useMutation({
+    mutationFn: ({ personId, faceId }: { personId: string; faceId: string }) => 
+      apiRequest(`/api/people/${personId}/thumbnail`, { 
+        method: 'PUT', 
+        body: JSON.stringify({ faceId })
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/people"] });
+      setIsSelectThumbnailOpen(false);
+      toast({
+        title: "Success",
+        description: "Thumbnail updated successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update thumbnail",
+        variant: "destructive",
+      });
     },
   });
 
@@ -379,6 +405,17 @@ export default function PeoplePage() {
                           >
                             <Eye className="w-4 h-4 mr-2" />
                             View Photos ({person.photoCount || 0})
+                          </Button>
+                          <Button
+                            variant="outline"
+                            className="w-full justify-start"
+                            onClick={() => {
+                              setSelectedPerson(person.id);
+                              setIsSelectThumbnailOpen(true);
+                            }}
+                          >
+                            <Image className="w-4 h-4 mr-2" />
+                            Change Thumbnail
                           </Button>
                           <Button
                             variant="outline"
@@ -647,6 +684,56 @@ export default function PeoplePage() {
               <div className="text-center py-8">
                 <Camera className="w-12 h-12 text-gray-300 mx-auto mb-4" />
                 <p className="text-gray-600">No photos found for this person.</p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Select Thumbnail Dialog */}
+      <Dialog open={isSelectThumbnailOpen} onOpenChange={setIsSelectThumbnailOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>
+              Select Thumbnail for {people.find(p => p.id === selectedPerson)?.name || 'Person'}
+            </DialogTitle>
+            <DialogDescription>
+              Choose which face photo to use as the thumbnail for this person.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-96 overflow-y-auto">
+            {selectedPerson && (
+              <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                {faces
+                  .filter(face => face.personId === selectedPerson)
+                  .map((face) => (
+                    <div 
+                      key={face.id} 
+                      className="aspect-square rounded-lg overflow-hidden bg-gray-100 cursor-pointer hover:ring-2 hover:ring-primary transition-all"
+                      onClick={() => setThumbnailMutation.mutate({ 
+                        personId: selectedPerson, 
+                        faceId: face.id 
+                      })}
+                    >
+                      {face.faceCropUrl ? (
+                        <img
+                          src={`/api/files/${face.faceCropUrl}`}
+                          alt="Face option"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : face.photo ? (
+                        <img
+                          src={`/api/files/${face.photo.filePath}`}
+                          alt="Face option"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-400">
+                          <User className="w-8 h-8" />
+                        </div>
+                      )}
+                    </div>
+                  ))}
               </div>
             )}
           </div>

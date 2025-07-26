@@ -313,6 +313,13 @@ export class DatabaseStorage implements IStorage {
     await db.delete(people).where(eq(people.id, id));
   }
 
+  async setPersonThumbnail(personId: string, faceId: string): Promise<void> {
+    await db
+      .update(people)
+      .set({ selectedThumbnailFaceId: faceId })
+      .where(eq(people.id, personId));
+  }
+
   async createFace(face: InsertFace): Promise<Face> {
     const [newFace] = await db
       .insert(faces)

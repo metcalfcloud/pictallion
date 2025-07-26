@@ -65,8 +65,10 @@ export const collectionPhotos = pgTable("collection_photos", {
 export const people = pgTable("people", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
+  notes: text("notes"),
   faceCount: integer("face_count").default(0),
   representativeFace: text("representative_face"),
+  selectedThumbnailFaceId: text("selected_thumbnail_face_id"), // ID of the face to use as thumbnail
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
