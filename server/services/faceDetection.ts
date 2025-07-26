@@ -191,15 +191,29 @@ class FaceDetectionService {
       const [x, y, width, height] = boundingBox;
       const fullImagePath = path.join(process.cwd(), 'data', imagePath);
       
-      // Create face crop using Sharp with padding
+      // Get image metadata to understand dimensions
+      const imageInfo = await sharp(fullImagePath).metadata();
+      const imageWidth = imageInfo.width || 1000;
+      const imageHeight = imageInfo.height || 1000;
+      
+      // Add generous padding around the face for better context
+      const padding = Math.max(width, height) * 0.8; // 80% of face size as padding
+      const cropX = Math.max(0, x - padding);
+      const cropY = Math.max(0, y - padding);
+      const cropWidth = Math.min(width + (padding * 2), imageWidth - cropX);
+      const cropHeight = Math.min(height + (padding * 2), imageHeight - cropY);
+      
+      console.log(`Face crop: original face at [${x}, ${y}, ${width}, ${height}], cropping [${cropX}, ${cropY}, ${cropWidth}, ${cropHeight}] from ${imageWidth}x${imageHeight} image`);
+      
+      // Create face crop using Sharp with generous padding
       const imageBuffer = await sharp(fullImagePath)
         .extract({
-          left: Math.max(0, x - 10), // Add small padding
-          top: Math.max(0, y - 10),
-          width: Math.min(width + 20, 300), // Limit max width
-          height: Math.min(height + 20, 300) // Limit max height
+          left: Math.round(cropX),
+          top: Math.round(cropY),
+          width: Math.round(cropWidth),
+          height: Math.round(cropHeight)
         })
-        .resize(150, 150, {
+        .resize(200, 200, {
           fit: 'cover',
           position: 'center'
         })
