@@ -62,12 +62,34 @@ class FaceDetectionService {
         // Check if there are already detected faces in the analysis
         if (analysis.detectedFaces && Array.isArray(analysis.detectedFaces)) {
           console.log('Found existing face data in AI metadata:', analysis.detectedFaces.length);
+          
+          // Get image dimensions to convert relative coordinates if needed
+          const sharp = (await import('sharp')).default;
+          const imagePath_full = path.join(process.cwd(), 'data', imagePath);
+          const imageInfo = await sharp(imagePath_full).metadata();
+          const imageWidth = imageInfo.width || 1000;
+          const imageHeight = imageInfo.height || 1000;
+          
           for (const existingFace of analysis.detectedFaces) {
+            let bbox = existingFace.boundingBox || [0.25, 0.15, 0.5, 0.7];
+            
+            // Check if coordinates seem to be relative (0-1 range) and convert to absolute
+            if (bbox[0] <= 1 && bbox[1] <= 1 && bbox[2] <= 1 && bbox[3] <= 1) {
+              console.log(`Converting relative coordinates [${bbox.join(', ')}] to absolute for ${imageWidth}x${imageHeight} image`);
+              bbox = [
+                Math.round(bbox[0] * imageWidth),   // x
+                Math.round(bbox[1] * imageHeight),  // y  
+                Math.round(bbox[2] * imageWidth),   // width
+                Math.round(bbox[3] * imageHeight)   // height
+              ];
+              console.log(`Converted to absolute: [${bbox.join(', ')}]`);
+            }
+            
             faces.push({
               id: `face_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-              boundingBox: existingFace.boundingBox || [0.25, 0.15, 0.5, 0.7],
+              boundingBox: bbox,
               confidence: Math.round((existingFace.confidence || 0.8) * 100), // Convert to 0-100 integer scale
-              embedding: await this.generateFaceEmbedding(imagePath, existingFace.boundingBox || [0.25, 0.15, 0.5, 0.7])
+              embedding: await this.generateFaceEmbedding(imagePath, bbox)
             });
           }
         }
