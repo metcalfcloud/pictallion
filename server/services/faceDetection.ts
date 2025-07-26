@@ -23,10 +23,10 @@ export interface Person {
 class FaceDetectionService {
   async detectFaces(imagePath: string): Promise<DetectedFace[]> {
     try {
-      console.log('Running computer vision face detection on:', imagePath);
+      console.log('Running enhanced computer vision face detection on:', imagePath);
       
-      // Use heuristic-based face detection instead of unreliable AI coordinates
-      const faces = await this.detectFacesWithHeuristics(imagePath);
+      // Use enhanced image analysis approach that combines multiple techniques
+      const faces = await this.detectFacesWithAdvancedAnalysis(imagePath);
       
       console.log(`Face detection completed: found ${faces.length} faces`);
       return faces;
@@ -34,6 +34,230 @@ class FaceDetectionService {
       console.error('Face detection failed:', error);
       return [];
     }
+  }
+
+  async detectFacesWithAdvancedAnalysis(imagePath: string): Promise<DetectedFace[]> {
+    try {
+      const fullImagePath = path.join(process.cwd(), 'data', imagePath);
+      const imageInfo = await sharp(fullImagePath).metadata();
+      const width = imageInfo.width || 1000;
+      const height = imageInfo.height || 1000;
+      
+      console.log(`Advanced analysis of ${width}x${height} image for face detection`);
+      
+      // Step 1: Analyze image histogram to find skin-tone regions
+      const skinRegions = await this.findSkinToneRegions(fullImagePath, width, height);
+      
+      // Step 2: Apply composition rules to likely face areas
+      const compositionRegions = await this.findFaceRegionsUsingComposition(width, height);
+      
+      // Step 3: Combine and refine both approaches
+      const candidateRegions = this.combineFaceRegions(skinRegions, compositionRegions, width, height);
+      
+      const faces: DetectedFace[] = [];
+      for (let i = 0; i < candidateRegions.length; i++) {
+        const region = candidateRegions[i];
+        faces.push({
+          id: `advanced_face_${Date.now()}_${i}_${Math.random().toString(36).substr(2, 9)}`,
+          boundingBox: region.boundingBox,
+          confidence: region.confidence,
+          embedding: await this.generateFaceEmbedding(imagePath, region.boundingBox)
+        });
+      }
+      
+      return faces;
+    } catch (error) {
+      console.error('Advanced face detection failed:', error);
+      return [];
+    }
+  }
+
+  async findSkinToneRegions(imagePath: string, width: number, height: number): Promise<Array<{boundingBox: [number, number, number, number], confidence: number}>> {
+    try {
+      // Analyze image for skin-tone color ranges using Sharp
+      const { data, info } = await sharp(imagePath)
+        .resize(Math.min(400, width), Math.min(400, height), { fit: 'inside' })
+        .raw()
+        .toBuffer({ resolveWithObject: true });
+      
+      const scaleFactor = width / info.width;
+      const regions: Array<{boundingBox: [number, number, number, number], confidence: number}> = [];
+      
+      // Find regions with skin-tone colors (RGB ranges for various skin tones)
+      const skinToneRegions = this.findSkinColorClusters(data, info.width, info.height);
+      
+      // Convert back to original image coordinates
+      for (const region of skinToneRegions) {
+        const scaledRegion = {
+          boundingBox: [
+            Math.round(region.x * scaleFactor),
+            Math.round(region.y * scaleFactor),
+            Math.round(region.width * scaleFactor),
+            Math.round(region.height * scaleFactor)
+          ] as [number, number, number, number],
+          confidence: region.confidence
+        };
+        
+        // Only include regions that are reasonable face sizes
+        const faceArea = scaledRegion.boundingBox[2] * scaledRegion.boundingBox[3];
+        const imageArea = width * height;
+        const ratio = faceArea / imageArea;
+        
+        if (ratio > 0.005 && ratio < 0.3) { // Face should be 0.5% to 30% of image
+          regions.push(scaledRegion);
+        }
+      }
+      
+      console.log(`Found ${regions.length} skin-tone regions`);
+      return regions;
+    } catch (error) {
+      console.error('Skin tone analysis failed:', error);
+      return [];
+    }
+  }
+
+  findSkinColorClusters(data: Buffer, width: number, height: number): Array<{x: number, y: number, width: number, height: number, confidence: number}> {
+    const regions: Array<{x: number, y: number, width: number, height: number, confidence: number}> = [];
+    const channels = 3; // RGB
+    
+    // Skin tone color ranges (broader range to catch different ethnicities)
+    const skinRanges = [
+      { rMin: 170, rMax: 255, gMin: 140, gMax: 220, bMin: 120, bMax: 200 }, // Light skin
+      { rMin: 140, rMax: 200, gMin: 100, gMax: 170, bMin: 80, bMax: 140 },  // Medium skin
+      { rMin: 100, rMax: 160, gMin: 70, gMax: 130, bMin: 50, bMax: 100 },   // Dark skin
+    ];
+    
+    let skinPixelMap: boolean[][] = Array(height).fill(null).map(() => Array(width).fill(false));
+    
+    // Mark skin pixels
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const offset = (y * width + x) * channels;
+        const r = data[offset];
+        const g = data[offset + 1];
+        const b = data[offset + 2];
+        
+        for (const range of skinRanges) {
+          if (r >= range.rMin && r <= range.rMax &&
+              g >= range.gMin && g <= range.gMax &&
+              b >= range.bMin && b <= range.bMax) {
+            skinPixelMap[y][x] = true;
+            break;
+          }
+        }
+      }
+    }
+    
+    // Find connected regions of skin pixels
+    const visited: boolean[][] = Array(height).fill(null).map(() => Array(width).fill(false));
+    
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        if (skinPixelMap[y][x] && !visited[y][x]) {
+          const region = this.floodFillRegion(skinPixelMap, visited, x, y, width, height);
+          
+          if (region.pixelCount > 50) { // Minimum size threshold
+            regions.push({
+              x: region.minX,
+              y: region.minY,
+              width: region.maxX - region.minX,
+              height: region.maxY - region.minY,
+              confidence: Math.min(90, 50 + (region.pixelCount / 10))
+            });
+          }
+        }
+      }
+    }
+    
+    return regions.slice(0, 5); // Limit to top 5 regions
+  }
+
+  floodFillRegion(skinMap: boolean[][], visited: boolean[][], startX: number, startY: number, width: number, height: number) {
+    const stack = [{x: startX, y: startY}];
+    let pixelCount = 0;
+    let minX = startX, maxX = startX, minY = startY, maxY = startY;
+    
+    while (stack.length > 0) {
+      const {x, y} = stack.pop()!;
+      
+      if (x < 0 || x >= width || y < 0 || y >= height || visited[y][x] || !skinMap[y][x]) {
+        continue;
+      }
+      
+      visited[y][x] = true;
+      pixelCount++;
+      
+      minX = Math.min(minX, x);
+      maxX = Math.max(maxX, x);
+      minY = Math.min(minY, y);
+      maxY = Math.max(maxY, y);
+      
+      // Add neighboring pixels
+      stack.push({x: x+1, y}, {x: x-1, y}, {x, y: y+1}, {x, y: y-1});
+    }
+    
+    return { pixelCount, minX, maxX, minY, maxY };
+  }
+
+  combineFaceRegions(
+    skinRegions: Array<{boundingBox: [number, number, number, number], confidence: number}>,
+    compositionRegions: Array<{boundingBox: [number, number, number, number], confidence: number}>,
+    width: number,
+    height: number
+  ): Array<{boundingBox: [number, number, number, number], confidence: number}> {
+    
+    const combinedRegions: Array<{boundingBox: [number, number, number, number], confidence: number}> = [];
+    
+    // Start with skin regions (higher confidence)
+    for (const skinRegion of skinRegions) {
+      combinedRegions.push({
+        boundingBox: skinRegion.boundingBox,
+        confidence: Math.min(95, skinRegion.confidence + 10) // Boost skin-based detection
+      });
+    }
+    
+    // Add composition regions that don't overlap significantly with skin regions
+    for (const compRegion of compositionRegions) {
+      let hasSignificantOverlap = false;
+      
+      for (const existing of combinedRegions) {
+        const overlap = this.calculateRegionOverlap(compRegion.boundingBox, existing.boundingBox);
+        if (overlap > 0.3) { // 30% overlap threshold
+          hasSignificantOverlap = true;
+          break;
+        }
+      }
+      
+      if (!hasSignificantOverlap) {
+        combinedRegions.push(compRegion);
+      }
+    }
+    
+    // Sort by confidence and return top candidates
+    return combinedRegions
+      .sort((a, b) => b.confidence - a.confidence)
+      .slice(0, 4); // Max 4 faces per image
+  }
+
+  calculateRegionOverlap(region1: [number, number, number, number], region2: [number, number, number, number]): number {
+    const [x1, y1, w1, h1] = region1;
+    const [x2, y2, w2, h2] = region2;
+    
+    const left = Math.max(x1, x2);
+    const right = Math.min(x1 + w1, x2 + w2);
+    const top = Math.max(y1, y2);
+    const bottom = Math.min(y1 + h1, y2 + h2);
+    
+    if (left < right && top < bottom) {
+      const overlapArea = (right - left) * (bottom - top);
+      const area1 = w1 * h1;
+      const area2 = w2 * h2;
+      const unionArea = area1 + area2 - overlapArea;
+      
+      return overlapArea / unionArea;
+    }
+    
+    return 0;
   }
 
   async detectFacesWithHeuristics(imagePath: string): Promise<DetectedFace[]> {
@@ -191,7 +415,7 @@ class FaceDetectionService {
     
     // Group unassigned faces by similarity
     for (const faceId of unassignedFaceIds) {
-      const face = await storage.getFaceById(faceId);
+      const face = await storage.getFaceById?.(faceId);
       if (!face || !face.embedding) continue;
       
       const similarFaces = await this.findSimilarFaces(face.embedding, 0.7);
@@ -211,7 +435,7 @@ class FaceDetectionService {
           const bestMatch = Array.from(personMatches.entries())
             .sort((a, b) => b[1] - a[1])[0];
           
-          const person = await storage.getPersonById(bestMatch[0]);
+          const person = await storage.getPerson(bestMatch[0]);
           if (person) {
             suggestions.push({
               suggestedPersonId: bestMatch[0],
