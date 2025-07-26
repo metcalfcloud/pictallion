@@ -1,4 +1,5 @@
 import type { Express } from "express";
+import express from "express";
 import { createServer, type Server } from "http";
 import multer from "multer";
 import path from "path";
@@ -115,6 +116,11 @@ const upload = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Serve uploaded files  
+  app.use("/api/files", express.static(path.join(process.cwd(), "data")));
+  // Serve temporary files (face crops)  
+  app.use("/api/files/temp", express.static(path.join(process.cwd(), "uploads", "temp")));
+
   // Ensure upload directories exist
   await fileManager.initializeDirectories();
 
