@@ -173,14 +173,23 @@ Rules:
             "aiConfidenceScores": {"tags": 0.9, "description": 0.85, "objects": 0.8, "faces": 0.7, "events": 0.6, "place": 0.7}
           }
           
-          For events, detect holidays (Christmas, Halloween, Birthday, New Year), celebrations (wedding, graduation, party), activities (vacation, sports, concert), and life events. For faces, generate unique IDs but leave personName null (will be assigned later).`
+          CRITICAL FACE DETECTION INSTRUCTIONS:
+          - Only include detectedFaces if you can clearly see human faces in the image
+          - Bounding box format: [x, y, width, height] where x,y is top-left corner
+          - Coordinates must be in absolute pixels, not relative (0-1) values
+          - Carefully locate the actual face area - head, eyes, nose, mouth - not clothing or background
+          - Double-check coordinates point to actual faces before including them
+          - If uncertain about face locations, omit detectedFaces entirely rather than guess
+          - For people seen from behind or with obscured faces, do NOT include face detection
+          
+          For events, detect holidays, celebrations, activities, and life events. Generate unique faceIds but leave personName null.`
         },
         {
           role: "user",
           content: [
             {
               type: "text",
-              text: "Analyze this image and provide comprehensive metadata in the specified JSON format. Focus on accurate object detection, face detection, event recognition, and location identification if possible."
+              text: "Analyze this image and provide comprehensive metadata in the specified JSON format. For face detection, be extremely careful about coordinate accuracy - only include faces you can clearly see and precisely locate. Verify each bounding box actually contains a human face before including it in the response."
             },
             {
               type: "image_url",
