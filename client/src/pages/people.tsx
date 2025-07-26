@@ -48,12 +48,7 @@ interface Face {
   id: string;
   photoId: string;
   personId?: string;
-  boundingBox: {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  };
+  boundingBox: [number, number, number, number]; // [x, y, width, height]
   confidence: number;
   embedding?: number[];
   createdAt: string;
@@ -402,7 +397,7 @@ export default function PeoplePage() {
                     </div>
                     <div className="absolute top-2 right-2">
                       <Badge variant="secondary" className="text-xs">
-                        {Math.round(face.confidence * 100)}%
+                        {Math.round(face.confidence)}%
                       </Badge>
                     </div>
                   </div>

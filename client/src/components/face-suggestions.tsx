@@ -37,7 +37,7 @@ interface FaceSuggestion {
 interface Face {
   id: string;
   photoId: string;
-  boundingBox: [number, number, number, number];
+  boundingBox: [number, number, number, number]; // [x, y, width, height]
   confidence: number;
   photo?: {
     filePath: string;
