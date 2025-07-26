@@ -52,6 +52,7 @@ interface Face {
   confidence: number;
   embedding?: number[];
   createdAt: string;
+  faceCropUrl?: string; // URL to cropped face image
   photo?: {
     filePath: string;
     mediaAsset: {
@@ -381,12 +382,22 @@ export default function PeoplePage() {
               >
                 <CardContent className="p-3">
                   <div className="aspect-square rounded-lg overflow-hidden bg-gray-100 mb-2 relative">
-                    {face.photo && (
+                    {face.faceCropUrl ? (
+                      <img
+                        src={`/api/files/${face.faceCropUrl}`}
+                        alt="Detected face"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : face.photo ? (
                       <img
                         src={`/api/files/${face.photo.filePath}`}
                         alt="Detected face"
                         className="w-full h-full object-cover"
                       />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-400">
+                        <User className="w-8 h-8" />
+                      </div>
                     )}
                     <div className="absolute top-2 left-2">
                       {selectedFaces.includes(face.id) ? (

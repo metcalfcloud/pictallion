@@ -1,5 +1,7 @@
 import { aiService } from './ai.js';
 import { storage } from '../storage.js';
+import sharp from 'sharp';
+import path from 'path';
 
 export interface DetectedFace {
   id: string;
@@ -185,11 +187,38 @@ class FaceDetectionService {
   }
 
   async generateFaceCrop(imagePath: string, boundingBox: [number, number, number, number]): Promise<string> {
-    // Generate a well-framed face crop URL
-    // In a real implementation, this would actually crop the image
-    // For now, return a parameterized URL that the client can handle
-    const [x, y, width, height] = boundingBox;
-    return `/api/files/${imagePath}?crop=${x},${y},${width},${height}&face=true`;
+    try {
+      const [x, y, width, height] = boundingBox;
+      const fullImagePath = path.join(process.cwd(), 'data', imagePath);
+      
+      // Create face crop using Sharp with padding
+      const imageBuffer = await sharp(fullImagePath)
+        .extract({
+          left: Math.max(0, x - 10), // Add small padding
+          top: Math.max(0, y - 10),
+          width: Math.min(width + 20, 300), // Limit max width
+          height: Math.min(height + 20, 300) // Limit max height
+        })
+        .resize(150, 150, {
+          fit: 'cover',
+          position: 'center'
+        })
+        .jpeg({ quality: 85 })
+        .toBuffer();
+
+      // Save crop to temporary location  
+      const cropFileName = `face_crop_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.jpg`;
+      const cropPath = path.join(process.cwd(), 'uploads', 'temp', cropFileName);
+      
+      await sharp(imageBuffer).toFile(cropPath);
+      
+      return `temp/${cropFileName}`;
+    } catch (error) {
+      console.error('Failed to generate face crop:', error);
+      // Return parameterized URL as fallback
+      const [x, y, width, height] = boundingBox;
+      return `${imagePath}?crop=${x},${y},${width},${height}&face=true`;
+    }
   }
 
   async reprocessUnassignedFaces(): Promise<Array<{

@@ -39,6 +39,7 @@ interface Face {
   photoId: string;
   boundingBox: [number, number, number, number]; // [x, y, width, height]
   confidence: number;
+  faceCropUrl?: string; // URL to cropped face image
   photo?: {
     filePath: string;
     mediaAsset: {
@@ -116,7 +117,7 @@ export function FaceSuggestions() {
 
   // Create person mutation
   const createPersonMutation = useMutation({
-    mutationFn: async (personData: { name: string }) => {
+    mutationFn: async (personData: { name: string }): Promise<Person> => {
       return await apiRequest('POST', '/api/people', personData);
     },
     onSuccess: (newPerson: Person) => {

@@ -576,14 +576,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const faces = await storage.getAllFaces();
       
-      // Add photo information to each face
+      // Add photo information and face crop URL to each face
       const facesWithPhotos = await Promise.all(
         faces.map(async (face) => {
           const photo = await storage.getFileVersion(face.photoId);
           if (photo) {
             const asset = await storage.getMediaAsset(photo.mediaAssetId);
+            // Generate face crop URL
+            let faceCropUrl: string;
+            try {
+              faceCropUrl = await faceDetectionService.generateFaceCrop(photo.filePath, face.boundingBox as [number, number, number, number]);
+            } catch (error) {
+              console.error('Failed to generate face crop:', error);
+              faceCropUrl = photo.filePath; // Fallback to full image
+            }
+            
             return {
               ...face,
+              faceCropUrl,
               photo: {
                 ...photo,
                 mediaAsset: asset
@@ -661,14 +671,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const unassignedFaces = await storage.getUnassignedFaces();
       
-      // Add photo information to each face
+      // Add photo information and face crop URL to each face
       const facesWithPhotos = await Promise.all(
         unassignedFaces.map(async (face) => {
           const photo = await storage.getFileVersion(face.photoId);
           if (photo) {
             const asset = await storage.getMediaAsset(photo.mediaAssetId);
+            // Generate face crop URL
+            let faceCropUrl: string;
+            try {
+              faceCropUrl = await faceDetectionService.generateFaceCrop(photo.filePath, face.boundingBox as [number, number, number, number]);
+            } catch (error) {
+              console.error('Failed to generate face crop:', error);
+              faceCropUrl = photo.filePath; // Fallback to full image
+            }
+            
             return {
               ...face,
+              faceCropUrl,
               photo: {
                 ...photo,
                 mediaAsset: asset
