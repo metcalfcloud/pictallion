@@ -542,11 +542,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const faces = await storage.getFacesByPerson(person.id);
           const photoIds = Array.from(new Set(faces.map(face => face.photoId)));
           
-          // Get the first photo's file path for thumbnail
+          // Generate face crop for thumbnail using the first face
           let coverPhotoPath = null;
           if (faces.length > 0) {
-            const firstPhoto = await storage.getFileVersion(faces[0].photoId);
-            coverPhotoPath = firstPhoto?.filePath || null;
+            const firstFace = faces[0];
+            const firstPhoto = await storage.getFileVersion(firstFace.photoId);
+            
+            if (firstPhoto && firstFace.boundingBox) {
+              try {
+                // Generate a face crop for better thumbnail
+                coverPhotoPath = await faceDetectionService.generateFaceCrop(
+                  firstPhoto.filePath, 
+                  firstFace.boundingBox as [number, number, number, number]
+                );
+              } catch (error) {
+                console.error('Failed to generate face crop for thumbnail:', error);
+                coverPhotoPath = firstPhoto.filePath; // Fallback to full image
+              }
+            }
           }
           
           return {
