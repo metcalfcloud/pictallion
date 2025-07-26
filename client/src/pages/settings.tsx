@@ -91,33 +91,37 @@ export default function SettingsPage() {
   });
 
   const handleSaveNamingSettings = async () => {
-    // Update or create the silver naming pattern setting
-    const existingSetting = settings.find((s: Setting) => s.key === 'silver_naming_pattern');
-    
-    if (existingSetting) {
-      updateSettingMutation.mutate({ key: 'silver_naming_pattern', value: selectedPattern });
-    } else {
-      createSettingMutation.mutate({
-        key: 'silver_naming_pattern',
-        value: selectedPattern,
-        category: 'naming',
-        description: 'File naming pattern for Silver tier processing'
-      });
-    }
-
-    // Save custom pattern if using custom
-    if (selectedPattern === 'custom') {
-      const existingCustom = settings.find((s: Setting) => s.key === 'custom_naming_pattern');
-      if (existingCustom) {
-        updateSettingMutation.mutate({ key: 'custom_naming_pattern', value: customPattern });
+    try {
+      // Update or create the silver naming pattern setting
+      const existingSetting = settings.find((s: Setting) => s.key === 'silver_naming_pattern');
+      
+      if (existingSetting) {
+        await updateSettingMutation.mutateAsync({ key: 'silver_naming_pattern', value: selectedPattern });
       } else {
-        createSettingMutation.mutate({
-          key: 'custom_naming_pattern',
-          value: customPattern,
+        await createSettingMutation.mutateAsync({
+          key: 'silver_naming_pattern',
+          value: selectedPattern,
           category: 'naming',
-          description: 'Custom file naming pattern template'
+          description: 'File naming pattern for Silver tier processing'
         });
       }
+
+      // Save custom pattern if using custom
+      if (selectedPattern === 'custom' && customPattern.trim()) {
+        const existingCustom = settings.find((s: Setting) => s.key === 'custom_naming_pattern');
+        if (existingCustom) {
+          await updateSettingMutation.mutateAsync({ key: 'custom_naming_pattern', value: customPattern });
+        } else {
+          await createSettingMutation.mutateAsync({
+            key: 'custom_naming_pattern',
+            value: customPattern,
+            category: 'naming',
+            description: 'Custom file naming pattern template'
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Failed to save settings:', error);
     }
   };
 
