@@ -76,10 +76,14 @@ export interface IStorage {
   // People & Faces methods
   createPerson(person: InsertPerson): Promise<Person>;
   getPeople(): Promise<Person[]>;
+  updatePerson(id: string, updates: Partial<Person>): Promise<Person | undefined>;
+  deletePerson(id: string): Promise<void>;
+  getPersonPhotos?(personId: string): Promise<Array<FileVersion & { mediaAsset: MediaAsset }>>;
   createFace(face: InsertFace): Promise<Face>;
   getAllFaces(): Promise<Face[]>;
   getFacesByPerson(personId: string): Promise<Face[]>;
   linkFaceToPerson(faceId: string, personId: string): Promise<void>;
+  assignFaceToPerson?(faceId: string, personId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -285,6 +289,28 @@ export class DatabaseStorage implements IStorage {
 
   async getPeople(): Promise<Person[]> {
     return await db.select().from(people).orderBy(desc(people.createdAt));
+  }
+
+  async updatePerson(id: string, updates: Partial<Person>): Promise<Person | undefined> {
+    try {
+      const [updated] = await db
+        .update(people)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(eq(people.id, id))
+        .returning();
+      return updated || undefined;
+    } catch (error) {
+      console.error('Error updating person:', error);
+      return undefined;
+    }
+  }
+
+  async deletePerson(id: string): Promise<void> {
+    // First unassign all faces from this person
+    await db.update(faces).set({ personId: null }).where(eq(faces.personId, id));
+    
+    // Then delete the person
+    await db.delete(people).where(eq(people.id, id));
   }
 
   async createFace(face: InsertFace): Promise<Face> {

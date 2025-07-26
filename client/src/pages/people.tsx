@@ -69,6 +69,9 @@ export default function PeoplePage() {
   const [filterUnassigned, setFilterUnassigned] = useState(false);
   const [isCreatePersonOpen, setIsCreatePersonOpen] = useState(false);
   const [isMergeFacesOpen, setIsMergeFacesOpen] = useState(false);
+  const [isEditPersonOpen, setIsEditPersonOpen] = useState(false);
+  const [isViewPhotosOpen, setIsViewPhotosOpen] = useState(false);
+  const [editingPerson, setEditingPerson] = useState<Person | null>(null);
   const [newPersonName, setNewPersonName] = useState('');
   const [newPersonNotes, setNewPersonNotes] = useState('');
   
@@ -88,15 +91,10 @@ export default function PeoplePage() {
     enabled: !!selectedPerson,
   });
 
+  // Create person mutation
   const createPersonMutation = useMutation({
-    mutationFn: async (data: { name: string; notes?: string }) => {
-      const response = await fetch(`/api/people`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!response.ok) throw new Error('Failed to create person');
-      return response.json();
+    mutationFn: async (personData: { name: string; notes?: string }) => {
+      return await apiRequest('POST', '/api/people', personData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/people"] });
@@ -107,8 +105,40 @@ export default function PeoplePage() {
     },
     onError: () => {
       toast({ title: "Failed to create person", variant: "destructive" });
-    },
+    }
   });
+
+  // Update person mutation
+  const updatePersonMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: { name: string; notes?: string } }) => {
+      return await apiRequest('PUT', `/api/people/${id}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/people"] });
+      setIsEditPersonOpen(false);
+      setEditingPerson(null);
+      toast({ title: "Person updated successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to update person", variant: "destructive" });
+    }
+  });
+
+  // Delete person mutation
+  const deletePersonMutation = useMutation({
+    mutationFn: async (personId: string) => {
+      return await apiRequest('DELETE', `/api/people/${personId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/people"] });
+      toast({ title: "Person deleted successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to delete person", variant: "destructive" });
+    }
+  });
+
+
 
   const assignFacesToPersonMutation = useMutation({
     mutationFn: async ({ faceIds, personId }: { faceIds: string[]; personId: string }) => {
@@ -322,9 +352,56 @@ export default function PeoplePage() {
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-lg">{person.name}</CardTitle>
-                    <Button variant="ghost" size="sm">
-                      <MoreHorizontal className="w-4 h-4" />
-                    </Button>
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          <MoreHorizontal className="w-4 h-4" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-md">
+                        <DialogHeader>
+                          <DialogTitle>Manage {person.name}</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-3">
+                          <Button
+                            variant="outline"
+                            className="w-full justify-start"
+                            onClick={() => {
+                              setSelectedPerson(person.id);
+                              setIsViewPhotosOpen(true);
+                            }}
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            View Photos ({person.photoCount || 0})
+                          </Button>
+                          <Button
+                            variant="outline"
+                            className="w-full justify-start"
+                            onClick={() => {
+                              setEditingPerson(person);
+                              setNewPersonName(person.name);
+                              setNewPersonNotes(person.notes || '');
+                              setIsEditPersonOpen(true);
+                            }}
+                          >
+                            <Edit className="w-4 h-4 mr-2" />
+                            Edit Details
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            className="w-full justify-start"
+                            onClick={() => {
+                              if (confirm(`Are you sure you want to delete ${person.name}? This will unassign all their faces.`)) {
+                                deletePersonMutation.mutate(person.id);
+                              }
+                            }}
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Delete Person
+                          </Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -352,11 +429,28 @@ export default function PeoplePage() {
                       <p className="text-sm text-gray-600 truncate">{person.notes}</p>
                     )}
                     <div className="flex items-center space-x-2">
-                      <Button size="sm" variant="outline" className="flex-1">
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="flex-1"
+                        onClick={() => {
+                          setSelectedPerson(person.id);
+                          setIsViewPhotosOpen(true);
+                        }}
+                      >
                         <Eye className="w-4 h-4 mr-1" />
                         View Photos
                       </Button>
-                      <Button size="sm" variant="outline">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => {
+                          setEditingPerson(person);
+                          setNewPersonName(person.name);
+                          setNewPersonNotes(person.notes || '');
+                          setIsEditPersonOpen(true);
+                        }}
+                      >
                         <Edit className="w-4 h-4" />
                       </Button>
                     </div>
@@ -462,6 +556,90 @@ export default function PeoplePage() {
           </div>
         )}
       </div>
+
+      {/* Edit Person Dialog */}
+      <Dialog open={isEditPersonOpen} onOpenChange={setIsEditPersonOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Person</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="editPersonName">Name</Label>
+              <Input
+                id="editPersonName"
+                value={newPersonName}
+                onChange={(e) => setNewPersonName(e.target.value)}
+                placeholder="Enter person's name"
+              />
+            </div>
+            <div>
+              <Label htmlFor="editPersonNotes">Notes (optional)</Label>
+              <Textarea
+                id="editPersonNotes"
+                value={newPersonNotes}
+                onChange={(e) => setNewPersonNotes(e.target.value)}
+                placeholder="Add any notes about this person"
+              />
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setIsEditPersonOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={() => {
+                  if (editingPerson) {
+                    updatePersonMutation.mutate({ 
+                      id: editingPerson.id,
+                      data: { name: newPersonName, notes: newPersonNotes || undefined }
+                    });
+                  }
+                }}
+                disabled={!newPersonName.trim() || updatePersonMutation.isPending}
+              >
+                Update Person
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Photos Dialog */}
+      <Dialog open={isViewPhotosOpen} onOpenChange={setIsViewPhotosOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>
+              Photos of {people.find(p => p.id === selectedPerson)?.name || 'Person'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="max-h-96 overflow-y-auto">
+            {personPhotosLoading ? (
+              <div className="text-center py-8">Loading photos...</div>
+            ) : personPhotos.length > 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {personPhotos.map((photo) => (
+                  <div key={photo.id} className="aspect-square rounded-lg overflow-hidden">
+                    <img
+                      src={`/api/files/${photo.filePath}`}
+                      alt={photo.mediaAsset?.originalFilename || 'Photo'}
+                      className="w-full h-full object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                      onClick={() => {
+                        // You can add photo detail modal functionality here
+                        console.log('Open photo detail for:', photo);
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <Camera className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-600">No photos found for this person.</p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

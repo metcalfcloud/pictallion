@@ -568,6 +568,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put("/api/people/:id", async (req, res) => {
+    try {
+      const person = await storage.updatePerson(req.params.id, req.body);
+      if (!person) {
+        return res.status(404).json({ message: "Person not found" });
+      }
+      res.json(person);
+    } catch (error) {
+      console.error("Error updating person:", error);
+      res.status(500).json({ message: "Failed to update person" });
+    }
+  });
+
+  app.delete("/api/people/:id", async (req, res) => {
+    try {
+      await storage.deletePerson(req.params.id);
+      res.json({ success: true, message: "Person deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting person:", error);
+      res.status(500).json({ message: "Failed to delete person" });
+    }
+  });
+
   app.get("/api/people/:id/photos", async (req, res) => {
     try {
       const photos = await storage.getPersonPhotos ? await storage.getPersonPhotos(req.params.id) : [];
