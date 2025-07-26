@@ -12,6 +12,8 @@ interface PhotoGridProps {
   onPhotoClick: (photo: Photo) => void;
   onProcessPhoto?: (photoId: string) => void;
   isProcessing?: boolean;
+  selectedPhotos?: string[];
+  onPhotoSelect?: (photoId: string, selected: boolean) => void;
 }
 
 export default function PhotoGrid({ 

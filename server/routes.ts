@@ -162,9 +162,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get photos by tier
   app.get("/api/photos", async (req, res) => {
     try {
-      const tier = req.query.tier as "bronze" | "silver" | "gold" | undefined;
+      const tier = req.query.tier as "bronze" | "silver" | "gold" | "unprocessed" | undefined;
       
-      if (tier) {
+      if (tier === 'unprocessed') {
+        // Get bronze photos that haven't been processed to silver, 
+        // and silver photos that haven't been promoted to gold
+        const allAssets = await storage.getAllMediaAssets();
+        const unprocessedPhotos = [];
+        
+        for (const asset of allAssets) {
+          const versions = await storage.getFileVersionsByAsset(asset.id);
+          const hasBronze = versions.some(v => v.tier === 'bronze');
+          const hasSilver = versions.some(v => v.tier === 'silver');
+          const hasGold = versions.some(v => v.tier === 'gold');
+          
+          // Add bronze if no silver exists
+          if (hasBronze && !hasSilver) {
+            const bronzeVersion = versions.find(v => v.tier === 'bronze');
+            if (bronzeVersion) {
+              unprocessedPhotos.push({ ...bronzeVersion, mediaAsset: asset });
+            }
+          }
+          
+          // Add silver if no gold exists
+          if (hasSilver && !hasGold) {
+            const silverVersion = versions.find(v => v.tier === 'silver');
+            if (silverVersion) {
+              unprocessedPhotos.push({ ...silverVersion, mediaAsset: asset });
+            }
+          }
+        }
+        
+        res.json(unprocessedPhotos);
+      } else if (tier) {
         const photos = await storage.getFileVersionsByTier(tier);
         const photosWithAssets = await Promise.all(
           photos.map(async (photo) => {

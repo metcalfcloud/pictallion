@@ -17,7 +17,7 @@ import type { Photo } from "@shared/types";
 export default function Gallery() {
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [tierFilter, setTierFilter] = useState<string>('all');
+  const [tierFilter, setTierFilter] = useState<string>('unprocessed');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPhotos, setSelectedPhotos] = useState<string[]>([]);
   const [showBatchOperations, setShowBatchOperations] = useState(false);
@@ -81,6 +81,88 @@ export default function Gallery() {
     processPhotoMutation.mutate(photoId);
   };
 
+  const bulkProcessMutation = useMutation({
+    mutationFn: async (photoIds: string[]) => {
+      const results = [];
+      for (const photoId of photoIds) {
+        try {
+          const response = await apiRequest('POST', `/api/photos/${photoId}/process`);
+          results.push({ photoId, success: true });
+        } catch (error) {
+          results.push({ photoId, success: false, error });
+        }
+      }
+      return results;
+    },
+    onSuccess: (results) => {
+      const successful = results.filter(r => r.success).length;
+      queryClient.invalidateQueries({ queryKey: ["/api/photos"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+      toast({
+        title: "Bulk Processing Complete",
+        description: `Successfully processed ${successful} photos to Silver tier.`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Bulk Processing Failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    },
+  });
+
+  const bulkPromoteMutation = useMutation({
+    mutationFn: async (photoIds: string[]) => {
+      const response = await apiRequest('POST', '/api/photos/batch-promote', {
+        body: JSON.stringify({ photoIds }),
+        headers: { 'Content-Type': 'application/json' }
+      });
+      return response.json();
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/photos"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+      toast({
+        title: "Bulk Promotion Complete",
+        description: `Successfully promoted ${result.promoted} photos to Gold tier.`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Bulk Promotion Failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    },
+  });
+
+  const handleBulkProcessBronze = () => {
+    const bronzePhotos = filteredPhotos.filter(photo => photo.tier === 'bronze');
+    if (bronzePhotos.length === 0) {
+      toast({
+        title: "No Bronze Photos",
+        description: "No Bronze tier photos available for processing.",
+        variant: "destructive"
+      });
+      return;
+    }
+    bulkProcessMutation.mutate(bronzePhotos.map(p => p.id));
+  };
+
+  const handleBulkPromoteToGold = () => {
+    const silverPhotos = filteredPhotos.filter(photo => photo.tier === 'silver');
+    if (silverPhotos.length === 0) {
+      toast({
+        title: "No Silver Photos",
+        description: "No Silver tier photos available for promotion.",
+        variant: "destructive"
+      });
+      return;
+    }
+    bulkPromoteMutation.mutate(silverPhotos.map(p => p.id));
+  };
+
   return (
     <>
       {/* Header */}
@@ -111,14 +193,15 @@ export default function Gallery() {
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-4">
             <Select value={tierFilter} onValueChange={setTierFilter}>
-              <SelectTrigger className="w-40">
+              <SelectTrigger className="w-48">
                 <SelectValue placeholder="Filter by tier" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="unprocessed">Unprocessed Only</SelectItem>
+                <SelectItem value="gold">Gold (Final)</SelectItem>
                 <SelectItem value="all">All Tiers</SelectItem>
-                <SelectItem value="bronze">Bronze</SelectItem>
-                <SelectItem value="silver">Silver</SelectItem>
-                <SelectItem value="gold">Gold</SelectItem>
+                <SelectItem value="bronze">Bronze (Raw)</SelectItem>
+                <SelectItem value="silver">Silver (AI Processed)</SelectItem>
               </SelectContent>
             </Select>
 
@@ -126,9 +209,42 @@ export default function Gallery() {
               <Filter className="w-4 h-4 mr-2" />
               More Filters
             </Button>
+
+            {selectedPhotos.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowBatchOperations(true)}
+              >
+                <CheckSquare className="w-4 h-4 mr-2" />
+                Batch Actions ({selectedPhotos.length})
+              </Button>
+            )}
           </div>
 
           <div className="flex items-center space-x-2">
+            {tierFilter === 'bronze' && (
+              <Button
+                size="sm"
+                onClick={() => handleBulkProcessBronze()}
+                disabled={processPhotoMutation.isPending}
+              >
+                <Bot className="w-4 h-4 mr-2" />
+                Process All Bronze
+              </Button>
+            )}
+            
+            {tierFilter === 'silver' && (
+              <Button
+                size="sm"
+                onClick={() => handleBulkPromoteToGold()}
+                disabled={processPhotoMutation.isPending}
+              >
+                <Star className="w-4 h-4 mr-2" />
+                Promote All to Gold
+              </Button>
+            )}
+
             <Button
               variant={viewMode === 'grid' ? 'default' : 'outline'}
               size="sm"
@@ -168,7 +284,15 @@ export default function Gallery() {
             viewMode={viewMode}
             onPhotoClick={setSelectedPhoto}
             onProcessPhoto={handleProcessPhoto}
-            isProcessing={processPhotoMutation.isPending}
+            isProcessing={processPhotoMutation.isPending || bulkProcessMutation.isPending || bulkPromoteMutation.isPending}
+            selectedPhotos={selectedPhotos}
+            onPhotoSelect={(photoId, selected) => {
+              if (selected) {
+                setSelectedPhotos(prev => [...prev, photoId]);
+              } else {
+                setSelectedPhotos(prev => prev.filter(id => id !== photoId));
+              }
+            }}
           />
         ) : (
           <Card>

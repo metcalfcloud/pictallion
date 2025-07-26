@@ -31,12 +31,12 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  
+
   // Media asset methods
   createMediaAsset(asset: InsertMediaAsset): Promise<MediaAsset>;
   getMediaAsset(id: string): Promise<MediaAsset | undefined>;
   getAllMediaAssets(): Promise<MediaAsset[]>;
-  
+
   // File version methods
   createFileVersion(version: InsertFileVersion): Promise<FileVersion>;
   getFileVersion(id: string): Promise<FileVersion | undefined>;
@@ -45,11 +45,11 @@ export interface IStorage {
   getAllFileVersions(): Promise<FileVersion[]>;
   updateFileVersion(id: string, updates: Partial<FileVersion>): Promise<FileVersion>;
   getFileByHash(hash: string): Promise<FileVersion | undefined>;
-  
+
   // Asset history methods
   createAssetHistory(history: InsertAssetHistory): Promise<AssetHistory>;
   getAssetHistory(assetId: string): Promise<AssetHistory[]>;
-  
+
   // Statistics
   getCollectionStats(): Promise<{
     totalPhotos: number;
@@ -59,10 +59,10 @@ export interface IStorage {
     aiProcessedCount: number;
     pendingReviewCount: number;
   }>;
-  
+
   // Recent activity
   getRecentActivity(limit?: number): Promise<AssetHistory[]>;
-  
+
   // Recent photos with metadata
   getRecentPhotos(limit?: number): Promise<Array<FileVersion & { mediaAsset: MediaAsset }>>;
 
@@ -308,7 +308,7 @@ export class DatabaseStorage implements IStorage {
   async deletePerson(id: string): Promise<void> {
     // First unassign all faces from this person
     await db.update(faces).set({ personId: null }).where(eq(faces.personId, id));
-    
+
     // Then delete the person
     await db.delete(people).where(eq(people.id, id));
   }
@@ -383,7 +383,7 @@ export class DatabaseStorage implements IStorage {
   async getPersonPhotos(personId: string): Promise<Array<FileVersion & { mediaAsset: MediaAsset }>> {
     const personFaces = await this.getFacesByPerson(personId);
     const photoIds = Array.from(new Set(personFaces.map(face => face.photoId)));
-    
+
     const photos = [];
     for (const photoId of photoIds) {
       const photo = await this.getFileVersion(photoId);
@@ -394,7 +394,7 @@ export class DatabaseStorage implements IStorage {
         }
       }
     }
-    
+
     return photos;
   }
 }
