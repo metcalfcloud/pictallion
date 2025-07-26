@@ -1,6 +1,10 @@
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { 
   X, 
@@ -11,10 +15,16 @@ import {
   Camera,
   MapPin,
   Calendar,
-  Eye
+  Eye,
+  Save,
+  RotateCcw,
+  Tag
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
+import { useState, useEffect } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import type { Photo } from "@shared/types";
 
 interface PhotoDetailModalProps {
@@ -32,6 +42,29 @@ export default function PhotoDetailModal({
   onProcessPhoto,
   isProcessing = false 
 }: PhotoDetailModalProps) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedMetadata, setEditedMetadata] = useState({
+    keywords: [] as string[],
+    location: '',
+    eventType: '',
+    eventName: '',
+    rating: 0
+  });
+  
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  // Initialize edited metadata when photo changes
+  useEffect(() => {
+    setEditedMetadata({
+      keywords: photo.keywords || [],
+      location: photo.location || '',
+      eventType: photo.eventType || '',
+      eventName: photo.eventName || '',
+      rating: photo.rating || 0
+    });
+  }, [photo]);
+
   const getTierBadgeClass = (tier: string) => {
     switch (tier) {
       case 'bronze':
@@ -45,24 +78,100 @@ export default function PhotoDetailModal({
     }
   };
 
+  // Update metadata mutation
+  const updateMetadataMutation = useMutation({
+    mutationFn: async (metadata: any) => {
+      const response = await fetch(`/api/photos/${photo.id}/metadata`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(metadata)
+      });
+      if (!response.ok) throw new Error('Failed to update metadata');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/photos'] });
+      toast({ title: "Metadata updated successfully!" });
+      setIsEditing(false);
+    },
+    onError: (error: Error) => {
+      toast({ 
+        title: "Failed to update metadata", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    }
+  });
+
+  // Promote to gold mutation
+  const promoteToGoldMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch(`/api/photos/${photo.id}/embed-metadata`, {
+        method: 'POST'
+      });
+      if (!response.ok) throw new Error('Failed to promote to gold');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/photos'] });
+      toast({ title: "Photo promoted to Gold tier!" });
+    },
+    onError: (error: Error) => {
+      toast({ 
+        title: "Failed to promote photo", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    }
+  });
+
   const canProcess = photo.tier === 'bronze' && onProcessPhoto;
   const canPromoteToGold = photo.tier === 'silver' && photo.isReviewed;
+
+  const handleSaveMetadata = () => {
+    updateMetadataMutation.mutate(editedMetadata);
+  };
+
+  const handleDownload = () => {
+    const link = document.createElement('a');
+    link.href = `/api/files/${photo.filePath}?download=true`;
+    link.download = photo.mediaAsset?.originalFilename || 'photo';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const resetMetadata = () => {
+    setEditedMetadata({
+      keywords: photo.keywords || [],
+      location: photo.location || '',
+      eventType: photo.eventType || '',
+      eventName: photo.eventName || '',
+      rating: photo.rating || 0
+    });
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-7xl h-[90vh] p-0">
+        <DialogHeader className="sr-only">
+          <DialogTitle>Photo Details</DialogTitle>
+        </DialogHeader>
         <div className="flex h-full">
           {/* Image Display */}
           <div className="flex-1 flex items-center justify-center p-8 bg-black">
             <img 
               src={`/api/files/${photo.filePath}`}
-              alt={photo.mediaAsset.originalFilename}
+              alt={photo.mediaAsset?.originalFilename || 'Photo'}
               className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+              onError={(e) => {
+                e.currentTarget.src = '/placeholder-image.svg';
+              }}
             />
           </div>
 
           {/* Metadata Panel */}
-          <div className="w-96 bg-white overflow-y-auto">
+          <div className="w-96 bg-white dark:bg-gray-900 overflow-y-auto">
             <div className="p-6">
               {/* Header */}
               <div className="flex items-center justify-between mb-6">
@@ -187,6 +296,165 @@ export default function PhotoDetailModal({
 
               <Separator className="my-6" />
 
+              {/* Editable Metadata */}
+              {isEditing ? (
+                <div className="space-y-4 mb-6">
+                  <h4 className="text-sm font-semibold text-gray-900">Edit Metadata</h4>
+                  
+                  <div>
+                    <Label htmlFor="keywords" className="text-xs">Keywords (comma-separated)</Label>
+                    <Input
+                      id="keywords"
+                      value={editedMetadata.keywords.join(', ')}
+                      onChange={(e) => {
+                        const keywords = e.target.value.split(',').map(k => k.trim()).filter(k => k);
+                        setEditedMetadata(prev => ({ ...prev, keywords }));
+                      }}
+                      placeholder="Add keywords..."
+                      className="mt-1"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="location" className="text-xs">Location</Label>
+                    <Input
+                      id="location"
+                      value={editedMetadata.location}
+                      onChange={(e) => setEditedMetadata(prev => ({ ...prev, location: e.target.value }))}
+                      placeholder="Location..."
+                      className="mt-1"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="eventType" className="text-xs">Event Type</Label>
+                    <Select
+                      value={editedMetadata.eventType || 'none'}
+                      onValueChange={(value) => setEditedMetadata(prev => ({ ...prev, eventType: value === 'none' ? '' : value }))}
+                    >
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="Select event type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        <SelectItem value="holiday">Holiday</SelectItem>
+                        <SelectItem value="birthday">Birthday</SelectItem>
+                        <SelectItem value="wedding">Wedding</SelectItem>
+                        <SelectItem value="vacation">Vacation</SelectItem>
+                        <SelectItem value="party">Party</SelectItem>
+                        <SelectItem value="sports">Sports</SelectItem>
+                        <SelectItem value="concert">Concert</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="eventName" className="text-xs">Event Name</Label>
+                    <Input
+                      id="eventName"
+                      value={editedMetadata.eventName}
+                      onChange={(e) => setEditedMetadata(prev => ({ ...prev, eventName: e.target.value }))}
+                      placeholder="Event name..."
+                      className="mt-1"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-xs">Rating</Label>
+                    <div className="flex items-center gap-1 mt-1">
+                      {[1, 2, 3, 4, 5].map((starValue) => (
+                        <button
+                          key={starValue}
+                          type="button"
+                          onClick={() => setEditedMetadata(prev => ({ ...prev, rating: starValue }))}
+                          className={`p-1 rounded ${editedMetadata.rating >= starValue ? 'text-yellow-400' : 'text-gray-300'}`}
+                        >
+                          <Star className="w-4 h-4 fill-current" />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button 
+                      onClick={handleSaveMetadata}
+                      disabled={updateMetadataMutation.isPending}
+                      className="flex-1"
+                    >
+                      <Save className="w-4 h-4 mr-2" />
+                      {updateMetadataMutation.isPending ? 'Saving...' : 'Save'}
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      onClick={resetMetadata}
+                      className="flex-1"
+                    >
+                      <RotateCcw className="w-4 h-4 mr-2" />
+                      Reset
+                    </Button>
+                  </div>
+
+                  <Button 
+                    variant="ghost"
+                    onClick={() => setIsEditing(false)}
+                    className="w-full"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              ) : (
+                /* Current metadata display */
+                <>
+                  {(photo.keywords && photo.keywords.length > 0) && (
+                    <div className="mb-4">
+                      <h4 className="text-sm font-semibold text-gray-900 mb-2">Keywords</h4>
+                      <div className="flex flex-wrap gap-1">
+                        {photo.keywords.map((keyword, index) => (
+                          <Badge key={index} variant="secondary" className="text-xs">
+                            <Tag className="w-3 h-3 mr-1" />
+                            {keyword}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {photo.location && (
+                    <div className="mb-4">
+                      <h4 className="text-sm font-semibold text-gray-900 mb-2">Location</h4>
+                      <div className="flex items-center gap-2">
+                        <MapPin className="w-4 h-4 text-gray-500" />
+                        <span className="text-sm text-gray-600">{photo.location}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {(photo.eventType || photo.eventName) && (
+                    <div className="mb-4">
+                      <h4 className="text-sm font-semibold text-gray-900 mb-2">Event</h4>
+                      <div className="text-sm text-gray-600">
+                        {photo.eventType && <div className="capitalize">{photo.eventType}</div>}
+                        {photo.eventName && <div>{photo.eventName}</div>}
+                      </div>
+                    </div>
+                  )}
+
+                  {photo.rating && photo.rating > 0 && (
+                    <div className="mb-4">
+                      <h4 className="text-sm font-semibold text-gray-900 mb-2">Rating</h4>
+                      <div className="flex items-center gap-1">
+                        {[1, 2, 3, 4, 5].map((starValue) => (
+                          <Star 
+                            key={starValue}
+                            className={`w-4 h-4 ${photo.rating >= starValue ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} 
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
               {/* Actions */}
               <div className="space-y-3">
                 {canProcess && (
@@ -200,19 +468,32 @@ export default function PhotoDetailModal({
                   </Button>
                 )}
 
-                <Button variant="outline" className="w-full">
+                <Button 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={() => setIsEditing(!isEditing)}
+                >
                   <Edit className="w-4 h-4 mr-2" />
-                  Edit Metadata
+                  {isEditing ? 'Cancel Edit' : 'Edit Metadata'}
                 </Button>
 
                 {canPromoteToGold && (
-                  <Button variant="outline" className="w-full">
+                  <Button 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={() => promoteToGoldMutation.mutate()}
+                    disabled={promoteToGoldMutation.isPending}
+                  >
                     <Star className="w-4 h-4 mr-2" />
-                    Promote to Gold
+                    {promoteToGoldMutation.isPending ? 'Promoting...' : 'Promote to Gold'}
                   </Button>
                 )}
 
-                <Button variant="outline" className="w-full">
+                <Button 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={handleDownload}
+                >
                   <Download className="w-4 h-4 mr-2" />
                   Download
                 </Button>

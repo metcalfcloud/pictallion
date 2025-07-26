@@ -382,6 +382,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if file exists
       try {
         await fs.access(fullPath);
+        
+        // Check if this is a download request
+        if (req.query.download === 'true') {
+          const filename = path.basename(fullPath);
+          res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+          res.setHeader('Content-Type', 'application/octet-stream');
+        }
+        
         res.sendFile(fullPath);
       } catch {
         res.status(404).json({ message: "File not found" });
