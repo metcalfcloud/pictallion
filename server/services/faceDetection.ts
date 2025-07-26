@@ -196,22 +196,34 @@ class FaceDetectionService {
       const imageWidth = imageInfo.width || 1000;
       const imageHeight = imageInfo.height || 1000;
       
-      // Add generous padding around the face for better context
-      const padding = Math.max(width, height) * 0.8; // 80% of face size as padding
-      const cropX = Math.max(0, x - padding);
-      const cropY = Math.max(0, y - padding);
-      const cropWidth = Math.min(width + (padding * 2), imageWidth - cropX);
-      const cropHeight = Math.min(height + (padding * 2), imageHeight - cropY);
+      // Standard face framing algorithm used in photo apps:
+      // 1. Find face center
+      const faceCenterX = x + width / 2;
+      const faceCenterY = y + height / 2;
       
-      console.log(`Face crop: original face at [${x}, ${y}, ${width}, ${height}], cropping [${cropX}, ${cropY}, ${cropWidth}, ${cropHeight}] from ${imageWidth}x${imageHeight} image`);
+      // 2. Calculate crop size - use 3x the face size for proper portrait framing
+      const faceSize = Math.max(width, height);
+      const cropSize = faceSize * 3; // 3x face size for good portrait framing
       
-      // Create face crop using Sharp with generous padding
+      // 3. Position crop area centered on face, but adjust for portrait composition
+      // Move crop up slightly to show more shoulder/body context below face
+      const cropX = Math.max(0, faceCenterX - cropSize / 2);
+      const cropY = Math.max(0, faceCenterY - cropSize * 0.4); // Face in upper 40% of crop
+      
+      // 4. Ensure crop doesn't exceed image boundaries
+      const finalCropX = Math.min(cropX, imageWidth - cropSize);
+      const finalCropY = Math.min(cropY, imageHeight - cropSize);
+      const finalCropSize = Math.min(cropSize, Math.min(imageWidth - finalCropX, imageHeight - finalCropY));
+      
+      console.log(`Face framing: face [${x}, ${y}, ${width}x${height}] center [${faceCenterX}, ${faceCenterY}] → crop [${finalCropX}, ${finalCropY}, ${finalCropSize}x${finalCropSize}] from ${imageWidth}x${imageHeight}`);
+      
+      // Create face crop using standard portrait framing
       const imageBuffer = await sharp(fullImagePath)
         .extract({
-          left: Math.round(cropX),
-          top: Math.round(cropY),
-          width: Math.round(cropWidth),
-          height: Math.round(cropHeight)
+          left: Math.round(finalCropX),
+          top: Math.round(finalCropY),
+          width: Math.round(finalCropSize),
+          height: Math.round(finalCropSize)
         })
         .resize(200, 200, {
           fit: 'cover',
