@@ -336,7 +336,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Save detected faces to database
       for (const face of detectedFaces) {
         await storage.createFace({
-          id: face.id,
           photoId: silverVersion.id,
           boundingBox: face.boundingBox,
           confidence: face.confidence,
@@ -492,7 +491,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const savedFaces = [];
       for (const face of detectedFaces) {
         const savedFace = await storage.createFace({
-          id: face.id,
           photoId: photo.id,
           boundingBox: face.boundingBox,
           confidence: face.confidence,
@@ -502,8 +500,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         savedFaces.push(savedFace);
       }
       
+      // Get the media asset separately
+      const mediaAsset = await storage.getMediaAsset(photo.mediaAssetId);
+      
       res.json({
-        photo: photo.mediaAsset?.originalFilename || 'Unknown',
+        photo: mediaAsset?.originalFilename || 'Unknown',
         facesDetected: detectedFaces.length,
         faces: savedFaces
       });
@@ -528,7 +529,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ...person,
             faceCount: faces.length,
             photoCount: photoIds.length,
-            coverPhoto: faces[0]?.photo?.filePath || null
+            coverPhoto: faces[0]?.photoId || null
           };
         })
       );
@@ -657,7 +658,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           for (const photoId of photoIds) {
             const photo = await storage.getFileVersion(photoId);
             if (photo) {
-              const metadata = photo.metadata || {};
+              const metadata = (photo.metadata as any) || {};
               const existingTags = metadata.ai?.aiTags || [];
               const newTags = Array.from(new Set([...existingTags, ...params.tags]));
               
@@ -865,7 +866,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fileHash: photo.fileHash,
         fileSize: photo.fileSize,
         mimeType: photo.mimeType,
-        metadata: photo.metadata,
+        metadata: photo.metadata as any,
         isReviewed: photo.isReviewed,
         rating: photo.rating,
         keywords: photo.keywords,

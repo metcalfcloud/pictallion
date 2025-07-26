@@ -127,10 +127,7 @@ export default function SilverReview() {
   // Update rating mutation
   const updateRatingMutation = useMutation({
     mutationFn: async ({ photoId, rating }: { photoId: string; rating: number }) => {
-      return await apiRequest(`/api/photos/${photoId}/rating`, {
-        method: 'PATCH',
-        body: { rating }
-      });
+      return await apiRequest('PATCH', `/api/photos/${photoId}/rating`, { rating });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/photos/search'] });
@@ -141,10 +138,7 @@ export default function SilverReview() {
   // Update metadata mutation
   const updateMetadataMutation = useMutation({
     mutationFn: async ({ photoId, metadata }: { photoId: string; metadata: any }) => {
-      return await apiRequest(`/api/photos/${photoId}/metadata`, {
-        method: 'PATCH',
-        body: metadata
-      });
+      return await apiRequest('PATCH', `/api/photos/${photoId}/metadata`, metadata);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/photos/search'] });
@@ -155,10 +149,7 @@ export default function SilverReview() {
   // Mark as reviewed mutation
   const markReviewedMutation = useMutation({
     mutationFn: async (photoId: string) => {
-      return await apiRequest(`/api/photos/${photoId}/metadata`, {
-        method: 'PATCH',
-        body: { isReviewed: true }
-      });
+      return await apiRequest('PATCH', `/api/photos/${photoId}/metadata`, { isReviewed: true });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/photos/search'] });
@@ -172,9 +163,7 @@ export default function SilverReview() {
   // Promote to gold mutation
   const promoteToGoldMutation = useMutation({
     mutationFn: async (photoId: string) => {
-      return await apiRequest(`/api/photos/${photoId}/embed-metadata`, {
-        method: 'POST'
-      });
+      return await apiRequest('POST', `/api/photos/${photoId}/embed-metadata`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/photos/search'] });
