@@ -542,11 +542,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const faces = await storage.getFacesByPerson(person.id);
           const photoIds = Array.from(new Set(faces.map(face => face.photoId)));
           
+          // Get the first photo's file path for thumbnail
+          let coverPhotoPath = null;
+          if (faces.length > 0) {
+            const firstPhoto = await storage.getFileVersion(faces[0].photoId);
+            coverPhotoPath = firstPhoto?.filePath || null;
+          }
+          
           return {
             ...person,
             faceCount: faces.length,
             photoCount: photoIds.length,
-            coverPhoto: faces[0]?.photoId || null
+            coverPhoto: coverPhotoPath
           };
         })
       );
@@ -598,6 +605,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching person photos:", error);
       res.status(500).json({ message: "Failed to fetch person photos" });
+    }
+  });
+
+  app.get("/api/faces/unassigned", async (req, res) => {
+    try {
+      const unassignedFaces = await storage.getUnassignedFaces();
+      
+      // Add photo information and face crop URL to each face
+      const facesWithPhotos = await Promise.all(
+        unassignedFaces.map(async (face) => {
+          const photo = await storage.getFileVersion(face.photoId);
+          if (photo) {
+            const asset = await storage.getMediaAsset(photo.mediaAssetId);
+            // Generate face crop URL
+            let faceCropUrl: string;
+            try {
+              faceCropUrl = await faceDetectionService.generateFaceCrop(photo.filePath, face.boundingBox as [number, number, number, number]);
+            } catch (error) {
+              console.error('Failed to generate face crop:', error);
+              faceCropUrl = photo.filePath; // Fallback to full image
+            }
+            
+            return {
+              ...face,
+              faceCropUrl,
+              photo: {
+                ...photo,
+                mediaAsset: asset
+              }
+            };
+          }
+          return face;
+        })
+      );
+      
+      res.json(facesWithPhotos);
+    } catch (error) {
+      console.error("Error fetching unassigned faces:", error);
+      res.status(500).json({ message: "Failed to fetch unassigned faces" });
     }
   });
 

@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { 
@@ -231,6 +231,9 @@ export default function PeoplePage() {
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Create New Person</DialogTitle>
+                  <DialogDescription>
+                    Add a new person to organize faces in your photo collection.
+                  </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
                   <div>
@@ -361,6 +364,9 @@ export default function PeoplePage() {
                       <DialogContent className="sm:max-w-md">
                         <DialogHeader>
                           <DialogTitle>Manage {person.name}</DialogTitle>
+                          <DialogDescription>
+                            Choose an action to manage this person's profile and photos.
+                          </DialogDescription>
                         </DialogHeader>
                         <div className="space-y-3">
                           <Button
@@ -562,6 +568,9 @@ export default function PeoplePage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit Person</DialogTitle>
+            <DialogDescription>
+              Update the person's name and notes.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
@@ -611,6 +620,9 @@ export default function PeoplePage() {
             <DialogTitle>
               Photos of {people.find(p => p.id === selectedPerson)?.name || 'Person'}
             </DialogTitle>
+            <DialogDescription>
+              View all photos containing this person's face.
+            </DialogDescription>
           </DialogHeader>
           <div className="max-h-96 overflow-y-auto">
             {personPhotosLoading ? (
