@@ -166,10 +166,7 @@ export default function PeoplePage() {
   // Set thumbnail mutation
   const setThumbnailMutation = useMutation({
     mutationFn: ({ personId, faceId }: { personId: string; faceId: string }) => 
-      apiRequest(`/api/people/${personId}/thumbnail`, { 
-        method: 'PUT', 
-        body: JSON.stringify({ faceId })
-      }),
+      apiRequest('PUT', `/api/people/${personId}/thumbnail`, { faceId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/people"] });
       setIsSelectThumbnailOpen(false);

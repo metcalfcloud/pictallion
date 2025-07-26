@@ -7,7 +7,7 @@ import { useState } from "react";
 import { Search, Grid, List, Filter, Bot, Star, Eye, CheckSquare, Square, MoreHorizontal } from "lucide-react";
 import PhotoGrid from "@/components/photo-grid";
 import PhotoDetailModal from "@/components/photo-detail-modal";
-import AdvancedSearch from "@/components/advanced-search";
+import { AdvancedSearch } from "@/components/advanced-search";
 import BatchOperations from "@/components/batch-operations";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
