@@ -316,14 +316,16 @@ export class DatabaseStorage implements IStorage {
 
   async getPersonPhotos(personId: string): Promise<Array<FileVersion & { mediaAsset: MediaAsset }>> {
     const personFaces = await this.getFacesByPerson(personId);
-    const photoIds = [...new Set(personFaces.map(face => face.photoId))];
+    const photoIds = Array.from(new Set(personFaces.map(face => face.photoId)));
     
     const photos = [];
     for (const photoId of photoIds) {
       const photo = await this.getFileVersion(photoId);
       if (photo) {
         const asset = await this.getMediaAsset(photo.mediaAssetId);
-        photos.push({ ...photo, mediaAsset: asset });
+        if (asset) {
+          photos.push({ ...photo, mediaAsset: asset });
+        }
       }
     }
     

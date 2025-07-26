@@ -9,6 +9,7 @@ import { aiService, AIProvider } from "./services/ai";
 import { fileManager } from "./services/fileManager.js";
 import { advancedSearch } from "./services/advancedSearch";
 import { metadataEmbedding } from "./services/metadataEmbedding";
+import { faceDetectionService } from "./services/faceDetection.js";
 
 // Similarity detection function
 async function findSimilarPhotos(photos: any[]): Promise<any[]> {
@@ -310,6 +311,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Run AI analysis with OpenAI as preferred provider
       const aiMetadata = await aiService.analyzeImage(photo.filePath, "openai");
 
+      // Detect faces in the image
+      const detectedFaces = await faceDetectionService.detectFaces(photo.filePath);
+
       // Combine existing metadata with AI metadata
       const existingMetadata = photo.metadata || {};
       const combinedMetadata = {
@@ -328,6 +332,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         metadata: combinedMetadata as any,
         isReviewed: false,
       });
+
+      // Save detected faces to database
+      for (const face of detectedFaces) {
+        await storage.createFace({
+          id: face.id,
+          photoId: silverVersion.id,
+          boundingBox: face.boundingBox,
+          confidence: face.confidence,
+          embedding: face.embedding,
+          personId: face.personId || null,
+        });
+      }
 
       // Log promotion
       await storage.createAssetHistory({
@@ -456,6 +472,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Test AI providers error:", error);
       res.status(500).json({ error: "Failed to test AI providers" });
+    }
+  });
+
+  // Test face detection endpoint
+  app.post("/api/photos/:id/detect-faces", async (req, res) => {
+    try {
+      const photo = await storage.getFileVersion(req.params.id);
+      if (!photo) {
+        return res.status(404).json({ message: "Photo not found" });
+      }
+
+      console.log('Testing face detection on photo:', photo.filePath);
+      
+      // Run face detection
+      const detectedFaces = await faceDetectionService.detectFaces(photo.filePath);
+      
+      // Save faces to database if any detected
+      const savedFaces = [];
+      for (const face of detectedFaces) {
+        const savedFace = await storage.createFace({
+          id: face.id,
+          photoId: photo.id,
+          boundingBox: face.boundingBox,
+          confidence: face.confidence,
+          embedding: face.embedding,
+          personId: face.personId || null,
+        });
+        savedFaces.push(savedFace);
+      }
+      
+      res.json({
+        photo: photo.mediaAsset?.originalFilename || 'Unknown',
+        facesDetected: detectedFaces.length,
+        faces: savedFaces
+      });
+    } catch (error) {
+      console.error("Error in face detection test:", error);
+      res.status(500).json({ message: "Face detection test failed" });
     }
   });
 
