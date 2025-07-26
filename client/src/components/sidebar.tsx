@@ -26,6 +26,7 @@ const navigationItems = [
   { path: "/silver-review", label: "Silver Review", icon: Camera },
   { path: "/people", label: "People & Faces", icon: Users },
   { path: "/search", label: "Search", icon: Search },
+  { path: "/settings", label: "Settings", icon: Settings },
 ];
 
 export default function Sidebar() {

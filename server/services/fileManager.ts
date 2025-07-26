@@ -54,7 +54,7 @@ class FileManager {
     return path.relative(this.dataDir, bronzePath);
   }
 
-  async copyToSilver(bronzePath: string): Promise<string> {
+  async copyToSilver(bronzePath: string, newFilename?: string): Promise<string> {
     const fullBronzePath = path.join(this.dataDir, bronzePath);
     const date = new Date();
     const yearMonth = `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}`;
@@ -66,7 +66,7 @@ class FileManager {
       await fs.mkdir(silverDir, { recursive: true });
     }
 
-    const filename = path.basename(bronzePath);
+    const filename = newFilename || path.basename(bronzePath);
     const silverPath = path.join(silverDir, filename);
     
     await fs.copyFile(fullBronzePath, silverPath);

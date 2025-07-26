@@ -32,6 +32,7 @@ export const fileVersions = pgTable("file_versions", {
   eventType: text("event_type"), // holiday, birthday, vacation, etc.
   eventName: text("event_name"), // specific event name
   perceptualHash: text("perceptual_hash"), // for visual similarity detection
+  aiShortDescription: text("ai_short_description"), // 2-3 word AI description in PascalCase
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -70,6 +71,16 @@ export const people = pgTable("people", {
   representativeFace: text("representative_face"),
   selectedThumbnailFaceId: text("selected_thumbnail_face_id"), // ID of the face to use as thumbnail
   createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const settings = pgTable("settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  key: text("key").notNull().unique(),
+  value: text("value").notNull(),
+  category: text("category").notNull().default('general'),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 export const faces = pgTable("faces", {
@@ -173,6 +184,12 @@ export const insertFaceSchema = createInsertSchema(faces).omit({
   createdAt: true,
 });
 
+export const insertSettingSchema = createInsertSchema(settings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -190,6 +207,8 @@ export type Person = typeof people.$inferSelect;
 export type InsertPerson = z.infer<typeof insertPersonSchema>;
 export type Face = typeof faces.$inferSelect;
 export type InsertFace = z.infer<typeof insertFaceSchema>;
+export type Setting = typeof settings.$inferSelect;
+export type InsertSetting = z.infer<typeof insertSettingSchema>;
 
 // Metadata interfaces
 export interface AIMetadata {

@@ -341,23 +341,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "AI processing currently only supports images" });
       }
 
-      // Copy file to Silver tier
-      const silverPath = await fileManager.copyToSilver(photo.filePath);
-
       // Run AI analysis with OpenAI as preferred provider
       const aiMetadata = await aiService.analyzeImage(photo.filePath, "openai");
+
+      // Enhance with short description for naming
+      const enhancedMetadata = await aiService.enhanceMetadataWithShortDescription(aiMetadata, photo.filePath);
+
+      // Get naming pattern from settings
+      const namingPatternSetting = await storage.getSettingByKey('silver_naming_pattern');
+      const customPatternSetting = await storage.getSettingByKey('custom_naming_pattern');
+      
+      const namingPattern = namingPatternSetting?.value || 'datetime';
+      const customPattern = customPatternSetting?.value || '';
+
+      // Generate new filename for Silver tier
+      let newFilename: string | undefined;
+      if (namingPattern !== 'original') {
+        const { generateSilverFilename } = await import("./services/aiNaming");
+        const asset = await storage.getMediaAsset(photo.mediaAssetId);
+        
+        const namingContext = {
+          aiMetadata: {
+            shortDescription: enhancedMetadata.shortDescription,
+            detectedObjects: enhancedMetadata.detectedObjects,
+            aiTags: enhancedMetadata.aiTags,
+          },
+          exifMetadata: photo.metadata?.exif,
+          originalFilename: asset?.originalFilename || 'unknown.jpg',
+          tier: 'silver' as const
+        };
+
+        const finalPattern = namingPattern === 'custom' ? customPattern : namingPattern;
+        newFilename = await generateSilverFilename(namingContext, finalPattern);
+      }
+
+      // Copy file to Silver tier with new filename
+      const silverPath = await fileManager.copyToSilver(photo.filePath, newFilename);
 
       // Detect faces in the image
       const detectedFaces = await faceDetectionService.detectFaces(photo.filePath);
 
-      // Combine existing metadata with AI metadata
+      // Combine existing metadata with enhanced AI metadata
       const existingMetadata = photo.metadata || {};
       const combinedMetadata = {
         ...existingMetadata,
-        ai: aiMetadata,
+        ai: enhancedMetadata,
       };
 
-      // Create Silver file version
+      // Create Silver file version with AI short description
       const silverVersion = await storage.createFileVersion({
         mediaAssetId: photo.mediaAssetId,
         tier: 'silver',
@@ -366,6 +397,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fileSize: photo.fileSize,
         mimeType: photo.mimeType,
         metadata: combinedMetadata as any,
+        aiShortDescription: enhancedMetadata.shortDescription,
         isReviewed: false,
       });
 
@@ -1282,6 +1314,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error finding similar photos:", error);
       res.status(500).json({ message: "Failed to analyze photo similarity" });
+    }
+  });
+
+  // Settings routes
+  app.get("/api/settings", async (req, res) => {
+    try {
+      const settings = await storage.getAllSettings();
+      res.json(settings);
+    } catch (error) {
+      console.error("Error fetching settings:", error);
+      res.status(500).json({ message: "Failed to fetch settings" });
+    }
+  });
+
+  app.get("/api/settings/:key", async (req, res) => {
+    try {
+      const setting = await storage.getSettingByKey(req.params.key);
+      if (!setting) {
+        return res.status(404).json({ message: "Setting not found" });
+      }
+      res.json(setting);
+    } catch (error) {
+      console.error("Error fetching setting:", error);
+      res.status(500).json({ message: "Failed to fetch setting" });
+    }
+  });
+
+  app.post("/api/settings", async (req, res) => {
+    try {
+      const setting = await storage.createSetting(req.body);
+      res.status(201).json(setting);
+    } catch (error) {
+      console.error("Error creating setting:", error);
+      res.status(500).json({ message: "Failed to create setting" });
+    }
+  });
+
+  app.put("/api/settings/:key", async (req, res) => {
+    try {
+      const { value } = req.body;
+      const setting = await storage.updateSetting(req.params.key, value);
+      res.json(setting);
+    } catch (error) {
+      console.error("Error updating setting:", error);
+      res.status(500).json({ message: "Failed to update setting" });
+    }
+  });
+
+  app.delete("/api/settings/:key", async (req, res) => {
+    try {
+      await storage.deleteSetting(req.params.key);
+      res.json({ message: "Setting deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting setting:", error);
+      res.status(500).json({ message: "Failed to delete setting" });
+    }
+  });
+
+  // Get naming patterns
+  app.get("/api/settings/naming/patterns", async (req, res) => {
+    try {
+      const { BUILTIN_NAMING_PATTERNS } = await import("./services/aiNaming");
+      res.json(BUILTIN_NAMING_PATTERNS);
+    } catch (error) {
+      console.error("Error fetching naming patterns:", error);
+      res.status(500).json({ message: "Failed to fetch naming patterns" });
     }
   });
 

@@ -7,6 +7,7 @@ import {
   collectionPhotos,
   people,
   faces,
+  settings,
   type User, 
   type InsertUser,
   type MediaAsset,
@@ -21,7 +22,9 @@ import {
   type Person,
   type InsertPerson,
   type Face,
-  type InsertFace
+  type InsertFace,
+  type Setting,
+  type InsertSetting
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, count, sql } from "drizzle-orm";
@@ -84,6 +87,13 @@ export interface IStorage {
   getFacesByPerson(personId: string): Promise<Face[]>;
   linkFaceToPerson(faceId: string, personId: string): Promise<void>;
   assignFaceToPerson?(faceId: string, personId: string): Promise<void>;
+
+  // Settings methods
+  getAllSettings(): Promise<Setting[]>;
+  getSettingByKey(key: string): Promise<Setting | null>;
+  createSetting(data: InsertSetting): Promise<Setting>;
+  updateSetting(key: string, value: string): Promise<Setting>;
+  deleteSetting(key: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -396,6 +406,33 @@ export class DatabaseStorage implements IStorage {
     }
 
     return photos;
+  }
+
+  // Settings methods
+  async getAllSettings(): Promise<Setting[]> {
+    return await db.select().from(settings).orderBy(settings.category, settings.key);
+  }
+
+  async getSettingByKey(key: string): Promise<Setting | null> {
+    const [setting] = await db.select().from(settings).where(eq(settings.key, key));
+    return setting || null;
+  }
+
+  async createSetting(data: InsertSetting): Promise<Setting> {
+    const [setting] = await db.insert(settings).values(data).returning();
+    return setting;
+  }
+
+  async updateSetting(key: string, value: string): Promise<Setting> {
+    const [setting] = await db.update(settings)
+      .set({ value, updatedAt: new Date() })
+      .where(eq(settings.key, key))
+      .returning();
+    return setting;
+  }
+
+  async deleteSetting(key: string): Promise<void> {
+    await db.delete(settings).where(eq(settings.key, key));
   }
 }
 

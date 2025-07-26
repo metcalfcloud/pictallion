@@ -285,6 +285,35 @@ Rules:
   }
 
   /**
+   * Enhance AI metadata with short description for naming
+   */
+  async enhanceMetadataWithShortDescription(metadata: AIMetadata, imagePath: string): Promise<AIMetadata> {
+    try {
+      // Only generate AI short description if using OpenAI
+      if (this.config.openai.apiKey && (this.config.provider === "openai" || this.config.provider === "both")) {
+        const { generateAIShortDescription } = await import("./aiNaming");
+        
+        // Convert image to base64 for OpenAI
+        const fullPath = path.join(process.cwd(), 'data', imagePath);
+        const imageBuffer = await fs.readFile(fullPath);
+        const base64Image = imageBuffer.toString('base64');
+        
+        const shortDescription = await generateAIShortDescription(base64Image);
+        
+        return {
+          ...metadata,
+          shortDescription: shortDescription
+        };
+      }
+      
+      return metadata;
+    } catch (error) {
+      console.error("Failed to enhance metadata with short description:", error);
+      return metadata;
+    }
+  }
+
+  /**
    * Generate perceptual hash for visual similarity detection
    */
   async generatePerceptualHash(imagePath: string): Promise<string> {
