@@ -3,6 +3,8 @@ import { storage } from '../storage.js';
 import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs';
+import * as tf from '@tensorflow/tfjs-node';
+import * as faceapi from '@vladmandic/face-api';
 
 export interface DetectedFace {
   id: string;
@@ -21,17 +23,110 @@ export interface Person {
 }
 
 class FaceDetectionService {
+  private faceApiInitialized = false;
+
+  async initializeFaceAPI() {
+    if (this.faceApiInitialized) return;
+    
+    try {
+      console.log('Initializing Face-API.js with TensorFlow.js backend...');
+      
+      // Initialize TensorFlow.js backend first
+      await tf.ready();
+      
+      // Load face detection models
+      const modelPath = 'https://vladmandic.github.io/face-api/model';
+      
+      await Promise.all([
+        faceapi.nets.ssdMobilenetv1.loadFromUri(modelPath),
+        faceapi.nets.faceLandmark68Net.loadFromUri(modelPath),
+        faceapi.nets.faceRecognitionNet.loadFromUri(modelPath),
+        faceapi.nets.tinyFaceDetector.loadFromUri(modelPath),
+      ]);
+      
+      this.faceApiInitialized = true;
+      console.log('Face-API.js models loaded successfully');
+    } catch (error) {
+      console.error('Failed to initialize Face-API.js:', error);
+      this.faceApiInitialized = false;
+    }
+  }
+
   async detectFaces(imagePath: string): Promise<DetectedFace[]> {
     try {
-      console.log('Running enhanced computer vision face detection on:', imagePath);
+      console.log('Running Face-API.js neural network face detection on:', imagePath);
       
-      // Use enhanced image analysis approach that combines multiple techniques
-      const faces = await this.detectFacesWithAdvancedAnalysis(imagePath);
+      // Try Face-API detection first
+      let faces = await this.detectFacesWithFaceAPI(imagePath);
+      
+      // If Face-API fails, fall back to heuristics
+      if (faces.length === 0) {
+        console.log('Face-API found no faces, using heuristic fallback');
+        faces = await this.detectFacesWithAdvancedAnalysis(imagePath);
+      } else {
+        console.log(`Face-API detected ${faces.length} faces successfully`);
+      }
       
       console.log(`Face detection completed: found ${faces.length} faces`);
       return faces;
     } catch (error) {
       console.error('Face detection failed:', error);
+      return [];
+    }
+  }
+
+  async detectFacesWithFaceAPI(imagePath: string): Promise<DetectedFace[]> {
+    try {
+      await this.initializeFaceAPI();
+      
+      if (!this.faceApiInitialized) {
+        throw new Error('Face-API not initialized');
+      }
+
+      const fullImagePath = path.join(process.cwd(), 'data', imagePath);
+      
+      // Load and process image with Sharp for Face-API
+      const imageBuffer = await sharp(fullImagePath)
+        .jpeg({ quality: 90 })
+        .toBuffer();
+      
+      // Convert buffer to tensor
+      const imageTensor = tf.node.decodeImage(imageBuffer, 3);
+      
+      // Detect faces with landmarks and descriptors
+      const detections = await faceapi
+        .detectAllFaces(imageTensor as any, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 }))
+        .withFaceLandmarks()
+        .withFaceDescriptors();
+      
+      // Clean up tensor
+      imageTensor.dispose();
+      
+      console.log(`Face-API detected ${detections.length} faces with neural networks`);
+      
+      const faces: DetectedFace[] = [];
+      
+      for (let i = 0; i < detections.length; i++) {
+        const detection = detections[i];
+        const box = detection.detection.box;
+        
+        faces.push({
+          id: `faceapi_face_${Date.now()}_${i}_${Math.random().toString(36).substr(2, 9)}`,
+          boundingBox: [
+            Math.round(box.x),
+            Math.round(box.y), 
+            Math.round(box.width),
+            Math.round(box.height)
+          ],
+          confidence: Math.round(detection.detection.score * 100),
+          embedding: Array.from(detection.descriptor)
+        });
+      }
+      
+      return faces;
+      
+    } catch (error) {
+      console.error('Face-API detection failed:', error);
       return [];
     }
   }
@@ -354,15 +449,68 @@ class FaceDetectionService {
   }
 
   async generateFaceEmbedding(imagePath: string, boundingBox: [number, number, number, number]): Promise<number[]> {
-    // Generate a simple face embedding based on image characteristics and location
-    const hash = imagePath + boundingBox.join(',');
-    const embedding = [];
-    
-    for (let i = 0; i < 128; i++) {
-      embedding.push(Math.sin(hash.charCodeAt(i % hash.length) + i) * 100);
+    try {
+      await this.initializeFaceAPI();
+      
+      if (!this.faceApiInitialized) {
+        // Fallback to simple embedding if Face-API not available
+        const hash = imagePath + boundingBox.join(',');
+        const embedding = [];
+        
+        for (let i = 0; i < 128; i++) {
+          embedding.push(Math.sin(hash.charCodeAt(i % hash.length) + i) * 100);
+        }
+        
+        return embedding;
+      }
+
+      const fullImagePath = path.join(process.cwd(), 'data', imagePath);
+      
+      // Crop face region first
+      const [x, y, width, height] = boundingBox;
+      const faceBuffer = await sharp(fullImagePath)
+        .extract({ left: x, top: y, width, height })
+        .resize(150, 150)
+        .jpeg({ quality: 90 })
+        .toBuffer();
+      
+      // Convert to tensor
+      const faceTensor = tf.node.decodeImage(faceBuffer, 3);
+      
+      // Get face descriptor using Face-API
+      const detection = await faceapi
+        .detectSingleFace(faceTensor as any, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.3 }))
+        .withFaceLandmarks()
+        .withFaceDescriptor();
+      
+      faceTensor.dispose();
+      
+      if (detection && detection.descriptor) {
+        return Array.from(detection.descriptor);
+      } else {
+        // Fallback if no face detected in crop
+        const hash = imagePath + boundingBox.join(',');
+        const embedding = [];
+        
+        for (let i = 0; i < 128; i++) {
+          embedding.push(Math.sin(hash.charCodeAt(i % hash.length) + i) * 100);
+        }
+        
+        return embedding;
+      }
+    } catch (error) {
+      console.error('Failed to generate face embedding:', error);
+      
+      // Fallback embedding
+      const hash = imagePath + boundingBox.join(',');
+      const embedding = [];
+      
+      for (let i = 0; i < 128; i++) {
+        embedding.push(Math.sin(hash.charCodeAt(i % hash.length) + i) * 100);
+      }
+      
+      return embedding;
     }
-    
-    return embedding;
   }
 
   async findSimilarFaces(faceEmbedding: number[], threshold: number = 0.8): Promise<Array<{id: string, similarity: number, personId?: string}>> {
