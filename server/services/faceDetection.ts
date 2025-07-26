@@ -109,21 +109,137 @@ class FaceDetectionService {
     return embedding;
   }
 
-  async findSimilarFaces(faceEmbedding: number[], threshold: number = 0.8): Promise<string[]> {
+  async findSimilarFaces(faceEmbedding: number[], threshold: number = 0.8): Promise<Array<{faceId: string, similarity: number, personId?: string}>> {
     // Find faces with similar embeddings (simplified cosine similarity)
     const allFaces = await storage.getAllFaces();
-    const similarFaces: string[] = [];
+    const similarFaces: Array<{faceId: string, similarity: number, personId?: string}> = [];
     
     for (const face of allFaces) {
       if (face.embedding && Array.isArray(face.embedding)) {
         const similarity = this.calculateSimilarity(faceEmbedding, face.embedding as number[]);
         if (similarity > threshold) {
-          similarFaces.push(face.id);
+          similarFaces.push({
+            faceId: face.id,
+            similarity,
+            personId: face.personId || undefined
+          });
         }
       }
     }
     
-    return similarFaces;
+    // Sort by similarity descending
+    return similarFaces.sort((a, b) => b.similarity - a.similarity);
+  }
+
+  async generateFaceSuggestions(unassignedFaceIds: string[]): Promise<Array<{
+    faceId: string,
+    suggestions: Array<{
+      personId: string,
+      confidence: number,
+      representativeFace?: string,
+      personName: string
+    }>
+  }>> {
+    const suggestions = [];
+    
+    for (const faceId of unassignedFaceIds) {
+      const face = await storage.getFace(faceId);
+      if (!face || !face.embedding) continue;
+      
+      const similarFaces = await this.findSimilarFaces(face.embedding as number[], 0.75);
+      const personSuggestions = new Map<string, {total: number, count: number, personName: string, representativeFace?: string}>();
+      
+      // Group similar faces by person
+      for (const similar of similarFaces) {
+        if (similar.personId) {
+          const person = await storage.getPerson(similar.personId);
+          if (person) {
+            const existing = personSuggestions.get(similar.personId) || {total: 0, count: 0, personName: person.name, representativeFace: person.representativeFace || undefined};
+            existing.total += similar.similarity;
+            existing.count += 1;
+            if (person.representativeFace) {
+              existing.representativeFace = person.representativeFace;
+            }
+            personSuggestions.set(similar.personId, existing);
+          }
+        }
+      }
+      
+      // Convert to suggestions with confidence scores
+      const faceSuggestions = Array.from(personSuggestions.entries()).map(([personId, data]) => ({
+        personId,
+        confidence: Math.round((data.total / data.count) * 100),
+        representativeFace: data.representativeFace,
+        personName: data.personName
+      })).sort((a, b) => b.confidence - a.confidence).slice(0, 5); // Top 5 suggestions
+      
+      if (faceSuggestions.length > 0) {
+        suggestions.push({
+          faceId,
+          suggestions: faceSuggestions
+        });
+      }
+    }
+    
+    return suggestions;
+  }
+
+  async generateFaceCrop(imagePath: string, boundingBox: [number, number, number, number]): Promise<string> {
+    // Generate a well-framed face crop URL
+    // In a real implementation, this would actually crop the image
+    // For now, return a parameterized URL that the client can handle
+    const [x, y, width, height] = boundingBox;
+    return `/api/files/${imagePath}?crop=${x},${y},${width},${height}&face=true`;
+  }
+
+  async reprocessUnassignedFaces(): Promise<Array<{
+    faceId: string,
+    suggestions: Array<{
+      personId: string,
+      confidence: number,
+      representativeFace?: string,
+      personName: string
+    }>
+  }>> {
+    // Get all unassigned faces
+    const unassignedFaces = await storage.getUnassignedFaces();
+    const unassignedFaceIds = unassignedFaces.map((face: any) => face.id);
+    
+    return await this.generateFaceSuggestions(unassignedFaceIds);
+  }
+
+  async batchAssignFaces(assignments: Array<{faceId: string, personId: string}>): Promise<{success: number, failed: number}> {
+    let success = 0;
+    let failed = 0;
+    
+    for (const assignment of assignments) {
+      try {
+        await storage.assignFaceToPerson(assignment.faceId, assignment.personId);
+        
+        // Update person's face count and representative face if needed
+        const person = await storage.getPerson(assignment.personId);
+        if (person) {
+          const faceCount = await storage.getFacesByPerson(assignment.personId);
+          await storage.updatePersonFaceCount(assignment.personId, faceCount.length);
+          
+          // Set as representative face if it's the first one or has higher confidence
+          const face = await storage.getFace(assignment.faceId);
+          if (!person.representativeFace || (face && face.confidence > 80)) {
+            const photo = await storage.getFileVersion(face?.photoId || '');
+            if (photo) {
+              await storage.updatePersonRepresentativeFace(assignment.personId, photo.filePath);
+            }
+          }
+        }
+        
+        success++;
+      } catch (error) {
+        console.error(`Failed to assign face ${assignment.faceId}:`, error);
+        failed++;
+      }
+    }
+    
+    return {success, failed};
   }
 
   private calculateSimilarity(embedding1: number[], embedding2: number[]): number {

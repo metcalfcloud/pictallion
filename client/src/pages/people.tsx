@@ -26,10 +26,12 @@ import {
   Camera,
   Calendar,
   Tag,
-  User
+  User,
+  Sparkles
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { FaceSuggestions } from "@/components/face-suggestions";
 
 interface Person {
   id: string;
@@ -64,7 +66,7 @@ interface Face {
 }
 
 export default function PeoplePage() {
-  const [viewMode, setViewMode] = useState<'people' | 'faces'>('people');
+  const [viewMode, setViewMode] = useState<'people' | 'faces' | 'suggestions'>('people');
   const [selectedPerson, setSelectedPerson] = useState<string | null>(null);
   const [selectedFaces, setSelectedFaces] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -184,6 +186,14 @@ export default function PeoplePage() {
                 <Eye className="w-4 h-4 mr-2" />
                 Faces
               </Button>
+              <Button
+                variant={viewMode === 'suggestions' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('suggestions')}
+              >
+                <Sparkles className="w-4 h-4 mr-2" />
+                Suggestions
+              </Button>
             </div>
             <Dialog open={isCreatePersonOpen} onOpenChange={setIsCreatePersonOpen}>
               <DialogTrigger asChild>
@@ -238,18 +248,19 @@ export default function PeoplePage() {
 
       {/* Content */}
       <div className="flex-1 p-6 overflow-y-auto">
-        {/* Filters and Search */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <Input
-                placeholder={viewMode === 'people' ? "Search people..." : "Search faces..."}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 w-80"
-              />
-            </div>
+        {/* Show search/filters only for people and faces views */}
+        {viewMode !== 'suggestions' && (
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center space-x-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Input
+                  placeholder={viewMode === 'people' ? "Search people..." : "Search faces..."}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 w-80"
+                />
+              </div>
             {viewMode === 'faces' && (
               <>
                 <Select value={selectedPerson || 'all'} onValueChange={(value) => setSelectedPerson(value === 'all' ? null : value)}>
@@ -275,33 +286,37 @@ export default function PeoplePage() {
                 </Button>
               </>
             )}
-          </div>
-          
-          {selectedFaces.length > 0 && (
-            <div className="flex items-center space-x-2">
-              <Badge variant="secondary">{selectedFaces.length} faces selected</Badge>
-              <Select onValueChange={handleAssignFaces}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Assign to person..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {people.map((person) => (
-                    <SelectItem key={person.id} value={person.id}>
-                      {person.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setSelectedFaces([])}
-              >
-                Clear Selection
-              </Button>
             </div>
-          )}
-        </div>
+            
+            {selectedFaces.length > 0 && (
+              <div className="flex items-center space-x-2">
+                <Badge variant="secondary">{selectedFaces.length} faces selected</Badge>
+                <Select onValueChange={handleAssignFaces}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="Assign to person..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {people.map((person) => (
+                      <SelectItem key={person.id} value={person.id}>
+                        {person.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedFaces([])}
+                >
+                  Clear Selection
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Face Suggestions View */}
+        {viewMode === 'suggestions' && <FaceSuggestions />}
 
         {/* People View */}
         {viewMode === 'people' && (

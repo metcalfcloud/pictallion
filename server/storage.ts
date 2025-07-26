@@ -314,6 +314,34 @@ export class DatabaseStorage implements IStorage {
     await this.linkFaceToPerson(faceId, personId);
   }
 
+  async getFace(faceId: string): Promise<Face | undefined> {
+    const [face] = await db.select().from(faces).where(eq(faces.id, faceId));
+    return face || undefined;
+  }
+
+  async getPerson(personId: string): Promise<Person | undefined> {
+    const [person] = await db.select().from(people).where(eq(people.id, personId));
+    return person || undefined;
+  }
+
+  async getUnassignedFaces(): Promise<Face[]> {
+    return await db.select().from(faces).where(sql`${faces.personId} IS NULL`);
+  }
+
+  async updatePersonFaceCount(personId: string, faceCount: number): Promise<void> {
+    await db
+      .update(people)
+      .set({ faceCount })
+      .where(eq(people.id, personId));
+  }
+
+  async updatePersonRepresentativeFace(personId: string, filePath: string): Promise<void> {
+    await db
+      .update(people)
+      .set({ representativeFace: filePath })
+      .where(eq(people.id, personId));
+  }
+
   async getPersonPhotos(personId: string): Promise<Array<FileVersion & { mediaAsset: MediaAsset }>> {
     const personFaces = await this.getFacesByPerson(personId);
     const photoIds = Array.from(new Set(personFaces.map(face => face.photoId)));

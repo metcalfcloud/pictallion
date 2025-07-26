@@ -398,6 +398,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         await fs.access(fullPath);
         
+        // Check if this is a face crop request
+        if (req.query.crop && req.query.face === 'true') {
+          const cropParams = (req.query.crop as string).split(',').map(Number);
+          if (cropParams.length === 4) {
+            // For now, return the full image with crop parameters in header
+            // In a real implementation, you would crop the image server-side
+            res.setHeader('X-Face-Crop', req.query.crop as string);
+            res.setHeader('Content-Type', 'image/jpeg');
+          }
+        }
+        
         // Check if this is a download request
         if (req.query.download === 'true') {
           const filename = path.basename(fullPath);
@@ -604,6 +615,99 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error assigning faces:", error);
       res.status(500).json({ message: "Failed to assign faces" });
+    }
+  });
+
+  // Get face suggestions for unassigned faces
+  app.get("/api/faces/suggestions", async (req, res) => {
+    try {
+      const suggestions = await faceDetectionService.reprocessUnassignedFaces();
+      res.json(suggestions);
+    } catch (error) {
+      console.error("Error generating face suggestions:", error);
+      res.status(500).json({ message: "Failed to generate face suggestions" });
+    }
+  });
+
+  // Reprocess unassigned faces after manual assignments
+  app.post("/api/faces/reprocess", async (req, res) => {
+    try {
+      const suggestions = await faceDetectionService.reprocessUnassignedFaces();
+      res.json({ 
+        message: "Faces reprocessed successfully", 
+        suggestions: suggestions.length,
+        data: suggestions 
+      });
+    } catch (error) {
+      console.error("Error reprocessing faces:", error);
+      res.status(500).json({ message: "Failed to reprocess faces" });
+    }
+  });
+
+  // Batch assign faces using suggestions
+  app.post("/api/faces/batch-assign", async (req, res) => {
+    try {
+      const { assignments } = req.body; // Array of {faceId, personId}
+      const result = await faceDetectionService.batchAssignFaces(assignments);
+      res.json(result);
+    } catch (error) {
+      console.error("Error batch assigning faces:", error);
+      res.status(500).json({ message: "Failed to batch assign faces" });
+    }
+  });
+
+  // Get unassigned faces
+  app.get("/api/faces/unassigned", async (req, res) => {
+    try {
+      const unassignedFaces = await storage.getUnassignedFaces();
+      
+      // Add photo information to each face
+      const facesWithPhotos = await Promise.all(
+        unassignedFaces.map(async (face) => {
+          const photo = await storage.getFileVersion(face.photoId);
+          if (photo) {
+            const asset = await storage.getMediaAsset(photo.mediaAssetId);
+            return {
+              ...face,
+              photo: {
+                ...photo,
+                mediaAsset: asset
+              }
+            };
+          }
+          return face;
+        })
+      );
+      
+      res.json(facesWithPhotos);
+    } catch (error) {
+      console.error("Error fetching unassigned faces:", error);
+      res.status(500).json({ message: "Failed to fetch unassigned faces" });
+    }
+  });
+
+  // Get face crop URL
+  app.get("/api/faces/:id/crop", async (req, res) => {
+    try {
+      const face = await storage.getFace(req.params.id);
+      if (!face) {
+        return res.status(404).json({ message: "Face not found" });
+      }
+
+      const photo = await storage.getFileVersion(face.photoId);
+      if (!photo) {
+        return res.status(404).json({ message: "Photo not found" });
+      }
+
+      const cropUrl = await faceDetectionService.generateFaceCrop(
+        photo.filePath, 
+        face.boundingBox as [number, number, number, number]
+      );
+      
+      res.json({ cropUrl });
+    } catch (error) {
+      console.error("Error generating face crop:", error);
+      res.status(500).json({ message: "Failed to generate face crop" });
     }
   });
 
