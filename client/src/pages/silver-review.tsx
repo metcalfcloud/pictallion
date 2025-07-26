@@ -59,14 +59,21 @@ export default function SilverReview() {
         isReviewed: showOnlyUnreviewed ? false : undefined
       };
       
-      return await apiRequest('/api/photos/search', {
+      const response = await fetch('/api/photos/search', {
         method: 'POST',
-        body: { filters, limit: 100 }
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filters, limit: 100 })
       });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch photos');
+      }
+      
+      return response.json();
     }
   });
 
-  const photos = searchResults?.photos || [];
+  const photos = (searchResults?.photos as Photo[]) || [];
   const selectedPhoto = photos[selectedPhotoIndex];
 
   // Navigation handlers
@@ -338,7 +345,7 @@ export default function SilverReview() {
               <div className="relative bg-black">
                 <img
                   src={`/api/files/${selectedPhoto?.filePath}`}
-                  alt={selectedPhoto?.mediaAsset.originalFilename}
+                  alt={selectedPhoto?.mediaAsset?.originalFilename || 'Photo'}
                   className="w-full h-[500px] object-contain"
                   onError={(e) => {
                     e.currentTarget.src = '/placeholder-image.svg';
@@ -442,7 +449,7 @@ export default function SilverReview() {
             <CardContent className="space-y-3">
               <div>
                 <Label className="text-xs text-muted-foreground">Filename</Label>
-                <p className="text-sm font-mono break-all">{selectedPhoto?.mediaAsset.originalFilename}</p>
+                <p className="text-sm font-mono break-all">{selectedPhoto?.mediaAsset?.originalFilename || 'Unknown'}</p>
               </div>
               
               <div>
@@ -581,14 +588,14 @@ export default function SilverReview() {
               <div>
                 <Label htmlFor="eventType" className="text-xs">Event Type</Label>
                 <Select
-                  value={selectedPhoto?.eventType || ''}
-                  onValueChange={(value) => updateMetadata({ eventType: value })}
+                  value={selectedPhoto?.eventType || 'none'}
+                  onValueChange={(value) => updateMetadata({ eventType: value === 'none' ? '' : value })}
                 >
                   <SelectTrigger className="mt-1">
                     <SelectValue placeholder="Select event type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="none">None</SelectItem>
                     <SelectItem value="holiday">Holiday</SelectItem>
                     <SelectItem value="birthday">Birthday</SelectItem>
                     <SelectItem value="wedding">Wedding</SelectItem>
@@ -682,7 +689,7 @@ export default function SilverReview() {
                     >
                       <img
                         src={`/api/files/${photo.filePath}`}
-                        alt={photo.mediaAsset.originalFilename}
+                        alt={photo.mediaAsset?.originalFilename || 'Photo'}
                         className="w-full h-16 object-cover rounded"
                         onError={(e) => {
                           e.currentTarget.src = '/placeholder-image.svg';

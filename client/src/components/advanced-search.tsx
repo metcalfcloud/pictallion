@@ -196,12 +196,12 @@ export function AdvancedSearch({
               <div className="space-y-3">
                 <div>
                   <Label htmlFor="tier">Tier</Label>
-                  <Select value={filters.tier || ""} onValueChange={(value) => updateFilter('tier', value || undefined)}>
+                  <Select value={filters.tier || "all"} onValueChange={(value) => updateFilter('tier', value === 'all' ? undefined : value)}>
                     <SelectTrigger>
                       <SelectValue placeholder="All tiers" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All tiers</SelectItem>
+                      <SelectItem value="all">All tiers</SelectItem>
                       <SelectItem value="bronze">Bronze</SelectItem>
                       <SelectItem value="silver">Silver</SelectItem>
                       <SelectItem value="gold">Gold</SelectItem>
@@ -212,14 +212,14 @@ export function AdvancedSearch({
                 <div>
                   <Label htmlFor="filetype">File Type</Label>
                   <Select 
-                    value={filters.mimeType?.[0] || ""} 
-                    onValueChange={(value) => updateFilter('mimeType', value ? [value] : undefined)}
+                    value={filters.mimeType?.[0] || "all"} 
+                    onValueChange={(value) => updateFilter('mimeType', value === 'all' ? undefined : [value])}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="All types" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All types</SelectItem>
+                      <SelectItem value="all">All types</SelectItem>
                       <SelectItem value="image/jpeg">JPEG</SelectItem>
                       <SelectItem value="image/png">PNG</SelectItem>
                       <SelectItem value="image/tiff">TIFF</SelectItem>
@@ -339,14 +339,14 @@ export function AdvancedSearch({
                 <div>
                   <Label htmlFor="eventType">Event Type</Label>
                   <Select 
-                    value={filters.eventType?.[0] || ""} 
-                    onValueChange={(value) => updateFilter('eventType', value ? [value] : undefined)}
+                    value={filters.eventType?.[0] || "all"} 
+                    onValueChange={(value) => updateFilter('eventType', value === 'all' ? undefined : [value])}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="All events" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All events</SelectItem>
+                      <SelectItem value="all">All events</SelectItem>
                       <SelectItem value="holiday">Holiday</SelectItem>
                       <SelectItem value="birthday">Birthday</SelectItem>
                       <SelectItem value="wedding">Wedding</SelectItem>
