@@ -72,7 +72,8 @@ export default function SettingsPage() {
         description: "Your settings have been saved successfully.",
       });
     },
-    onError: () => {
+    onError: (error: any) => {
+      console.error('Settings update error:', error);
       toast({
         title: "Error",
         description: "Failed to update settings.",
@@ -87,11 +88,25 @@ export default function SettingsPage() {
       apiRequest('POST', '/api/settings', data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+      toast({
+        title: "Settings Created",
+        description: "New setting has been created successfully.",
+      });
+    },
+    onError: (error: any) => {
+      console.error('Settings create error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create setting.",
+        variant: "destructive",
+      });
     },
   });
 
   const handleSaveNamingSettings = async () => {
     try {
+      console.log('Saving naming settings:', { selectedPattern, customPattern });
+      
       // Update or create the silver naming pattern setting
       const existingSetting = settings.find((s: Setting) => s.key === 'silver_naming_pattern');
       
@@ -120,8 +135,15 @@ export default function SettingsPage() {
           });
         }
       }
+      
+      console.log('Settings saved successfully');
     } catch (error) {
       console.error('Failed to save settings:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save settings. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -318,7 +340,7 @@ export default function SettingsPage() {
               className="flex items-center gap-2"
             >
               <Save className="h-4 w-4" />
-              Save Settings
+              {(updateSettingMutation.isPending || createSettingMutation.isPending) ? 'Saving...' : 'Save Settings'}
             </Button>
           </div>
         </CardContent>
