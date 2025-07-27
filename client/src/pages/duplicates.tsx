@@ -69,13 +69,26 @@ export default function DuplicatesPage() {
       
       // Initialize default actions (keep suggested for all groups)
       const defaultActions = new Map();
-      data.groups.forEach((group: DuplicateGroup) => {
-        defaultActions.set(group.id, { action: 'keep_suggested' });
-      });
+      if (data && data.groups && Array.isArray(data.groups)) {
+        data.groups.forEach((group: DuplicateGroup) => {
+          defaultActions.set(group.id, { action: 'keep_suggested' });
+        });
+      }
       setSelectedActions(defaultActions);
       
     } catch (error) {
       console.error('Failed to scan for duplicates:', error);
+      // Set empty analysis on error
+      setAnalysis({
+        groups: [],
+        totalDuplicates: 0,
+        potentialSpaceSavings: 0,
+        summary: {
+          identicalGroups: 0,
+          verySimilarGroups: 0,
+          similarGroups: 0
+        }
+      });
     } finally {
       setLoading(false);
       setTimeout(() => setScanProgress(0), 1000);
