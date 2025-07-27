@@ -111,10 +111,10 @@ jobs:
         run: |
           # Run audit and capture output
           npm audit --audit-level=high --json > audit-results.json || true
-          
+
           # Check for high or critical vulnerabilities only
           HIGH_CRITICAL=$(cat audit-results.json | jq -r '.vulnerabilities | to_entries[] | select(.value.severity == "high" or .value.severity == "critical") | .key' | wc -l)
-          
+
           if [ "$HIGH_CRITICAL" -gt "0" ]; then
             echo "❌ Found high or critical vulnerabilities:"
             cat audit-results.json | jq -r '.vulnerabilities | to_entries[] | select(.value.severity == "high" or .value.severity == "critical") | "\(.key): \(.value.severity)"'
