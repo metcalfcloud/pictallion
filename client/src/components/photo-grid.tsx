@@ -148,7 +148,7 @@ export default function PhotoGrid({
       {photos.map((photo) => (
         <div key={photo.id} className="relative group">
           <div 
-            className="cursor-pointer"
+            className="cursor-pointer relative"
             onClick={() => onPhotoClick(photo)}
           >
             <img 
@@ -156,7 +156,43 @@ export default function PhotoGrid({
               alt={photo.mediaAsset.originalFilename}
               className="w-full h-32 object-cover rounded-lg"
             />
-            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity rounded-lg" />
+            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 rounded-lg" />
+            
+            {/* Enhanced hover info */}
+            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-200 p-2 flex flex-col justify-between">
+              <div className="space-y-1">
+                {photo.metadata?.ai?.aiTags && photo.metadata.ai.aiTags.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {photo.metadata.ai.aiTags.slice(0, 2).map((tag: string, index: number) => (
+                      <span 
+                        key={index} 
+                        className="bg-blue-500 text-white px-1.5 py-0.5 rounded text-xs font-medium"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                    {photo.metadata.ai.aiTags.length > 2 && (
+                      <span className="bg-gray-500 text-white px-1.5 py-0.5 rounded text-xs">
+                        +{photo.metadata.ai.aiTags.length - 2}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+              
+              <div className="text-white text-xs space-y-1">
+                {photo.metadata?.ai?.shortDescription && (
+                  <p className="line-clamp-2 bg-black bg-opacity-50 p-1 rounded">
+                    {photo.metadata.ai.shortDescription}
+                  </p>
+                )}
+                {photo.metadata?.exif?.camera && (
+                  <p className="bg-black bg-opacity-50 p-1 rounded">
+                    📷 {photo.metadata.exif.camera}
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* Tier Badge */}
