@@ -60,19 +60,19 @@ export default function SettingsPage() {
 
   const [selectedPattern, setSelectedPattern] = useState(currentNamingPattern);
   const [customPattern, setCustomPattern] = useState(customNamingPattern);
+  const [originalPattern, setOriginalPattern] = useState(currentNamingPattern);
+  const [originalCustomPattern, setOriginalCustomPattern] = useState(customNamingPattern);
 
   // Update local state when settings are loaded from server
   React.useEffect(() => {
     if (settings.length > 0) {
-      const savedPattern = settings.find((s: Setting) => s.key === 'silver_naming_pattern')?.value;
-      const savedCustomPattern = settings.find((s: Setting) => s.key === 'custom_naming_pattern')?.value;
+      const savedPattern = settings.find((s: Setting) => s.key === 'silver_naming_pattern')?.value || 'datetime';
+      const savedCustomPattern = settings.find((s: Setting) => s.key === 'custom_naming_pattern')?.value || '';
       
-      if (savedPattern) {
-        setSelectedPattern(savedPattern);
-      }
-      if (savedCustomPattern) {
-        setCustomPattern(savedCustomPattern);
-      }
+      setSelectedPattern(savedPattern);
+      setCustomPattern(savedCustomPattern);
+      setOriginalPattern(savedPattern);
+      setOriginalCustomPattern(savedCustomPattern);
     }
   }, [settings]);
 
@@ -151,6 +151,10 @@ export default function SettingsPage() {
         }
       }
       
+      // Update original values after successful save
+      setOriginalPattern(selectedPattern);
+      setOriginalCustomPattern(customPattern);
+      
       console.log('Settings saved successfully');
     } catch (error) {
       console.error('Failed to save settings:', error);
@@ -160,6 +164,13 @@ export default function SettingsPage() {
         variant: "destructive",
       });
     }
+  };
+
+  // Check if there are unsaved changes
+  const hasUnsavedChanges = () => {
+    if (selectedPattern !== originalPattern) return true;
+    if (selectedPattern === 'custom' && customPattern !== originalCustomPattern) return true;
+    return false;
   };
 
   const resetToDefaults = () => {
@@ -229,7 +240,7 @@ export default function SettingsPage() {
           <div className="space-y-4">
             <Label htmlFor="naming-pattern">Naming Pattern</Label>
             <Select value={selectedPattern} onValueChange={setSelectedPattern}>
-              <SelectTrigger>
+              <SelectTrigger className={hasUnsavedChanges() ? "bg-amber-50 border-amber-200" : ""}>
                 <SelectValue placeholder="Select naming pattern" />
               </SelectTrigger>
               <SelectContent>
@@ -281,7 +292,7 @@ export default function SettingsPage() {
                   value={customPattern}
                   onChange={(e) => setCustomPattern(e.target.value)}
                   placeholder="Enter your custom naming pattern using placeholders..."
-                  className="mt-1"
+                  className={`mt-1 ${selectedPattern === 'custom' && hasUnsavedChanges() ? "bg-amber-50 border-amber-200" : ""}`}
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   Use placeholders like {"{year}"}, {"{month}"}, {"{day}"}, {"{hour}"}, {"{minute}"}, {"{second}"}, {"{camera}"}, {"{aiDescription}"}, {"{originalFilename}"}
