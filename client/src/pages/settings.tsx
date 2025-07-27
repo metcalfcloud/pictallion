@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -60,6 +60,21 @@ export default function SettingsPage() {
 
   const [selectedPattern, setSelectedPattern] = useState(currentNamingPattern);
   const [customPattern, setCustomPattern] = useState(customNamingPattern);
+
+  // Update local state when settings are loaded from server
+  React.useEffect(() => {
+    if (settings.length > 0) {
+      const savedPattern = settings.find((s: Setting) => s.key === 'silver_naming_pattern')?.value;
+      const savedCustomPattern = settings.find((s: Setting) => s.key === 'custom_naming_pattern')?.value;
+      
+      if (savedPattern) {
+        setSelectedPattern(savedPattern);
+      }
+      if (savedCustomPattern) {
+        setCustomPattern(savedCustomPattern);
+      }
+    }
+  }, [settings]);
 
   // Update setting mutation
   const updateSettingMutation = useMutation({
