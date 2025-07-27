@@ -1,0 +1,44 @@
+Run if [[ "win" == "mac" ]]; then
+  • electron-builder  version=26.0.12 os=10.0.20348
+  • artifacts will be published  reason=tag is defined tag=v0.0.10
+  • loaded configuration  file=package.json ("build" field)
+  • executing @electron/rebuild  electronVersion=37.2.4 arch=x64 buildFromSource=false appDir=./
+  • installing native dependencies  arch=x64
+  • preparing       moduleName=@tensorflow/tfjs-node arch=x64
+  • finished        moduleName=@tensorflow/tfjs-node arch=x64
+  • preparing       moduleName=better-sqlite3 arch=x64
+  • finished        moduleName=better-sqlite3 arch=x64
+  • preparing       moduleName=bufferutil arch=x64
+  • finished        moduleName=bufferutil arch=x64
+  • completed installing native dependencies
+  • packaging       platform=win32 arch=x64 electron=37.2.4 appOutDir=dist\win-unpacked
+  • downloading     url=https://github.com/electron/electron/releases/download/v37.2.4/electron-v37.2.4-win32-x64.zip size=124 MB parts=8
+  • downloaded      url=https://github.com/electron/electron/releases/download/v37.2.4/electron-v37.2.4-win32-x64.zip duration=387ms
+  • updating asar integrity executable resource  executablePath=dist\win-unpacked\Pictallion.exe
+  • file source doesn't exist  from=D:\a\pictallion\pictallion\node_modules\sqlite3\lib\binding
+  • default Electron icon is used  reason=application icon is not set
+  • downloading     url=https://github.com/electron-userland/electron-builder-binaries/releases/download/winCodeSign-2.6.0/winCodeSign-2.6.0.7z size=5.6 MB parts=1
+  • downloaded      url=https://github.com/electron-userland/electron-builder-binaries/releases/download/winCodeSign-2.6.0/winCodeSign-2.6.0.7z duration=265ms
+  • signing with signtool.exe  path=dist\win-unpacked\Pictallion.exe
+  • building        target=MSI arch=x64 file=dist\Pictallion 0.0.10.msi
+  • downloading     url=https://github.com/electron-userland/electron-builder-binaries/releases/download/wix-4.0.0.5512.2/wix-4.0.0.5512.2.7z size=2.2 MB parts=1
+  • downloaded      url=https://github.com/electron-userland/electron-builder-binaries/releases/download/wix-4.0.0.5512.2/wix-4.0.0.5512.2.7z duration=312ms
+  ⨯ Exit code: 94. Command failed: C:\Users\runneradmin\AppData\Local\electron-builder\Cache\wix\wix-4.0.0.5512.2\light.exe -out D:\a\pictallion\pictallion\dist\Pictallion 0.0.10.msi -v -spdb -sw1076 -dappDir=D:\a\pictallion\pictallion\dist\win-unpacked -pedantic -wx project.wixobj
+D:\a\pictallion\pictallion\dist\__msi-x64\project.wxs(118) : error LGHT0094 : The identifier 'Icon:PictallionIcon.exe' could not be found. Ensure you have typed the reference correctly and that all the necessary inputs are provided to the linker.
+
+WiX Toolset Linker version 4.0.0.5512
+Copyright (c) .NET Foundation and contributors. All rights reserved.
+
+
+D:\a\pictallion\pictallion\dist\__msi-x64\project.wxs(118) : error LGHT0094 : The identifier 'Icon:PictallionIcon.exe' could not be found. Ensure you have typed the reference correctly and that all the necessary inputs are provided to the linker.
+  failedTask=build stackTrace=Error: Exit code: 94. Command failed: C:\Users\runneradmin\AppData\Local\electron-builder\Cache\wix\wix-4.0.0.5512.2\light.exe -out D:\a\pictallion\pictallion\dist\Pictallion 0.0.10.msi -v -spdb -sw1076 -dappDir=D:\a\pictallion\pictallion\dist\win-unpacked -pedantic -wx project.wixobj
+D:\a\pictallion\pictallion\dist\__msi-x64\project.wxs(118) : error LGHT0094 : The identifier 'Icon:PictallionIcon.exe' could not be found. Ensure you have typed the reference correctly and that all the necessary inputs are provided to the linker.
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                WiX Toolset Linker version 4.0.0.5512
+Copyright (c) .NET Foundation and contributors. All rights reserved.
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                D:\a\pictallion\pictallion\dist\__msi-x64\project.wxs(118) : error LGHT0094 : The identifier 'Icon:PictallionIcon.exe' could not be found. Ensure you have typed the reference correctly and that all the necessary inputs are provided to the linker.
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    at D:\a\pictallion\pictallion\node_modules\builder-util\src\util.ts:142:18
+    at ChildProcess.exithandler (node:child_process:430:5)
+    at ChildProcess.emit (node:events:524:28)
+    at maybeClose (node:internal/child_process:1104:16)
+    at Process.ChildProcess._handle.onexit (node:internal/child_process:304:5)
+Error: Process completed with exit code 1.
