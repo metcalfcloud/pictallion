@@ -3,6 +3,8 @@ name: 🔄 CI/CD
 on:
   push:
     branches: [main, develop]
+    tags-ignore:
+      - 'v*.*.*'
   pull_request:
     branches: [main, develop]
 

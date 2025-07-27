@@ -9,6 +9,8 @@ on:
       - 'shared/**'
       - 'Dockerfile'
       - 'docker-compose.yml'
+    tags-ignore:
+      - 'v*.*.*'
   pull_request:
     branches: [main]
 

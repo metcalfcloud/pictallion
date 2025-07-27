@@ -4,6 +4,10 @@ on:
   schedule:
     - cron: '0 0 * * 1' # Weekly on Monday
   workflow_dispatch:
+  push:
+    branches: [main, develop]
+    tags-ignore:
+      - 'v*.*.*'
 
 jobs:
   update:

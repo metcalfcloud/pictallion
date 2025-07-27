@@ -1,12 +1,14 @@
 name: 🛡️ Security
 
 on:
-  schedule:
-    - cron: '0 6 * * 1' # Weekly on Monday at 6 AM
   push:
     branches: [main]
+    tags-ignore:
+      - 'v*.*.*'
   pull_request:
     branches: [main]
+  schedule:
+    - cron: '0 6 * * 1' # Weekly on Monday at 6 AM
   workflow_dispatch:
 
 permissions:
@@ -37,28 +39,28 @@ jobs:
           echo "📊 Full Security Audit Report" > security-report.md
           echo "Generated on: $(date)" >> security-report.md
           echo "" >> security-report.md
-          
+
           # Full audit
           echo "## NPM Audit Results" >> security-report.md
           echo "\`\`\`" >> security-report.md
           npm audit >> security-report.md || true
           echo "\`\`\`" >> security-report.md
           echo "" >> security-report.md
-          
+
           # JSON format for processing
           npm audit --json > audit-full.json || true
-          
+
           # Check for high/critical vulnerabilities
           HIGH_CRITICAL=$(cat audit-full.json | jq -r '.vulnerabilities | to_entries[] | select(.value.severity == "high" or .value.severity == "critical") | .key' | wc -l)
           MODERATE=$(cat audit-full.json | jq -r '.vulnerabilities | to_entries[] | select(.value.severity == "moderate") | .key' | wc -l)
           LOW=$(cat audit-full.json | jq -r '.vulnerabilities | to_entries[] | select(.value.severity == "low") | .key' | wc -l)
-          
+
           echo "## Vulnerability Summary" >> security-report.md
           echo "- **Critical/High**: $HIGH_CRITICAL" >> security-report.md
           echo "- **Moderate**: $MODERATE" >> security-report.md
           echo "- **Low**: $LOW" >> security-report.md
           echo "" >> security-report.md
-          
+
           if [ "$HIGH_CRITICAL" -gt "0" ]; then
             echo "❌ Found $HIGH_CRITICAL high/critical vulnerabilities"
             echo "## High/Critical Vulnerabilities" >> security-report.md
@@ -67,7 +69,7 @@ jobs:
           else
             echo "✅ No high/critical vulnerabilities found"
           fi
-          
+
           if [ "$MODERATE" -gt "0" ]; then
             echo "⚠️ Found $MODERATE moderate vulnerabilities (documented but not failing)"
             echo "## Moderate Vulnerabilities (Non-blocking)" >> security-report.md
@@ -151,7 +153,7 @@ jobs:
         if: always() && github.event_name != 'pull_request'
         with:
           sarif_file: 'trivy-results.sarif'
-          
+
       - name: 📤 Upload Trivy scan results as artifact (for PRs)
         uses: actions/upload-artifact@v4
         if: always() && github.event_name == 'pull_request'
@@ -173,7 +175,7 @@ jobs:
         run: |
           # Install TruffleHog
           curl -sSfL https://raw.githubusercontent.com/trufflesecurity/trufflehog/main/scripts/install.sh | sh -s -- -b /usr/local/bin
-          
+
           # Scan the filesystem for secrets
           echo "🔍 Scanning for secrets in codebase..."
           trufflehog filesystem . --only-verified --no-update || {

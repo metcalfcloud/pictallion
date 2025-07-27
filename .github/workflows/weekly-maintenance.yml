@@ -4,6 +4,10 @@ on:
   schedule:
     - cron: '0 8 * * 1' # Weekly on Monday at 8 AM UTC
   workflow_dispatch:
+  push:
+    branches: [main, develop]
+    tags-ignore:
+      - 'v*.*.*'
 
 jobs:
   update-dependencies:
@@ -27,7 +31,7 @@ jobs:
           echo "# Weekly Dependency Report" > dependency-update-report.md
           echo "Generated on: $(date)" >> dependency-update-report.md
           echo "" >> dependency-update-report.md
-          
+
           echo "## Available Updates" >> dependency-update-report.md
           echo "\`\`\`" >> dependency-update-report.md
           npm outdated >> dependency-update-report.md || echo "No outdated packages" >> dependency-update-report.md
@@ -48,7 +52,7 @@ jobs:
           echo "- **Total packages**: $(npm list --depth=0 2>/dev/null | grep -c '├\|└' || echo 'N/A')" >> dependency-update-report.md
           echo "- **Node.js version**: $(node --version)" >> dependency-update-report.md
           echo "- **NPM version**: $(npm --version)" >> dependency-update-report.md
-          
+
           # Check if any critical packages need updates
           CRITICAL_UPDATES=$(npm outdated --json 2>/dev/null | jq -r 'keys[]' | grep -E "(react|express|typescript|drizzle)" | wc -l || echo "0")
           echo "- **Critical package updates available**: $CRITICAL_UPDATES" >> dependency-update-report.md
@@ -73,16 +77,16 @@ jobs:
               repo: context.repo.repo,
               per_page: 100
             });
-            
+
             const oldRuns = runs.workflow_runs.filter(run => {
               const runDate = new Date(run.created_at);
               const thirtyDaysAgo = new Date();
               thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
               return runDate < thirtyDaysAgo && run.status === 'completed';
             });
-            
+
             console.log(`Found ${oldRuns.length} old workflow runs to clean up`);
-            
+
             for (const run of oldRuns.slice(0, 10)) { // Limit to 10 per run
               try {
                 await github.rest.actions.deleteWorkflowRun({
@@ -109,7 +113,7 @@ jobs:
           echo "# Repository Health Report" > health-report.md
           echo "Generated on: $(date)" >> health-report.md
           echo "" >> health-report.md
-          
+
           # Repository stats
           echo "## Repository Statistics" >> health-report.md
           echo "- **Total commits**: $(git rev-list --count HEAD)" >> health-report.md
@@ -117,14 +121,14 @@ jobs:
           echo "- **Total tags**: $(git tag | wc -l)" >> health-report.md
           echo "- **Repository size**: $(du -sh . | cut -f1)" >> health-report.md
           echo "" >> health-report.md
-          
+
           # File stats
           echo "## Codebase Statistics" >> health-report.md
           echo "- **TypeScript files**: $(find . -name '*.ts' -o -name '*.tsx' | wc -l)" >> health-report.md
           echo "- **JavaScript files**: $(find . -name '*.js' -o -name '*.jsx' | wc -l)" >> health-report.md
           echo "- **Total lines of code**: $(find . -name '*.ts' -o -name '*.tsx' -o -name '*.js' -o -name '*.jsx' | xargs wc -l | tail -1 | awk '{print $1}')" >> health-report.md
           echo "" >> health-report.md
-          
+
           # Documentation check
           echo "## Documentation Status" >> health-report.md
           [ -f README.md ] && echo "- ✅ README.md exists" >> health-report.md || echo "- ❌ README.md missing" >> health-report.md
