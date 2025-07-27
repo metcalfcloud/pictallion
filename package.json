@@ -152,9 +152,7 @@
     },
     "mac": {
       "target": [
-        {
-          "target": "dmg"
-        }
+        "dmg"
       ],
       "icon": "assets/icon.icns"
     },

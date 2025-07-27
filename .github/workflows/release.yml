@@ -33,11 +33,11 @@ jobs:
             platform: linux
             arch: x64
             ext: rpm
-          - os: macos-latest
+          - os: macos-13
             platform: mac
             arch: x64
             ext: dmg
-          - os: macos-latest
+          - os: macos-14-arm64
             platform: mac
             arch: arm64
             ext: dmg
