@@ -155,13 +155,11 @@
     },
     "mac": {
       "target": [
-        {
-          "target": "dmg",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
-        }
+        "dmg"
+      ],
+      "arch": [
+        "x64",
+        "arm64"
       ]
     },
     "win": {
