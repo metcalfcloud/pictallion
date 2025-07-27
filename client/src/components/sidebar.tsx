@@ -9,13 +9,11 @@ import {
   Settings, 
   Search,
   Bell,
-  Brain,
   Users
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
-import { AISettingsModal } from "./ai-settings-modal";
+
 import pictallionLogo from "../assets/pictallion-logo.png";
 
 const navigationItems = [
@@ -31,7 +29,7 @@ const navigationItems = [
 
 export default function Sidebar() {
   const [location] = useLocation();
-  const [showAISettings, setShowAISettings] = useState(false);
+  
 
   const isActive = (path: string) => {
     if (path === "/dashboard") {
@@ -83,19 +81,7 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* AI & Settings */}
-      <div className="p-4 border-t border-gray-200">
-        <div className="space-y-2">
-          <Button
-            variant="ghost"
-            className="w-full justify-start"
-            onClick={() => setShowAISettings(true)}
-          >
-            <Brain className="w-4 h-4 mr-3" />
-            AI Settings
-          </Button>
-        </div>
-      </div>
+      
 
       {/* Storage Info */}
       <div className="p-4 border-t border-gray-200">
@@ -111,10 +97,7 @@ export default function Sidebar() {
         </Card>
       </div>
 
-      <AISettingsModal 
-        open={showAISettings} 
-        onOpenChange={setShowAISettings} 
-      />
+      
     </aside>
   );
 }

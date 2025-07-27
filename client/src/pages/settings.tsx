@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Settings as SettingsIcon, 
   FileImage, 
@@ -17,7 +18,10 @@ import {
   Calendar,
   Camera,
   Brain,
-  FileText
+  FileText,
+  CheckCircle,
+  XCircle,
+  Loader2
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -38,6 +42,25 @@ interface NamingPattern {
   description: string;
   pattern: string;
   example: string;
+}
+
+interface AIConfig {
+  currentProvider: "ollama" | "openai" | "both";
+  availableProviders: {
+    ollama: boolean;
+    openai: boolean;
+  };
+  config: {
+    ollama: {
+      baseUrl: string;
+      visionModel: string;
+      textModel: string;
+    };
+    openai: {
+      model: string;
+      hasApiKey: boolean;
+    };
+  };
 }
 
 export default function SettingsPage() {
@@ -63,6 +86,19 @@ export default function SettingsPage() {
   const [originalPattern, setOriginalPattern] = useState(currentNamingPattern);
   const [originalCustomPattern, setOriginalCustomPattern] = useState(customNamingPattern);
 
+  // AI Configuration state
+  const [aiConfig, setAiConfig] = useState<AIConfig | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiTesting, setAiTesting] = useState(false);
+  const [aiFormData, setAiFormData] = useState({
+    provider: "ollama" as "ollama" | "openai" | "both",
+    ollamaBaseUrl: "http://localhost:11434",
+    ollamaVisionModel: "llava:latest",
+    ollamaTextModel: "llama3.2:latest",
+    openaiApiKey: "",
+    openaiModel: "gpt-4o"
+  });
+
   // Update local state when settings are loaded from server
   React.useEffect(() => {
     if (settings.length > 0) {
@@ -75,6 +111,37 @@ export default function SettingsPage() {
       setOriginalCustomPattern(savedCustomPattern);
     }
   }, [settings]);
+
+  // Load AI configuration
+  React.useEffect(() => {
+    loadAiConfig();
+  }, []);
+
+  const loadAiConfig = async () => {
+    try {
+      setAiLoading(true);
+      const response = await fetch("/api/ai/config");
+      const data = await response.json();
+      setAiConfig(data);
+      
+      setAiFormData({
+        provider: data.currentProvider,
+        ollamaBaseUrl: data.config.ollama.baseUrl,
+        ollamaVisionModel: data.config.ollama.visionModel,
+        ollamaTextModel: data.config.ollama.textModel,
+        openaiApiKey: "",
+        openaiModel: data.config.openai.model
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load AI configuration",
+        variant: "destructive"
+      });
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   // Update setting mutation
   const updateSettingMutation = useMutation({
@@ -199,6 +266,77 @@ export default function SettingsPage() {
     return preview + '.jpg';
   };
 
+  const testAiProviders = async () => {
+    try {
+      setAiTesting(true);
+      const response = await fetch("/api/ai/test", { method: "POST" });
+      const data = await response.json();
+      
+      setAiConfig(prev => prev ? {
+        ...prev,
+        availableProviders: data
+      } : null);
+      
+      toast({
+        title: "Provider Test Complete",
+        description: `Ollama: ${data.ollama ? "Available" : "Unavailable"}, OpenAI: ${data.openai ? "Available" : "Unavailable"}`
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to test AI providers",
+        variant: "destructive"
+      });
+    } finally {
+      setAiTesting(false);
+    }
+  };
+
+  const saveAiConfig = async () => {
+    try {
+      setAiLoading(true);
+      
+      const payload = {
+        provider: aiFormData.provider,
+        ollama: {
+          baseUrl: aiFormData.ollamaBaseUrl,
+          visionModel: aiFormData.ollamaVisionModel,
+          textModel: aiFormData.ollamaTextModel
+        },
+        ...(aiFormData.openaiApiKey && {
+          openai: {
+            apiKey: aiFormData.openaiApiKey,
+            model: aiFormData.openaiModel
+          }
+        })
+      };
+
+      const response = await fetch("/api/ai/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "AI configuration updated successfully"
+        });
+        loadAiConfig();
+      } else {
+        throw new Error("Failed to save configuration");
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save AI configuration",
+        variant: "destructive"
+      });
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   if (settingsLoading || patternsLoading) {
     return (
       <div className="p-6">
@@ -223,8 +361,16 @@ export default function SettingsPage() {
         </div>
       </header>
 
-      {/* Silver Tier Naming Configuration */}
-      <Card>
+      {/* Settings Tabs */}
+      <Tabs defaultValue="naming" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="naming">File Naming</TabsTrigger>
+          <TabsTrigger value="ai">AI Configuration</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="naming" className="space-y-6">
+          {/* Silver Tier Naming Configuration */}
+          <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileImage className="h-5 w-5" />
@@ -388,6 +534,161 @@ export default function SettingsPage() {
           </div>
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="ai" className="space-y-6">
+          {/* AI Provider Status */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Brain className="h-5 w-5" />
+                AI Provider Status
+              </CardTitle>
+              <p className="text-sm text-gray-600">Current availability of AI providers</p>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {aiConfig && (
+                <>
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">Ollama (Local)</span>
+                    {aiConfig.availableProviders.ollama ? (
+                      <Badge variant="default" className="bg-green-100 text-green-800">
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        Available
+                      </Badge>
+                    ) : (
+                      <Badge variant="secondary" className="bg-red-100 text-red-800">
+                        <XCircle className="h-3 w-3 mr-1" />
+                        Unavailable
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">OpenAI (Cloud)</span>
+                    {aiConfig.availableProviders.openai ? (
+                      <Badge variant="default" className="bg-green-100 text-green-800">
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        Available
+                      </Badge>
+                    ) : (
+                      <Badge variant="secondary" className="bg-red-100 text-red-800">
+                        <XCircle className="h-3 w-3 mr-1" />
+                        {aiConfig.config.openai.hasApiKey ? "Key Invalid" : "No API Key"}
+                      </Badge>
+                    )}
+                  </div>
+                </>
+              )}
+              <Button onClick={testAiProviders} disabled={aiTesting} size="sm" variant="outline">
+                {aiTesting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Test Providers
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* AI Provider Configuration */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Provider Configuration</CardTitle>
+              <p className="text-sm text-gray-600">Configure AI providers for photo analysis</p>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <Tabs defaultValue="general" className="w-full">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="general">General</TabsTrigger>
+                  <TabsTrigger value="ollama">Ollama</TabsTrigger>
+                  <TabsTrigger value="openai">OpenAI</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="general" className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="provider">Preferred AI Provider</Label>
+                    <Select value={aiFormData.provider} onValueChange={(value: any) => setAiFormData(prev => ({ ...prev, provider: value }))}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ollama">Ollama Only (Local)</SelectItem>
+                        <SelectItem value="openai">OpenAI Only (Cloud)</SelectItem>
+                        <SelectItem value="both">Both (Ollama First, OpenAI Fallback)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-sm text-muted-foreground">
+                      Choose which AI provider to use for photo analysis. "Both" tries Ollama first, then falls back to OpenAI.
+                    </p>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="ollama" className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="ollamaBaseUrl">Ollama Base URL</Label>
+                    <Input
+                      id="ollamaBaseUrl"
+                      value={aiFormData.ollamaBaseUrl}
+                      onChange={(e) => setAiFormData(prev => ({ ...prev, ollamaBaseUrl: e.target.value }))}
+                      placeholder="http://localhost:11434"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="ollamaVisionModel">Vision Model</Label>
+                    <Input
+                      id="ollamaVisionModel"
+                      value={aiFormData.ollamaVisionModel}
+                      onChange={(e) => setAiFormData(prev => ({ ...prev, ollamaVisionModel: e.target.value }))}
+                      placeholder="llava:latest"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="ollamaTextModel">Text Model</Label>
+                    <Input
+                      id="ollamaTextModel"
+                      value={aiFormData.ollamaTextModel}
+                      onChange={(e) => setAiFormData(prev => ({ ...prev, ollamaTextModel: e.target.value }))}
+                      placeholder="llama3.2:latest"
+                    />
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="openai" className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="openaiApiKey">API Key</Label>
+                    <Input
+                      id="openaiApiKey"
+                      type="password"
+                      value={aiFormData.openaiApiKey}
+                      onChange={(e) => setAiFormData(prev => ({ ...prev, openaiApiKey: e.target.value }))}
+                      placeholder="Enter your OpenAI API key"
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      {aiConfig?.config.openai.hasApiKey ? "API key is configured" : "No API key set"}
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="openaiModel">Model</Label>
+                    <Select value={aiFormData.openaiModel} onValueChange={(value) => setAiFormData(prev => ({ ...prev, openaiModel: value }))}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="gpt-4o">GPT-4o (Recommended)</SelectItem>
+                        <SelectItem value="gpt-4o-mini">GPT-4o Mini (Faster)</SelectItem>
+                        <SelectItem value="gpt-4-turbo">GPT-4 Turbo</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </TabsContent>
+              </Tabs>
+
+              <div className="flex justify-end">
+                <Button onClick={saveAiConfig} disabled={aiLoading}>
+                  {aiLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                  Save AI Configuration
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
