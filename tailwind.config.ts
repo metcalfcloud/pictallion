@@ -62,6 +62,9 @@ export default {
           ring: "var(--sidebar-ring)",
         },
       },
+      borderColor: ({ theme }) => ({
+        border: theme('colors.border'),
+      }),
       keyframes: {
         "accordion-down": {
           from: {

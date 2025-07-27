@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# Ensure script runs from project root
+cd "$(dirname "$0")"/..
+npm ci
+
 # Production build script for Pictallion
 export NODE_ENV=production
 
@@ -7,9 +11,9 @@ export NODE_ENV=production
 rm -rf dist
 mkdir -p dist
 
-# Build frontend to dist/public
+# Build frontend to dist/public from client directory
 echo "Building frontend..."
-NODE_ENV=production npx vite build --outDir=dist/public
+NODE_ENV=production npx vite build
 
 # Verify frontend build
 if [ ! -d "dist/public" ]; then
