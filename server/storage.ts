@@ -39,6 +39,7 @@ export interface IStorage {
   createMediaAsset(asset: InsertMediaAsset): Promise<MediaAsset>;
   getMediaAsset(id: string): Promise<MediaAsset | undefined>;
   getAllMediaAssets(): Promise<MediaAsset[]>;
+  updateMediaAsset(id: string, updates: Partial<MediaAsset>): Promise<MediaAsset>;
 
   // File version methods
   createFileVersion(version: InsertFileVersion): Promise<FileVersion>;
@@ -47,6 +48,7 @@ export interface IStorage {
   getFileVersionsByTier(tier: "bronze" | "silver" | "gold"): Promise<FileVersion[]>;
   getAllFileVersions(): Promise<FileVersion[]>;
   updateFileVersion(id: string, updates: Partial<FileVersion>): Promise<FileVersion>;
+  updateFileVersionPerceptualHash(id: string, perceptualHash: string): Promise<void>;
   getFileByHash(hash: string): Promise<FileVersion | undefined>;
   deleteFileVersion(id: string): Promise<void>;
 
@@ -133,6 +135,15 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(mediaAssets).orderBy(desc(mediaAssets.createdAt));
   }
 
+  async updateMediaAsset(id: string, updates: Partial<MediaAsset>): Promise<MediaAsset> {
+    const [updated] = await db
+      .update(mediaAssets)
+      .set(updates)
+      .where(eq(mediaAssets.id, id))
+      .returning();
+    return updated;
+  }
+
   async createFileVersion(version: InsertFileVersion): Promise<FileVersion> {
     const [fileVersion] = await db
       .insert(fileVersions)
@@ -173,6 +184,13 @@ export class DatabaseStorage implements IStorage {
       .where(eq(fileVersions.id, id))
       .returning();
     return updated;
+  }
+
+  async updateFileVersionPerceptualHash(id: string, perceptualHash: string): Promise<void> {
+    await db
+      .update(fileVersions)
+      .set({ perceptualHash })
+      .where(eq(fileVersions.id, id));
   }
 
   async getFileByHash(hash: string): Promise<FileVersion | undefined> {
