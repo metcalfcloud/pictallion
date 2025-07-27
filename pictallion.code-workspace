@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"name": "pictallion",
+			"path": "."
+		}
+	],
+	"settings": {
+		"yaml.schemas": {
+			"https://json.schemastore.org/yamllint.json": "file:///home/paul/Code/docker-homelab/docker/metdoc001-compose.yml"
+		}
+	}
+}

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Production build script for Pictallion
-echo "Building Pictallion for production..."
+export NODE_ENV=production
 
 # Clean previous builds
 rm -rf dist
@@ -9,7 +9,7 @@ mkdir -p dist
 
 # Build frontend to dist/public
 echo "Building frontend..."
-npx vite build --outDir=dist/public
+NODE_ENV=production npx vite build --outDir=dist/public
 
 # Verify frontend build
 if [ ! -d "dist/public" ]; then
@@ -19,7 +19,7 @@ fi
 
 # Build backend to dist
 echo "Building backend..."
-npx esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+NODE_ENV=production npx esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
 
 # Verify backend build
 if [ ! -f "dist/index.js" ]; then
