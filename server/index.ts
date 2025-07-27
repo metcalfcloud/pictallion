@@ -1,5 +1,9 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
+import { applyViteFix } from "./vite-fix";
+
+// Apply the fix for path-to-regexp issue with * wildcard
+applyViteFix();
 
 const app = express();
 app.use(express.json());
@@ -90,7 +94,7 @@ app.use((req, res, next) => {
     }
     
     app.use(express.static(staticPath));
-    app.use("*", (_req, res) => {
+    app.get(/.*/, (_req, res) => {
       res.sendFile(path.resolve(staticPath!, "index.html"));
     });
   }

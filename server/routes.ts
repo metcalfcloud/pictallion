@@ -11,6 +11,7 @@ import { fileManager } from "./services/fileManager.js";
 import { advancedSearch } from "./services/advancedSearch";
 import { metadataEmbedding } from "./services/metadataEmbedding";
 import { faceDetectionService } from "./services/faceDetection.js";
+import { insertMediaAssetSchema, insertFileVersionSchema, insertAssetHistorySchema } from "@shared/schema";
 
 // Similarity detection function
 async function findSimilarPhotos(photos: any[]): Promise<any[]> {
@@ -97,7 +98,6 @@ async function findSimilarPhotos(photos: any[]): Promise<any[]> {
 
   return similarGroups;
 }
-import { insertMediaAssetSchema, insertFileVersionSchema, insertAssetHistorySchema } from "@shared/schema";
 
 // Configure multer for file uploads
 const upload = multer({
@@ -453,10 +453,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Serve uploaded images (using express.static for file serving)
-  app.use('/api/files/media', express.static(path.join(process.cwd(), 'data', 'media')));
-  
-  // Fallback route for file serving with query parameters
+  // Route for file serving with query parameters and security checks
   app.get("/api/files/media/:tier/:date/:filename", async (req, res) => {
     try {
       const { tier, date, filename } = req.params;
