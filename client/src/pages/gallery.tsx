@@ -55,51 +55,6 @@ export default function Gallery() {
     },
   });
 
-  // Handle quick actions from photo grid
-  React.useEffect(() => {
-    const handleQuickSearch = (event: CustomEvent) => {
-      setSearchQuery(event.detail);
-    };
-
-    const handleQuickPromote = (event: CustomEvent) => {
-      bulkPromoteMutation.mutate([event.detail]);
-    };
-
-    const handleQuickCollection = (event: CustomEvent) => {
-      // For now, just show a toast - can be expanded later
-      toast({
-        title: "Quick Collection",
-        description: "Collection feature coming soon!",
-      });
-    };
-
-    window.addEventListener('quickSearch', handleQuickSearch as EventListener);
-    window.addEventListener('quickPromote', handleQuickPromote as EventListener);
-    window.addEventListener('quickCollection', handleQuickCollection as EventListener);
-
-    return () => {
-      window.removeEventListener('quickSearch', handleQuickSearch as EventListener);
-      window.removeEventListener('quickPromote', handleQuickPromote as EventListener);
-      window.removeEventListener('quickCollection', handleQuickCollection as EventListener);
-    };
-  }, [bulkPromoteMutation, toast]);
-
-  const filteredPhotos = photos?.filter(photo => {
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      const filename = photo.mediaAsset.originalFilename.toLowerCase();
-      const tags = photo.metadata?.ai?.aiTags?.join(' ').toLowerCase() || '';
-      const description = photo.metadata?.ai?.longDescription?.toLowerCase() || '';
-      
-      return filename.includes(query) || tags.includes(query) || description.includes(query);
-    }
-    return true;
-  }) || [];
-
-  const handleProcessPhoto = (photoId: string) => {
-    processPhotoMutation.mutate(photoId);
-  };
-
   const bulkProcessMutation = useMutation({
     mutationFn: async (photoIds: string[]) => {
       const results = [];
@@ -155,6 +110,51 @@ export default function Gallery() {
       });
     },
   });
+
+  // Handle quick actions from photo grid
+  React.useEffect(() => {
+    const handleQuickSearch = (event: CustomEvent) => {
+      setSearchQuery(event.detail);
+    };
+
+    const handleQuickPromote = (event: CustomEvent) => {
+      bulkPromoteMutation.mutate([event.detail]);
+    };
+
+    const handleQuickCollection = (event: CustomEvent) => {
+      // For now, just show a toast - can be expanded later
+      toast({
+        title: "Quick Collection",
+        description: "Collection feature coming soon!",
+      });
+    };
+
+    window.addEventListener('quickSearch', handleQuickSearch as EventListener);
+    window.addEventListener('quickPromote', handleQuickPromote as EventListener);
+    window.addEventListener('quickCollection', handleQuickCollection as EventListener);
+
+    return () => {
+      window.removeEventListener('quickSearch', handleQuickSearch as EventListener);
+      window.removeEventListener('quickPromote', handleQuickPromote as EventListener);
+      window.removeEventListener('quickCollection', handleQuickCollection as EventListener);
+    };
+  }, [bulkPromoteMutation, toast]);
+
+  const filteredPhotos = photos?.filter(photo => {
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      const filename = photo.mediaAsset.originalFilename.toLowerCase();
+      const tags = photo.metadata?.ai?.aiTags?.join(' ').toLowerCase() || '';
+      const description = photo.metadata?.ai?.longDescription?.toLowerCase() || '';
+      
+      return filename.includes(query) || tags.includes(query) || description.includes(query);
+    }
+    return true;
+  }) || [];
+
+  const handleProcessPhoto = (photoId: string) => {
+    processPhotoMutation.mutate(photoId);
+  };
 
   const handleBulkProcessBronze = () => {
     const bronzePhotos = filteredPhotos.filter(photo => photo.tier === 'bronze');
