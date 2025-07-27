@@ -164,12 +164,19 @@ export default function PhotoGrid({
                 {photo.metadata?.ai?.aiTags && photo.metadata.ai.aiTags.length > 0 && (
                   <div className="flex flex-wrap gap-1">
                     {photo.metadata.ai.aiTags.slice(0, 2).map((tag: string, index: number) => (
-                      <span 
+                      <button
                         key={index} 
-                        className="bg-blue-500 text-white px-1.5 py-0.5 rounded text-xs font-medium"
+                        className="bg-blue-500 hover:bg-blue-600 text-white px-1.5 py-0.5 rounded text-xs font-medium transition-colors cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          // Quick filter by this tag
+                          const searchEvent = new CustomEvent('quickSearch', { detail: tag });
+                          window.dispatchEvent(searchEvent);
+                        }}
+                        title={`Filter by "${tag}"`}
                       >
                         {tag}
-                      </span>
+                      </button>
                     ))}
                     {photo.metadata.ai.aiTags.length > 2 && (
                       <span className="bg-gray-500 text-white px-1.5 py-0.5 rounded text-xs">
@@ -178,6 +185,53 @@ export default function PhotoGrid({
                     )}
                   </div>
                 )}
+
+                {/* Quick action buttons */}
+                <div className="flex gap-1 mt-2">
+                  {canProcess(photo) && (
+                    <button
+                      className="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onProcessPhoto!(photo.id);
+                      }}
+                      disabled={isProcessing}
+                      title="Process with AI"
+                    >
+                      <Bot className="w-3 h-3" />
+                      AI
+                    </button>
+                  )}
+                  
+                  {photo.tier === 'silver' && (
+                    <button
+                      className="bg-yellow-500 hover:bg-yellow-600 text-white px-2 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // Quick promote action
+                        const promoteEvent = new CustomEvent('quickPromote', { detail: photo.id });
+                        window.dispatchEvent(promoteEvent);
+                      }}
+                      title="Promote to Gold"
+                    >
+                      <Star className="w-3 h-3" />
+                      Gold
+                    </button>
+                  )}
+
+                  <button
+                    className="bg-purple-500 hover:bg-purple-600 text-white px-2 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // Quick collection add
+                      const collectionEvent = new CustomEvent('quickCollection', { detail: photo.id });
+                      window.dispatchEvent(collectionEvent);
+                    }}
+                    title="Add to Collection"
+                  >
+                    <Heart className="w-3 h-3" />
+                  </button>
+                </div>
               </div>
               
               <div className="text-white text-xs space-y-1">
@@ -187,9 +241,18 @@ export default function PhotoGrid({
                   </p>
                 )}
                 {photo.metadata?.exif?.camera && (
-                  <p className="bg-black bg-opacity-50 p-1 rounded">
+                  <button
+                    className="bg-black bg-opacity-50 hover:bg-opacity-70 p-1 rounded w-full text-left transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // Quick filter by camera
+                      const cameraEvent = new CustomEvent('quickSearch', { detail: photo.metadata.exif.camera });
+                      window.dispatchEvent(cameraEvent);
+                    }}
+                    title={`Filter by camera "${photo.metadata.exif.camera}"`}
+                  >
                     📷 {photo.metadata.exif.camera}
-                  </p>
+                  </button>
                 )}
               </div>
             </div>

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
+import * as React from "react";
 import { Search, Grid, List, Filter, Bot, Star, Eye, CheckSquare, Square, MoreHorizontal } from "lucide-react";
 import PhotoGrid from "@/components/photo-grid";
 import PhotoDetailModal from "@/components/photo-detail-modal";
@@ -29,6 +30,35 @@ export default function Gallery() {
   const { data: photos, isLoading } = useQuery<Photo[]>({
     queryKey: ["/api/photos", tierFilter !== 'all' ? { tier: tierFilter } : {}],
   });
+
+  // Handle quick actions from photo grid
+  React.useEffect(() => {
+    const handleQuickSearch = (event: CustomEvent) => {
+      setSearchQuery(event.detail);
+    };
+
+    const handleQuickPromote = (event: CustomEvent) => {
+      bulkPromoteMutation.mutate([event.detail]);
+    };
+
+    const handleQuickCollection = (event: CustomEvent) => {
+      // For now, just show a toast - can be expanded later
+      toast({
+        title: "Quick Collection",
+        description: "Collection feature coming soon!",
+      });
+    };
+
+    window.addEventListener('quickSearch', handleQuickSearch as EventListener);
+    window.addEventListener('quickPromote', handleQuickPromote as EventListener);
+    window.addEventListener('quickCollection', handleQuickCollection as EventListener);
+
+    return () => {
+      window.removeEventListener('quickSearch', handleQuickSearch as EventListener);
+      window.removeEventListener('quickPromote', handleQuickPromote as EventListener);
+      window.removeEventListener('quickCollection', handleQuickCollection as EventListener);
+    };
+  }, [bulkPromoteMutation, toast]);
 
   const processPhotoMutation = useMutation({
     mutationFn: async (photoId: string) => {
