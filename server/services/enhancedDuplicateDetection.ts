@@ -188,9 +188,17 @@ export class EnhancedDuplicateDetectionService {
                   const conflict: DuplicateConflict = {
                     id: crypto.randomUUID(),
                     existingPhoto: {
-                      ...photo,
+                      id: photo.id,
+                      filePath: photo.filePath,
+                      tier: photo.tier,
+                      fileHash: photo.fileHash,
                       perceptualHash: existingPerceptualHash,
-                      mediaAsset: asset
+                      metadata: photo.metadata,
+                      mediaAsset: {
+                        originalFilename: asset.originalFilename
+                      },
+                      createdAt: photo.createdAt.toISOString(),
+                      fileSize: photo.fileSize || 0
                     },
                     newFile: {
                       tempPath: tempFilePath,
@@ -283,10 +291,12 @@ export class EnhancedDuplicateDetectionService {
         case 'keep_existing':
           // Remove the new file and return existing asset info
           await fs.unlink(conflict.newFile.tempPath);
+          // Get the actual asset to return the ID
+          const existingFile = await storage.getFileVersion(conflict.existingPhoto.id);
           return {
             success: true,
             message: 'Kept existing file, new file discarded',
-            assetId: conflict.existingPhoto.mediaAsset.id
+            assetId: existingFile?.mediaAssetId
           };
 
         case 'replace_with_new':
@@ -302,9 +312,10 @@ export class EnhancedDuplicateDetectionService {
       }
     } catch (error) {
       console.error('Error processing duplicate resolution:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       return {
         success: false,
-        message: `Failed to process resolution: ${error.message}`
+        message: `Failed to process resolution: ${errorMessage}`
       };
     }
   }
@@ -346,14 +357,20 @@ export class EnhancedDuplicateDetectionService {
       perceptualHash: conflict.newFile.perceptualHash
     });
 
+    // Get the existing file to access the asset ID
+    const existingFile = await storage.getFileVersion(conflict.existingPhoto.id);
+    if (!existingFile) {
+      throw new Error('Existing file not found');
+    }
+
     // Update media asset with new filename
-    await storage.updateMediaAsset(conflict.existingPhoto.mediaAsset.id, {
+    await storage.updateMediaAsset(existingFile.mediaAssetId, {
       originalFilename: conflict.newFile.originalFilename
     });
 
     // Log the replacement
     await storage.createAssetHistory({
-      mediaAssetId: conflict.existingPhoto.mediaAsset.id,
+      mediaAssetId: existingFile.mediaAssetId,
       action: 'REPLACED',
       details: `Bronze file replaced with original version: ${conflict.newFile.originalFilename}`,
     });
@@ -361,7 +378,7 @@ export class EnhancedDuplicateDetectionService {
     return {
       success: true,
       message: 'File replaced with new version and marked for reprocessing',
-      assetId: conflict.existingPhoto.mediaAsset.id
+      assetId: existingFile.mediaAssetId
     };
   }
 

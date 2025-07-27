@@ -237,7 +237,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Upload photos
+  // Upload photos with enhanced duplicate detection
   app.post("/api/upload", upload.array('files'), async (req, res) => {
     try {
       const files = req.files as Express.Multer.File[];
@@ -246,6 +246,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const results = [];
+      const conflicts = [];
 
       for (const file of files) {
         try {
@@ -253,19 +254,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const fileBuffer = await fs.readFile(file.path);
           const fileHash = crypto.createHash('md5').update(fileBuffer).digest('hex');
 
-          // Check for duplicates
-          const existingFile = await storage.getFileByHash(fileHash);
-          if (existingFile) {
-            // Move to duplicates folder and skip
-            await fileManager.moveToDuplicates(file.path, file.originalname);
+          // Check for duplicates using enhanced detection
+          const { enhancedDuplicateDetectionService } = await import("./services/enhancedDuplicateDetection");
+          const duplicateConflicts = await enhancedDuplicateDetectionService.checkForDuplicates(
+            file.path, 
+            file.originalname, 
+            fileHash
+          );
+
+          if (duplicateConflicts.length > 0) {
+            // Store conflicts for user resolution
+            conflicts.push(...duplicateConflicts.map(conflict => ({
+              ...conflict,
+              filename: file.originalname
+            })));
+            
             results.push({
               filename: file.originalname,
-              status: 'duplicate',
-              message: 'File already exists in collection'
+              status: 'conflict',
+              message: `${duplicateConflicts.length} potential duplicate(s) found`,
+              conflicts: duplicateConflicts
             });
             continue;
           }
 
+          // No conflicts - proceed with normal upload
           // Create media asset
           const mediaAsset = await storage.createMediaAsset({
             originalFilename: file.originalname,
@@ -312,7 +325,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      res.json({ results });
+      res.json({ 
+        results,
+        hasConflicts: conflicts.length > 0,
+        totalConflicts: conflicts.length
+      });
     } catch (error) {
       console.error("Error in upload endpoint:", error);
       res.status(500).json({ message: "Upload failed" });
@@ -1086,6 +1103,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Failed to find duplicates for photo:", error);
       res.status(500).json({ error: "Failed to find duplicates" });
+    }
+  });
+
+  // Enhanced Duplicate Conflict Resolution routes
+  app.post("/api/duplicates/conflicts/resolve", async (req, res) => {
+    try {
+      const { conflictId, action, conflict } = req.body;
+
+      if (!conflictId || !action || !conflict) {
+        return res.status(400).json({ error: "Missing required parameters" });
+      }
+
+      if (!['keep_existing', 'replace_with_new', 'keep_both'].includes(action)) {
+        return res.status(400).json({ error: "Invalid action" });
+      }
+
+      const { enhancedDuplicateDetectionService } = await import("./services/enhancedDuplicateDetection");
+      const result = await enhancedDuplicateDetectionService.processDuplicateResolution(
+        conflictId,
+        action,
+        conflict
+      );
+
+      res.json(result);
+    } catch (error) {
+      console.error("Failed to resolve duplicate conflict:", error);
+      res.status(500).json({ error: "Failed to resolve conflict" });
+    }
+  });
+
+  app.post("/api/duplicates/conflicts/batch-resolve", async (req, res) => {
+    try {
+      const { resolutions } = req.body;
+
+      if (!Array.isArray(resolutions)) {
+        return res.status(400).json({ error: "Resolutions must be an array" });
+      }
+
+      const { enhancedDuplicateDetectionService } = await import("./services/enhancedDuplicateDetection");
+      const results = [];
+      const errors = [];
+
+      for (const resolution of resolutions) {
+        try {
+          const result = await enhancedDuplicateDetectionService.processDuplicateResolution(
+            resolution.conflictId,
+            resolution.action,
+            resolution.conflict
+          );
+          results.push({ 
+            conflictId: resolution.conflictId, 
+            success: result.success,
+            message: result.message,
+            assetId: result.assetId
+          });
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          errors.push({ 
+            conflictId: resolution.conflictId, 
+            error: errorMessage 
+          });
+        }
+      }
+
+      res.json({ 
+        processed: results.length,
+        successful: results.filter(r => r.success).length,
+        results,
+        errors 
+      });
+    } catch (error) {
+      console.error("Failed to batch resolve conflicts:", error);
+      res.status(500).json({ error: "Failed to batch resolve conflicts" });
     }
   });
 
