@@ -135,7 +135,7 @@
   "build": {
     "appId": "com.pictallion.desktop",
     "productName": "Pictallion",
-    "icon": "build/icon.png",
+    "icon": "assets/icon.ico",
     "files": [
       "electron/**/*",
       "client/**/*",
