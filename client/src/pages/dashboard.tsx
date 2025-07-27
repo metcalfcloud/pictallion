@@ -118,24 +118,17 @@ export default function Dashboard() {
       <header className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-semibold text-gray-900">Dashboard</h2>
-            <p className="text-sm text-gray-500">Welcome to Pictallion - Overview of your photo collection</p>
+            <h2 className="text-3xl font-bold text-gray-900">Your Photo Collection</h2>
+            <p className="text-gray-600 mt-1">Organize, process, and discover your memories</p>
           </div>
-          <div className="flex items-center space-x-4">
-            <div className="relative">
-              <input 
-                type="text" 
-                placeholder="Search photos..." 
-                className="w-80 pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-              />
-              <i className="fas fa-search absolute left-3 top-3 text-gray-400"></i>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Button variant="ghost" size="sm">
-                <i className="fas fa-bell"></i>
-              </Button>
-              <div className="w-8 h-8 bg-gray-300 rounded-full"></div>
-            </div>
+          <div className="flex items-center space-x-3">
+            <Button 
+              onClick={() => setIsUploadModalOpen(true)}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <UploadIcon className="w-4 h-4 mr-2" />
+              Add Photos
+            </Button>
           </div>
         </div>
       </header>
@@ -312,44 +305,60 @@ export default function Dashboard() {
           <Card>
             <CardContent className="p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <Button
-                  variant="outline"
-                  className="flex flex-col items-center justify-center p-4 h-auto border-2 border-dashed hover:border-primary hover:bg-primary/5"
-                  onClick={() => setIsUploadModalOpen(true)}
-                >
-                  <UploadIcon className="h-6 w-6 mb-2 text-gray-400" />
-                  <span className="text-sm font-medium">Upload Photos</span>
-                </Button>
+              <div className="grid grid-cols-1 gap-3">
+                {stats?.bronzeCount > 0 && (
+                  <Button
+                    variant="outline"
+                    className="flex items-center justify-between p-4 h-auto border border-green-200 hover:border-green-400 hover:bg-green-50"
+                    asChild
+                  >
+                    <Link href="/gallery?tier=bronze">
+                      <div className="flex items-center">
+                        <WandSparkles className="h-5 w-5 mr-3 text-green-600" />
+                        <div className="text-left">
+                          <div className="font-medium">Process {stats.bronzeCount} new photos</div>
+                          <div className="text-sm text-gray-500">Add AI tags and descriptions</div>
+                        </div>
+                      </div>
+                      <ArrowRight className="h-4 w-4 text-gray-400" />
+                    </Link>
+                  </Button>
+                )}
+
+                {stats?.pendingReviewCount > 0 && (
+                  <Button
+                    variant="outline"
+                    className="flex items-center justify-between p-4 h-auto border border-yellow-200 hover:border-yellow-400 hover:bg-yellow-50"
+                    asChild
+                  >
+                    <Link href="/gallery?tier=silver">
+                      <div className="flex items-center">
+                        <Eye className="h-5 w-5 mr-3 text-yellow-600" />
+                        <div className="text-left">
+                          <div className="font-medium">Review {stats.pendingReviewCount} processed photos</div>
+                          <div className="text-sm text-gray-500">Verify AI results and curate</div>
+                        </div>
+                      </div>
+                      <ArrowRight className="h-4 w-4 text-gray-400" />
+                    </Link>
+                  </Button>
+                )}
 
                 <Button
                   variant="outline"
-                  className="flex flex-col items-center justify-center p-4 h-auto border-2 border-dashed hover:border-green-500 hover:bg-green-50"
+                  className="flex items-center justify-between p-4 h-auto border border-blue-200 hover:border-blue-400 hover:bg-blue-50"
                   asChild
                 >
-                  <Link href="/gallery?tier=bronze">
-                    <WandSparkles className="h-6 w-6 mb-2 text-gray-400" />
-                    <span className="text-sm font-medium">Process Batch</span>
+                  <Link href="/gallery">
+                    <div className="flex items-center">
+                      <Images className="h-5 w-5 mr-3 text-blue-600" />
+                      <div className="text-left">
+                        <div className="font-medium">Browse all photos</div>
+                        <div className="text-sm text-gray-500">View your complete collection</div>
+                      </div>
+                    </div>
+                    <ArrowRight className="h-4 w-4 text-gray-400" />
                   </Link>
-                </Button>
-
-                <Button
-                  variant="outline"
-                  className="flex flex-col items-center justify-center p-4 h-auto border-2 border-dashed hover:border-yellow-500 hover:bg-yellow-50"
-                  asChild
-                >
-                  <Link href="/gallery?tier=silver">
-                    <Eye className="h-6 w-6 mb-2 text-gray-400" />
-                    <span className="text-sm font-medium">Review Queue</span>
-                  </Link>
-                </Button>
-
-                <Button
-                  variant="outline"
-                  className="flex flex-col items-center justify-center p-4 h-auto border-2 border-dashed hover:border-purple-500 hover:bg-purple-50"
-                >
-                  <BarChart3 className="h-6 w-6 mb-2 text-gray-400" />
-                  <span className="text-sm font-medium">Analytics</span>
                 </Button>
               </div>
             </CardContent>

@@ -18,14 +18,12 @@ import { cn } from "@/lib/utils";
 import pictallionLogo from "../assets/pictallion-logo.png";
 
 const navigationItems = [
-  { path: "/dashboard", label: "Dashboard", icon: ChartLine },
-  { path: "/gallery", label: "Gallery", icon: Images },
+  { path: "/dashboard", label: "Home", icon: ChartLine },
+  { path: "/gallery", label: "Photos", icon: Images },
   { path: "/upload", label: "Upload", icon: Upload },
-  { path: "/collections", label: "Collections", icon: Images },
-  { path: "/duplicates", label: "Duplicates", icon: Copy }, // Added Duplicates item
-  { path: "/silver-review", label: "Silver Review", icon: Camera },
-  { path: "/people", label: "People & Faces", icon: Users },
-  { path: "/search", label: "Search", icon: Search },
+  { path: "/collections", label: "Albums", icon: Images },
+  { path: "/people", label: "People", icon: Users },
+  { path: "/duplicates", label: "Duplicates", icon: Copy },
   { path: "/settings", label: "Settings", icon: Settings },
 ];
 
