@@ -28,13 +28,13 @@ services:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
 
-  ollama:
-    image: ollama/ollama:latest
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
-    restart: unless-stopped
+  #ollama:
+  #  image: ollama/ollama:latest
+  #  ports:
+  #    - "11434:11434"
+  #  volumes:
+  #    - ollama_data:/root/.ollama
+  #  restart: unless-stopped
     # Uncomment for GPU support
     # deploy:
     #   resources:
@@ -48,4 +48,4 @@ volumes:
   pictallion_data:
   pictallion_uploads:
   postgres_data:
-  ollama_data:
+  #ollama_data:

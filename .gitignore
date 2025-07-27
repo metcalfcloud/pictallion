@@ -77,3 +77,6 @@ uploads/temp/*
 # Replit specific
 .replit
 replit.nix
+
+# Roo Code specific
+.roo
