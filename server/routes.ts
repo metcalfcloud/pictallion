@@ -1028,20 +1028,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/duplicates/scan", async (req, res) => {
     try {
       const minSimilarity = parseInt(req.query.minSimilarity as string) || 85;
-      const includeTiers = req.query.tiers ? (req.query.tiers as string).split(',') : ['bronze', 'silver', 'gold'];
-
-      // For now, return a simple empty analysis since the advanced duplicate detection needs more setup
-      const analysis = {
-        groups: [],
-        totalDuplicates: 0,
-        potentialSpaceSavings: 0,
-        summary: {
-          identicalGroups: 0,
-          verySimilarGroups: 0,
-          similarGroups: 0
-        }
-      };
+      const { duplicateDetectionService } = await import("./services/duplicateDetection");
       
+      const analysis = await duplicateDetectionService.findDuplicates(minSimilarity);
       res.json(analysis);
     } catch (error) {
       console.error("Duplicate scan failed:", error);
@@ -1057,13 +1046,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Actions must be an array" });
       }
 
-      // Return empty result for now
-      const result = {
-        processed: 0,
-        deleted: 0,
-        spaceSaved: 0,
-        errors: []
-      };
+      const { duplicateDetectionService } = await import("./services/duplicateDetection");
+      const result = await duplicateDetectionService.processDuplicateActions(actions);
       
       res.json(result);
     } catch (error) {

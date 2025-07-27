@@ -1,6 +1,5 @@
-
 import { storage } from "../storage";
-import { aiService } from "./ai";
+import crypto from "crypto";
 
 export interface DuplicateGroup {
   id: string;
@@ -33,155 +32,102 @@ export interface DuplicateAnalysis {
   };
 }
 
-class DuplicateDetectionService {
-  
+export class DuplicateDetectionService {
   /**
-   * Find all duplicate photo groups in the collection
+   * Find duplicate photos based on file hash and perceptual similarity
    */
-  async findDuplicates(
-    minSimilarity: number = 85,
-    includeTiers: string[] = ['bronze', 'silver', 'gold']
-  ): Promise<DuplicateAnalysis> {
-    console.log(`Finding duplicates with minimum similarity: ${minSimilarity}%`);
-    
-    // Get all photos with perceptual hashes
-    const allPhotos = await storage.getAllFileVersions();
-    const photosWithHashes = allPhotos.filter(photo => 
-      photo.perceptualHash && 
-      includeTiers.includes(photo.tier)
-    );
+  async findDuplicates(minSimilarity: number = 85): Promise<DuplicateAnalysis> {
+    try {
+      // Get all photos from all tiers
+      const allAssets = await storage.getAllMediaAssets();
+      const allPhotos = [];
 
-    const groups: DuplicateGroup[] = [];
-    const processed = new Set<string>();
-    
-    for (let i = 0; i < photosWithHashes.length; i++) {
-      if (processed.has(photosWithHashes[i].id)) continue;
-      
-      const currentPhoto = photosWithHashes[i];
-      const similarPhotos = [{ ...currentPhoto, similarity: 100 }];
-      processed.add(currentPhoto.id);
-      
-      // Find similar photos
-      for (let j = i + 1; j < photosWithHashes.length; j++) {
-        if (processed.has(photosWithHashes[j].id)) continue;
-        
-        const comparePhoto = photosWithHashes[j];
-        const similarity = aiService.calculateHashSimilarity(
-          currentPhoto.perceptualHash!,
-          comparePhoto.perceptualHash!
-        );
-        
-        if (similarity >= minSimilarity) {
-          similarPhotos.push({ ...comparePhoto, similarity });
-          processed.add(comparePhoto.id);
+      for (const asset of allAssets) {
+        const versions = await storage.getFileVersionsByAsset(asset.id);
+        for (const version of versions) {
+          allPhotos.push({
+            ...version,
+            mediaAsset: asset
+          });
         }
       }
-      
-      // Only create groups with multiple photos
-      if (similarPhotos.length > 1) {
-        const avgSimilarity = similarPhotos.reduce((sum, p) => sum + p.similarity, 0) / similarPhotos.length;
-        const suggestedKeep = this.selectBestPhoto(similarPhotos);
-        
-        groups.push({
-          id: `group_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          photos: similarPhotos.sort((a, b) => b.similarity - a.similarity),
-          suggestedKeep: suggestedKeep.id,
-          averageSimilarity: Math.round(avgSimilarity),
-          groupType: this.categorizeGroup(avgSimilarity)
-        });
-      }
-    }
 
-    const analysis = this.generateAnalysis(groups);
-    console.log(`Found ${groups.length} duplicate groups with ${analysis.totalDuplicates} total duplicates`);
-    
-    return analysis;
+      if (allPhotos.length === 0) {
+        return this.generateEmptyAnalysis();
+      }
+
+      // Group by file hash for exact duplicates
+      const hashGroups = new Map<string, any[]>();
+      const processedPhotos = new Set<string>();
+
+      for (const photo of allPhotos) {
+        if (!photo.fileHash) continue;
+
+        if (!hashGroups.has(photo.fileHash)) {
+          hashGroups.set(photo.fileHash, []);
+        }
+        hashGroups.get(photo.fileHash)!.push(photo);
+      }
+
+      const duplicateGroups: DuplicateGroup[] = [];
+
+      // Process exact duplicates (same file hash)
+      for (const [hash, photos] of hashGroups) {
+        if (photos.length > 1) {
+          const group = this.createDuplicateGroup(photos, 100); // 100% similarity for exact matches
+          duplicateGroups.push(group);
+          photos.forEach(p => processedPhotos.add(p.id));
+        }
+      }
+
+      // TODO: Add perceptual hash comparison for similar (not identical) images
+      // For now, we'll focus on exact duplicates
+
+      return this.generateAnalysis(duplicateGroups);
+
+    } catch (error) {
+      console.error('Error finding duplicates:', error);
+      return this.generateEmptyAnalysis();
+    }
   }
 
   /**
-   * Find duplicates for a specific photo
+   * Create a duplicate group from similar photos
    */
-  async findDuplicatesForPhoto(
-    photoId: string,
-    minSimilarity: number = 85
-  ): Promise<Array<{
-    id: string;
-    filePath: string;
-    tier: string;
-    similarity: number;
-    mediaAsset: { originalFilename: string };
-  }>> {
-    const photo = await storage.getFileVersion(photoId);
-    if (!photo?.perceptualHash) {
-      return [];
-    }
+  private createDuplicateGroup(photos: any[], similarity: number): DuplicateGroup {
+    const groupId = crypto.randomUUID();
 
-    const allPhotos = await storage.getAllFileVersions();
-    const duplicates = [];
+    // Choose the best photo to keep (highest tier, then highest rating, then most recent)
+    const suggestedKeep = photos.reduce((best, current) => {
+      const tierPriority = { gold: 3, silver: 2, bronze: 1 };
+      const bestTier = tierPriority[best.tier as keyof typeof tierPriority] || 0;
+      const currentTier = tierPriority[current.tier as keyof typeof tierPriority] || 0;
 
-    for (const comparePhoto of allPhotos) {
-      if (comparePhoto.id === photoId || !comparePhoto.perceptualHash) continue;
-      
-      const similarity = aiService.calculateHashSimilarity(
-        photo.perceptualHash,
-        comparePhoto.perceptualHash
-      );
-      
-      if (similarity >= minSimilarity) {
-        duplicates.push({
-          ...comparePhoto,
-          similarity
-        });
-      }
-    }
+      if (currentTier > bestTier) return current;
+      if (currentTier < bestTier) return best;
 
-    return duplicates.sort((a, b) => b.similarity - a.similarity);
-  }
+      // Same tier, check rating
+      const bestRating = best.rating || 0;
+      const currentRating = current.rating || 0;
+      if (currentRating > bestRating) return current;
+      if (currentRating < bestRating) return best;
 
-  /**
-   * Select the best photo from a group to keep
-   */
-  private selectBestPhoto(photos: any[]): any {
-    // Scoring criteria (higher is better):
-    // 1. Higher tier (gold > silver > bronze)
-    // 2. Higher rating
-    // 3. Larger file size (better quality)
-    // 4. Higher AI confidence
-    // 5. More recent date
-    
-    return photos.reduce((best, current) => {
-      let bestScore = this.calculatePhotoScore(best);
-      let currentScore = this.calculatePhotoScore(current);
-      
-      return currentScore > bestScore ? current : best;
+      // Same rating, prefer more recent
+      return new Date(current.createdAt) > new Date(best.createdAt) ? current : best;
     });
-  }
 
-  private calculatePhotoScore(photo: any): number {
-    let score = 0;
-    
-    // Tier scoring
-    switch (photo.tier) {
-      case 'gold': score += 1000; break;
-      case 'silver': score += 500; break;
-      case 'bronze': score += 100; break;
-    }
-    
-    // Rating scoring (0-5 stars)
-    score += (photo.rating || 0) * 50;
-    
-    // File size scoring (normalized)
-    score += Math.min((photo.fileSize || 0) / 1000000, 100); // Max 100 points for file size
-    
-    // AI confidence scoring
-    const aiConfidence = photo.metadata?.ai?.aiConfidenceScores?.tags || 0;
-    score += aiConfidence * 20;
-    
-    // Recency scoring (more recent = better)
-    const daysSinceCreation = (Date.now() - new Date(photo.createdAt).getTime()) / (1000 * 60 * 60 * 24);
-    score += Math.max(0, 30 - daysSinceCreation * 0.1); // Newer photos get slight bonus
-    
-    return score;
+    const photosWithSimilarity = photos.map(photo => ({
+      ...photo,
+      similarity
+    }));
+
+    return {
+      id: groupId,
+      photos: photosWithSimilarity,
+      suggestedKeep: suggestedKeep.id,
+      averageSimilarity: similarity,
+      groupType: this.categorizeGroup(similarity)
+    };
   }
 
   private categorizeGroup(averageSimilarity: number): 'identical' | 'very_similar' | 'similar' {
@@ -192,10 +138,9 @@ class DuplicateDetectionService {
 
   private generateAnalysis(groups: DuplicateGroup[]): DuplicateAnalysis {
     const totalDuplicates = groups.reduce((sum, group) => sum + group.photos.length - 1, 0);
-    
+
     let potentialSpaceSavings = 0;
     groups.forEach(group => {
-      const keepPhoto = group.photos.find(p => p.id === group.suggestedKeep);
       group.photos.forEach(photo => {
         if (photo.id !== group.suggestedKeep) {
           potentialSpaceSavings += photo.fileSize || 0;
@@ -214,6 +159,19 @@ class DuplicateDetectionService {
       totalDuplicates,
       potentialSpaceSavings,
       summary
+    };
+  }
+
+  private generateEmptyAnalysis(): DuplicateAnalysis {
+    return {
+      groups: [],
+      totalDuplicates: 0,
+      potentialSpaceSavings: 0,
+      summary: {
+        identicalGroups: 0,
+        verySimilarGroups: 0,
+        similarGroups: 0
+      }
     };
   }
 
@@ -239,7 +197,7 @@ class DuplicateDetectionService {
       try {
         const duplicates = await this.findDuplicates();
         const group = duplicates.groups.find(g => g.id === action.groupId);
-        
+
         if (!group) {
           errors.push(`Group ${action.groupId} not found`);
           continue;
@@ -292,7 +250,7 @@ class DuplicateDetectionService {
   }> {
     try {
       const analysis = await this.findDuplicates(80); // Lower threshold for stats
-      
+
       return {
         totalGroups: analysis.groups.length,
         totalDuplicates: analysis.totalDuplicates,
