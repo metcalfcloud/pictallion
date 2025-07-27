@@ -68,14 +68,20 @@ export default function SettingsPage() {
   const queryClient = useQueryClient();
 
   // Fetch current settings
-  const { data: settings = [], isLoading: settingsLoading } = useQuery({
+  const settings = (useQuery<Setting[]>({
     queryKey: ["/api/settings"],
-  });
+  }).data ?? []) as Setting[];
+  const settingsLoading = useQuery<Setting[]>({
+    queryKey: ["/api/settings"],
+  }).isLoading;
 
   // Fetch naming patterns
-  const { data: namingPatterns = [], isLoading: patternsLoading } = useQuery({
+  const namingPatterns = (useQuery<NamingPattern[]>({
     queryKey: ["/api/settings/naming/patterns"],
-  });
+  }).data ?? []) as NamingPattern[];
+  const patternsLoading = useQuery<NamingPattern[]>({
+    queryKey: ["/api/settings/naming/patterns"],
+  }).isLoading;
 
   // Current naming pattern from settings
   const currentNamingPattern = settings.find((s: Setting) => s.key === 'silver_naming_pattern')?.value || 'datetime';

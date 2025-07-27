@@ -409,7 +409,7 @@ export default function PhotoDetailModal({
                     <div className="mb-4">
                       <h4 className="text-sm font-semibold text-gray-900 mb-2">Keywords</h4>
                       <div className="flex flex-wrap gap-1">
-                        {photo.keywords.map((keyword, index) => (
+                        {photo.keywords.map((keyword: string, index: number) => (
                           <Badge key={index} variant="secondary" className="text-xs">
                             <Tag className="w-3 h-3 mr-1" />
                             {keyword}
@@ -446,7 +446,7 @@ export default function PhotoDetailModal({
                         {[1, 2, 3, 4, 5].map((starValue) => (
                           <Star 
                             key={starValue}
-                            className={`w-4 h-4 ${photo.rating >= starValue ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} 
+                            className={`w-4 h-4 ${(photo.rating ?? 0) >= starValue ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} 
                           />
                         ))}
                       </div>

@@ -366,7 +366,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             detectedObjects: enhancedMetadata.detectedObjects,
             aiTags: enhancedMetadata.aiTags,
           },
-          exifMetadata: photo.metadata?.exif,
+          exifMetadata: (photo.metadata && typeof photo.metadata === 'object' && 'exif' in photo.metadata && typeof photo.metadata.exif === 'object')
+            ? (photo.metadata.exif as { dateTime?: string; camera?: string; lens?: string })
+            : undefined,
           originalFilename: asset?.originalFilename || 'unknown.jpg',
           tier: 'silver' as const
         };
@@ -1076,7 +1078,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { id } = req.params;
       const minSimilarity = parseInt(req.query.minSimilarity as string) || 85;
 
-      const duplicates = await advancedSearch.findDuplicatesForPhoto(id, minSimilarity);
+      const duplicates = await advancedSearch.findSimilarPhotos(id, minSimilarity);
       res.json(duplicates);
     } catch (error) {
       console.error("Failed to find duplicates for photo:", error);

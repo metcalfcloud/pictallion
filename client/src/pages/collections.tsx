@@ -22,6 +22,7 @@ import {
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import PhotoGrid from "@/components/photo-grid";
+import type { Photo } from "@shared/types";
 
 interface Collection {
   id: string;
@@ -51,7 +52,7 @@ export default function Collections() {
   });
 
   // Fetch photos in selected collection
-  const { data: collectionPhotos, isLoading: photosLoading } = useQuery({
+  const { data: collectionPhotos, isLoading: photosLoading } = useQuery<Photo[]>({
     queryKey: ["/api/collections", selectedCollection?.id, "photos"],
     enabled: !!selectedCollection,
   });
@@ -322,8 +323,12 @@ export default function Collections() {
                 ))}
               </div>
             </div>
-          ) : collectionPhotos?.length > 0 ? (
-            <PhotoGrid photos={collectionPhotos} />
+          ) : (collectionPhotos?.length ?? 0) > 0 ? (
+            <PhotoGrid 
+              photos={collectionPhotos ?? []}
+              viewMode="grid"
+              onPhotoClick={() => {}}
+            />
           ) : (
             <div className="flex flex-col items-center justify-center py-12 text-gray-500">
               <Image className="h-16 w-16 mb-4 text-gray-300" />

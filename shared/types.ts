@@ -1,11 +1,21 @@
 // Shared types for both client and server
 export interface Photo {
   id: string;
-  tier: string;
+  tier: 'bronze' | 'silver' | 'gold';
   filePath: string;
+  mimeType: string;
+  fileSize: number;
   metadata: any;
-  isReviewed?: boolean;
+  isReviewed: boolean;
+  rating?: number;
+  keywords?: string[];
+  location?: string;
+  eventType?: string;
+  eventName?: string;
+  perceptualHash?: string;
+  createdAt: string;
   mediaAsset: {
+    id: string;
     originalFilename: string;
   };
 }

@@ -72,11 +72,12 @@ export class DuplicateDetectionService {
       const duplicateGroups: DuplicateGroup[] = [];
 
       // Process exact duplicates (same file hash)
-      for (const [hash, photos] of hashGroups) {
+      for (const entry of Array.from(hashGroups.entries())) {
+        const [hash, photos] = entry;
         if (photos.length > 1) {
           const group = this.createDuplicateGroup(photos, 100); // 100% similarity for exact matches
           duplicateGroups.push(group);
-          photos.forEach(p => processedPhotos.add(p.id));
+          photos.forEach((p: any) => processedPhotos.add(p.id));
         }
       }
 

@@ -97,7 +97,7 @@ class MetadataEmbeddingService {
     } catch (error) {
       console.error("JPEG metadata embedding failed:", error);
       // Fallback to copying without embedding
-      const inputBuffer = await fs.readFile(inputPath);
+      const inputBuffer = await fs.readFile(fileVersion.filePath);
       await fs.writeFile(outputPath, inputBuffer);
       return outputPath;
     }

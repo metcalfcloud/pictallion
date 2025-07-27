@@ -48,6 +48,7 @@ export interface IStorage {
   getAllFileVersions(): Promise<FileVersion[]>;
   updateFileVersion(id: string, updates: Partial<FileVersion>): Promise<FileVersion>;
   getFileByHash(hash: string): Promise<FileVersion | undefined>;
+  deleteFileVersion(id: string): Promise<void>;
 
   // Asset history methods
   createAssetHistory(history: InsertAssetHistory): Promise<AssetHistory>;
@@ -179,6 +180,10 @@ export class DatabaseStorage implements IStorage {
     return version || undefined;
   }
 
+  async deleteFileVersion(id: string): Promise<void> {
+    await db.delete(fileVersions).where(eq(fileVersions.id, id));
+  }
+
   async createAssetHistory(history: InsertAssetHistory): Promise<AssetHistory> {
     const [record] = await db
       .insert(assetHistory)
@@ -305,7 +310,7 @@ export class DatabaseStorage implements IStorage {
     try {
       const [updated] = await db
         .update(people)
-        .set({ ...updates, updatedAt: new Date() })
+        .set({ ...updates })
         .where(eq(people.id, id))
         .returning();
       return updated || undefined;

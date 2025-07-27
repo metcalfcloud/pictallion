@@ -1,5 +1,6 @@
 import { eq, and, or, gte, lte, like, isNotNull, inArray, sql } from "drizzle-orm";
 import { storage } from "../storage";
+import { db } from "../db";
 import { fileVersions, mediaAssets, people, faces, collections, collectionPhotos } from "@shared/schema";
 import type { SmartCollectionRules } from "@shared/schema";
 
@@ -216,12 +217,12 @@ class AdvancedSearchService {
 
     // Calculate similarities and filter by threshold
     const similarPhotos = allPhotos
-      .map(photo => ({
+      .map((photo: any) => ({
         ...photo,
         similarity: this.calculateHashSimilarity(sourceHash, photo.perceptualHash!)
       }))
-      .filter(photo => photo.similarity >= threshold)
-      .sort((a, b) => b.similarity - a.similarity)
+      .filter((photo: any) => photo.similarity >= threshold)
+      .sort((a: any, b: any) => b.similarity - a.similarity)
       .slice(0, limit);
 
     return similarPhotos;
@@ -269,20 +270,19 @@ class AdvancedSearchService {
    * Find photos matching smart collection rules
    */
   private async findPhotosMatchingRules(rules: SmartCollectionRules): Promise<string[]> {
-    let query = db.select({ id: fileVersions.id }).from(fileVersions);
-    
+    let query;
     const conditions = rules.rules.map(rule => this.buildRuleCondition(rule));
-    
     if (conditions.length > 0) {
       if (rules.operator === 'AND') {
-        query = query.where(and(...conditions));
+        query = db.select({ id: fileVersions.id }).from(fileVersions).where(and(...conditions));
       } else {
-        query = query.where(or(...conditions));
+        query = db.select({ id: fileVersions.id }).from(fileVersions).where(or(...conditions));
       }
+    } else {
+      query = db.select({ id: fileVersions.id }).from(fileVersions);
     }
-
     const results = await query;
-    return results.map(r => r.id);
+    return results.map((r: any) => r.id);
   }
 
   /**
