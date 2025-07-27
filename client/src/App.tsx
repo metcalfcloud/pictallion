@@ -11,6 +11,7 @@ import Collections from "@/pages/collections";
 import SilverReview from "@/pages/silver-review";
 import People from "@/pages/people";
 import Duplicates from "@/pages/duplicates";
+import BurstSelection from "@/pages/burst-selection";
 import Settings from "@/pages/settings";
 import NotFound from "@/pages/not-found";
 import Sidebar from "@/components/sidebar";
@@ -30,6 +31,7 @@ function Router() {
           <Route path="/silver-review" component={SilverReview} />
           <Route path="/people" component={People} />
           <Route path="/duplicates" component={Duplicates} />
+          <Route path="/burst-selection" component={BurstSelection} />
           <Route path="/settings" component={Settings} />
           <Route component={NotFound} />
         </Switch>

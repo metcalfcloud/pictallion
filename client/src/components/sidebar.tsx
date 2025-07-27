@@ -10,7 +10,8 @@ import {
   Search,
   Bell,
   Users,
-  Copy // Added Copy icon
+  Copy, // Added Copy icon
+  Zap  // For burst photo icon
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
@@ -23,6 +24,7 @@ const navigationItems = [
   { path: "/upload", label: "Upload", icon: Upload },
   { path: "/collections", label: "Albums", icon: Images },
   { path: "/people", label: "People", icon: Users },
+  { path: "/burst-selection", label: "Burst Photos", icon: Zap },
   { path: "/duplicates", label: "Duplicates", icon: Copy },
   { path: "/settings", label: "Settings", icon: Settings },
 ];

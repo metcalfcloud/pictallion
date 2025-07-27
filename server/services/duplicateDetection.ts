@@ -35,18 +35,19 @@ export interface DuplicateAnalysis {
 export class DuplicateDetectionService {
   /**
    * Find duplicate photos based on file hash and perceptual similarity
+   * Now focuses only on Gold tier photos as per user requirements
    */
   async findDuplicates(minSimilarity: number = 85): Promise<DuplicateAnalysis> {
     try {
-      // Get all photos from all tiers
-      const allAssets = await storage.getAllMediaAssets();
+      // Get only Gold tier photos for duplicate detection
+      const goldPhotos = await storage.getFileVersionsByTier('gold');
       const allPhotos = [];
 
-      for (const asset of allAssets) {
-        const versions = await storage.getFileVersionsByAsset(asset.id);
-        for (const version of versions) {
+      for (const photo of goldPhotos) {
+        const asset = await storage.getMediaAsset(photo.mediaAssetId);
+        if (asset) {
           allPhotos.push({
-            ...version,
+            ...photo,
             mediaAsset: asset
           });
         }

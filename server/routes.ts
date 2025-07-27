@@ -11,6 +11,8 @@ import { fileManager } from "./services/fileManager.js";
 import { advancedSearch } from "./services/advancedSearch";
 import { metadataEmbedding } from "./services/metadataEmbedding";
 import { faceDetectionService } from "./services/faceDetection.js";
+import { burstPhotoService } from "./services/burstPhotoDetection";
+import { generateSilverFilename } from "./services/aiNaming";
 import { insertMediaAssetSchema, insertFileVersionSchema, insertAssetHistorySchema } from "@shared/schema";
 
 // Similarity detection function
@@ -1084,6 +1086,238 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Failed to find duplicates for photo:", error);
       res.status(500).json({ error: "Failed to find duplicates" });
+    }
+  });
+
+  // Burst Photo Detection routes
+  app.get("/api/burst/analyze", async (req, res) => {
+    try {
+      // Get all bronze photos for burst analysis
+      const bronzePhotos = await storage.getFileVersionsByTier('bronze');
+      const photosWithAssets = [];
+
+      for (const photo of bronzePhotos) {
+        const asset = await storage.getMediaAsset(photo.mediaAssetId);
+        if (asset) {
+          photosWithAssets.push({
+            ...photo,
+            mediaAsset: asset
+          });
+        }
+      }
+
+      const analysis = await burstPhotoService.analyzeBurstPhotos(photosWithAssets);
+      res.json(analysis);
+    } catch (error) {
+      console.error("Burst analysis failed:", error);
+      res.status(500).json({ error: "Failed to analyze burst photos" });
+    }
+  });
+
+  app.post("/api/burst/process", async (req, res) => {
+    try {
+      const { selections, ungroupedPhotos } = req.body;
+
+      if (!Array.isArray(selections)) {
+        return res.status(400).json({ error: "Selections must be an array" });
+      }
+
+      let processed = 0;
+      let promoted = 0;
+      const errors: string[] = [];
+
+      // Process burst group selections
+      for (const selection of selections) {
+        const { groupId, selectedPhotoIds } = selection;
+        
+        if (!Array.isArray(selectedPhotoIds)) {
+          continue;
+        }
+
+        for (const photoId of selectedPhotoIds) {
+          try {
+            const photo = await storage.getFileVersion(photoId);
+            if (!photo || photo.tier !== 'bronze') {
+              continue;
+            }
+
+            // Process the selected photo to silver tier (same as existing process route)
+            if (!photo.mimeType.startsWith('image/')) {
+              continue;
+            }
+
+            // Run AI analysis
+            const aiMetadata = await aiService.analyzeImage(photo.filePath, "openai");
+            const enhancedMetadata = await aiService.enhanceMetadataWithShortDescription(aiMetadata, photo.filePath);
+
+            // Get naming pattern from settings
+            const namingPatternSetting = await storage.getSettingByKey('silver_naming_pattern');
+            const customPatternSetting = await storage.getSettingByKey('custom_naming_pattern');
+            const namingPattern = namingPatternSetting?.value || 'datetime';
+            const customPattern = customPatternSetting?.value || '';
+
+            // Get media asset for filename generation
+            const mediaAsset = await storage.getMediaAsset(photo.mediaAssetId);
+            
+            // Generate filename
+            let newFilename: string | undefined = undefined;
+            if (enhancedMetadata.shortDescription && mediaAsset) {
+              const namingContext = {
+                aiMetadata: {
+                  shortDescription: enhancedMetadata.shortDescription,
+                  detectedObjects: enhancedMetadata.detectedObjects || [],
+                  aiTags: enhancedMetadata.aiTags || []
+                },
+                exifMetadata: (photo.metadata && typeof photo.metadata === 'object' && 'exif' in photo.metadata && typeof photo.metadata.exif === 'object')
+                  ? (photo.metadata.exif as { dateTime?: string; camera?: string; lens?: string })
+                  : undefined,
+                originalFilename: mediaAsset.originalFilename,
+                tier: 'silver' as const
+              };
+              const finalPattern = namingPattern === 'custom' ? customPattern : namingPattern;
+              newFilename = await generateSilverFilename(namingContext, finalPattern);
+            }
+
+            // Copy to silver tier
+            const silverPath = await fileManager.copyToSilver(photo.filePath, newFilename);
+
+            // Detect faces
+            const detectedFaces = await faceDetectionService.detectFaces(photo.filePath);
+
+            // Create silver version
+            const combinedMetadata = {
+              ...(photo.metadata || {}),
+              ai: enhancedMetadata,
+            };
+
+            const silverVersion = await storage.createFileVersion({
+              mediaAssetId: photo.mediaAssetId,
+              tier: 'silver',
+              filePath: silverPath,
+              fileHash: photo.fileHash,
+              fileSize: photo.fileSize,
+              mimeType: photo.mimeType,
+              metadata: combinedMetadata as any,
+              aiShortDescription: enhancedMetadata.shortDescription,
+              isReviewed: false,
+            });
+
+            // Save detected faces
+            for (const face of detectedFaces) {
+              await storage.createFace({
+                photoId: silverVersion.id,
+                boundingBox: face.boundingBox,
+                confidence: face.confidence,
+                embedding: face.embedding,
+                personId: face.personId || null,
+              });
+            }
+
+            // Log promotion
+            await storage.createAssetHistory({
+              mediaAssetId: photo.mediaAssetId,
+              action: 'PROMOTED',
+              details: 'Promoted from Bronze to Silver tier via burst selection',
+            });
+
+            promoted++;
+          } catch (error: any) {
+            errors.push(`Photo ${photoId}: ${error.message}`);
+          }
+        }
+
+        // Mark remaining photos in group as processed (but keep in bronze)
+        // This can be implemented later if needed
+      }
+
+      // Process ungrouped photos automatically
+      if (Array.isArray(ungroupedPhotos)) {
+        for (const photoId of ungroupedPhotos) {
+          try {
+            const photo = await storage.getFileVersion(photoId);
+            if (!photo || photo.tier !== 'bronze' || !photo.mimeType.startsWith('image/')) {
+              continue;
+            }
+
+            // Process same as grouped photos
+            const aiMetadata = await aiService.analyzeImage(photo.filePath, "openai");
+            const enhancedMetadata = await aiService.enhanceMetadataWithShortDescription(aiMetadata, photo.filePath);
+
+            const namingPatternSetting = await storage.getSettingByKey('silver_naming_pattern');
+            const customPatternSetting = await storage.getSettingByKey('custom_naming_pattern');
+            const namingPattern = namingPatternSetting?.value || 'datetime';
+            const customPattern = customPatternSetting?.value || '';
+
+            // Get media asset for filename generation
+            const mediaAsset = await storage.getMediaAsset(photo.mediaAssetId);
+            
+            let newFilename: string | undefined = undefined;
+            if (enhancedMetadata.shortDescription && mediaAsset) {
+              const namingContext = {
+                aiMetadata: {
+                  shortDescription: enhancedMetadata.shortDescription,
+                  detectedObjects: enhancedMetadata.detectedObjects || [],
+                  aiTags: enhancedMetadata.aiTags || []
+                },
+                exifMetadata: (photo.metadata && typeof photo.metadata === 'object' && 'exif' in photo.metadata && typeof photo.metadata.exif === 'object')
+                  ? (photo.metadata.exif as { dateTime?: string; camera?: string; lens?: string })
+                  : undefined,
+                originalFilename: mediaAsset.originalFilename,
+                tier: 'silver' as const
+              };
+              const finalPattern = namingPattern === 'custom' ? customPattern : namingPattern;
+              newFilename = await generateSilverFilename(namingContext, finalPattern);
+            }
+
+            const silverPath = await fileManager.copyToSilver(photo.filePath, newFilename);
+            const detectedFaces = await faceDetectionService.detectFaces(photo.filePath);
+
+            const combinedMetadata = {
+              ...(photo.metadata || {}),
+              ai: enhancedMetadata,
+            };
+
+            const silverVersion = await storage.createFileVersion({
+              mediaAssetId: photo.mediaAssetId,
+              tier: 'silver',
+              filePath: silverPath,
+              fileHash: photo.fileHash,
+              fileSize: photo.fileSize,
+              mimeType: photo.mimeType,
+              metadata: combinedMetadata as any,
+              aiShortDescription: enhancedMetadata.shortDescription,
+              isReviewed: false,
+            });
+
+            for (const face of detectedFaces) {
+              await storage.createFace({
+                photoId: silverVersion.id,
+                boundingBox: face.boundingBox,
+                confidence: face.confidence,
+                embedding: face.embedding,
+                personId: face.personId || null,
+              });
+            }
+
+            await storage.createAssetHistory({
+              mediaAssetId: photo.mediaAssetId,
+              action: 'PROMOTED',
+              details: 'Promoted from Bronze to Silver tier via burst processing',
+            });
+
+            promoted++;
+          } catch (error: any) {
+            errors.push(`Ungrouped photo ${photoId}: ${error.message}`);
+          }
+        }
+      }
+
+      processed = selections.length + (ungroupedPhotos?.length || 0);
+
+      res.json({ processed, promoted, errors });
+    } catch (error) {
+      console.error("Burst processing failed:", error);
+      res.status(500).json({ error: "Failed to process burst selections" });
     }
   });
 
