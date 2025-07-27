@@ -37,11 +37,11 @@ async function findSimilarPhotos(photos: any[]): Promise<any[]> {
       // Check filename similarity (burst photos often have similar names)
       const currentName = currentPhoto.mediaAsset.originalFilename.toLowerCase();
       const compareName = comparePhoto.mediaAsset.originalFilename.toLowerCase();
-      
+
       // Extract base filename without extension and sequence numbers
       const currentBase = currentName.replace(/\d+\.(jpg|jpeg|png|tiff)$/i, '').replace(/_\d+$/, '');
       const compareBase = compareName.replace(/\d+\.(jpg|jpeg|png|tiff)$/i, '').replace(/_\d+$/, '');
-      
+
       if (currentBase === compareBase && currentBase.length > 3) {
         similarityScore += 0.4;
       }
@@ -78,7 +78,7 @@ async function findSimilarPhotos(photos: any[]): Promise<any[]> {
       const suggested = similarPhotos.reduce((best, current) => {
         const bestConfidence = best.metadata?.ai?.aiConfidenceScores?.tags || 0;
         const currentConfidence = current.metadata?.ai?.aiConfidenceScores?.tags || 0;
-        
+
         if (currentConfidence > bestConfidence) return current;
         if (currentConfidence === bestConfidence) {
           // If same confidence, prefer more recent
@@ -163,19 +163,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/photos", async (req, res) => {
     try {
       const tier = req.query.tier as "bronze" | "silver" | "gold" | "unprocessed" | undefined;
-      
+
       if (tier === 'unprocessed') {
         // Get bronze photos that haven't been processed to silver, 
         // and silver photos that haven't been promoted to gold
         const allAssets = await storage.getAllMediaAssets();
         const unprocessedPhotos = [];
-        
+
         for (const asset of allAssets) {
           const versions = await storage.getFileVersionsByAsset(asset.id);
           const hasBronze = versions.some(v => v.tier === 'bronze');
           const hasSilver = versions.some(v => v.tier === 'silver');
           const hasGold = versions.some(v => v.tier === 'gold');
-          
+
           // Add bronze if no silver exists
           if (hasBronze && !hasSilver) {
             const bronzeVersion = versions.find(v => v.tier === 'bronze');
@@ -183,7 +183,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               unprocessedPhotos.push({ ...bronzeVersion, mediaAsset: asset });
             }
           }
-          
+
           // Add silver if no gold exists
           if (hasSilver && !hasGold) {
             const silverVersion = versions.find(v => v.tier === 'silver');
@@ -192,7 +192,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           }
         }
-        
+
         res.json(unprocessedPhotos);
       } else if (tier) {
         const photos = await storage.getFileVersionsByTier(tier);
@@ -350,7 +350,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get naming pattern from settings
       const namingPatternSetting = await storage.getSettingByKey('silver_naming_pattern');
       const customPatternSetting = await storage.getSettingByKey('custom_naming_pattern');
-      
+
       const namingPattern = namingPatternSetting?.value || 'datetime';
       const customPattern = customPatternSetting?.value || '';
 
@@ -359,7 +359,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (namingPattern !== 'original') {
         const { generateSilverFilename } = await import("./services/aiNaming");
         const asset = await storage.getMediaAsset(photo.mediaAssetId);
-        
+
         const namingContext = {
           aiMetadata: {
             shortDescription: enhancedMetadata.shortDescription,
@@ -430,7 +430,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/photos/:id", async (req, res) => {
     try {
       const { metadata, isReviewed } = req.body;
-      
+
       const updates: Partial<typeof req.body> = {};
       if (metadata !== undefined) updates.metadata = metadata;
       if (isReviewed !== undefined) updates.isReviewed = isReviewed;
@@ -456,7 +456,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const filePath = (req.params as any)[0];
       const fullPath = path.join(process.cwd(), 'data', filePath);
-      
+
       // Security check to prevent directory traversal
       if (!fullPath.startsWith(path.join(process.cwd(), 'data'))) {
         return res.status(403).json({ message: "Access denied" });
@@ -465,7 +465,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if file exists
       try {
         await fs.access(fullPath);
-        
+
         // Check if this is a face crop request
         if (req.query.crop && req.query.face === 'true') {
           const cropParams = (req.query.crop as string).split(',').map(Number);
@@ -476,14 +476,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             res.setHeader('Content-Type', 'image/jpeg');
           }
         }
-        
+
         // Check if this is a download request
         if (req.query.download === 'true') {
           const filename = path.basename(fullPath);
           res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
           res.setHeader('Content-Type', 'application/octet-stream');
         }
-        
+
         res.sendFile(fullPath);
       } catch {
         res.status(404).json({ message: "File not found" });
@@ -499,7 +499,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const config = aiService.getConfig();
       const providers = await aiService.getAvailableProviders();
-      
+
       res.json({
         currentProvider: config.provider,
         availableProviders: providers,
@@ -524,14 +524,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/ai/config", async (req, res) => {
     try {
       const { provider, ollama, openai } = req.body;
-      
+
       const newConfig: any = {};
       if (provider) newConfig.provider = provider;
       if (ollama) newConfig.ollama = ollama;
       if (openai) newConfig.openai = openai;
-      
+
       aiService.setConfig(newConfig);
-      
+
       res.json({ success: true, message: "AI configuration updated" });
     } catch (error) {
       console.error("Update AI config error:", error);
@@ -542,7 +542,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/ai/test", async (req, res) => {
     try {
       const providers = await aiService.getAvailableProviders();
-      
+
       res.json({
         ollama: providers.ollama,
         openai: providers.openai
@@ -562,10 +562,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       console.log('Testing face detection on photo:', photo.filePath);
-      
+
       // Run face detection
       const detectedFaces = await faceDetectionService.detectFaces(photo.filePath);
-      
+
       // Save faces to database if any detected
       const savedFaces = [];
       for (const face of detectedFaces) {
@@ -578,10 +578,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         savedFaces.push(savedFace);
       }
-      
+
       // Get the media asset separately
       const mediaAsset = await storage.getMediaAsset(photo.mediaAssetId);
-      
+
       res.json({
         photo: mediaAsset?.originalFilename || 'Unknown',
         facesDetected: detectedFaces.length,
@@ -597,18 +597,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/people", async (req, res) => {
     try {
       const people = await storage.getPeople();
-      
+
       // Add face count and photo count to each person
       const peopleWithStats = await Promise.all(
         people.map(async (person) => {
           const faces = await storage.getFacesByPerson(person.id);
           const photoIds = Array.from(new Set(faces.map(face => face.photoId)));
-          
+
           // Generate face crop for thumbnail - use selected thumbnail or first face
           let coverPhotoPath = null;
           if (faces.length > 0) {
             let selectedFace = faces[0]; // Default to first face
-            
+
             // Use selected thumbnail face if one is set
             if (person.selectedThumbnailFaceId) {
               const thumbnailFace = faces.find(f => f.id === person.selectedThumbnailFaceId);
@@ -616,9 +616,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 selectedFace = thumbnailFace;
               }
             }
-            
+
             const photo = await storage.getFileVersion(selectedFace.photoId);
-            
+
             if (photo && selectedFace.boundingBox) {
               try {
                 // Generate a face crop for better thumbnail
@@ -632,7 +632,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }
             }
           }
-          
+
           return {
             ...person,
             faceCount: faces.length,
@@ -641,7 +641,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           };
         })
       );
-      
+
       res.json(peopleWithStats);
     } catch (error) {
       console.error("Error fetching people:", error);
@@ -685,17 +685,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/people/:id/thumbnail", async (req, res) => {
     try {
       const { faceId } = req.body;
-      
+
       if (!faceId) {
         return res.status(400).json({ message: "Face ID is required" });
       }
-      
+
       // Verify the face belongs to this person
-      const face = await storage.getFace(faceId);
+      const face = await await storage.getFace(faceId);
       if (!face || face.personId !== req.params.id) {
         return res.status(400).json({ message: "Face does not belong to this person" });
       }
-      
+
       await storage.setPersonThumbnail(req.params.id, faceId);
       res.json({ success: true, message: "Thumbnail updated successfully" });
     } catch (error) {
@@ -717,7 +717,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/faces/unassigned", async (req, res) => {
     try {
       const unassignedFaces = await storage.getUnassignedFaces();
-      
+
       // Add photo information and face crop URL to each face
       const facesWithPhotos = await Promise.all(
         unassignedFaces.map(async (face) => {
@@ -732,7 +732,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               console.error('Failed to generate face crop:', error);
               faceCropUrl = photo.filePath; // Fallback to full image
             }
-            
+
             return {
               ...face,
               faceCropUrl,
@@ -745,7 +745,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return face;
         })
       );
-      
+
       res.json(facesWithPhotos);
     } catch (error) {
       console.error("Error fetching unassigned faces:", error);
@@ -756,7 +756,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/faces", async (req, res) => {
     try {
       const faces = await storage.getAllFaces();
-      
+
       // Add photo information and face crop URL to each face
       const facesWithPhotos = await Promise.all(
         faces.map(async (face) => {
@@ -771,7 +771,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               console.error('Failed to generate face crop:', error);
               faceCropUrl = photo.filePath; // Fallback to full image
             }
-            
+
             return {
               ...face,
               faceCropUrl,
@@ -784,7 +784,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return face;
         })
       );
-      
+
       res.json(facesWithPhotos);
     } catch (error) {
       console.error("Error fetching faces:", error);
@@ -795,13 +795,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/faces/assign", async (req, res) => {
     try {
       const { faceIds, personId } = req.body;
-      
+
       for (const faceId of faceIds) {
         if (storage.assignFaceToPerson) {
           await storage.assignFaceToPerson(faceId, personId);
         }
       }
-      
+
       res.json({ success: true, assigned: faceIds.length });
     } catch (error) {
       console.error("Error assigning faces:", error);
@@ -851,7 +851,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/faces/unassigned", async (req, res) => {
     try {
       const unassignedFaces = await storage.getUnassignedFaces();
-      
+
       // Add photo information and face crop URL to each face
       const facesWithPhotos = await Promise.all(
         unassignedFaces.map(async (face) => {
@@ -866,7 +866,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               console.error('Failed to generate face crop:', error);
               faceCropUrl = photo.filePath; // Fallback to full image
             }
-            
+
             return {
               ...face,
               faceCropUrl,
@@ -879,7 +879,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return face;
         })
       );
-      
+
       res.json(facesWithPhotos);
     } catch (error) {
       console.error("Error fetching unassigned faces:", error);
@@ -890,8 +890,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get face crop URL
   app.get("/api/faces/:id/crop", async (req, res) => {
     try {
-      const face = await storage.getFace(req.params.id);
-      if (!face) {
+      const face = await storage.getFace(req.params.id);      if (!face) {
         return res.status(404).json({ message: "Face not found" });
       }
 
@@ -904,7 +903,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         photo.filePath, 
         face.boundingBox as [number, number, number, number]
       );
-      
+
       res.json({ cropUrl });
     } catch (error) {
       console.error("Error generating face crop:", error);
@@ -957,7 +956,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/photos/batch", async (req, res) => {
     try {
       const { operation, photoIds, params } = req.body;
-      
+
       switch (operation) {
         case 'addTags':
           for (const photoId of photoIds) {
@@ -966,7 +965,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const metadata = (photo.metadata as any) || {};
               const existingTags = metadata.ai?.aiTags || [];
               const newTags = Array.from(new Set([...existingTags, ...params.tags]));
-              
+
               await storage.updateFileVersion(photoId, {
                 metadata: {
                   ...metadata,
@@ -979,7 +978,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         default:
           return res.status(400).json({ message: "Unknown operation" });
       }
-      
+
       res.json({ success: true, processed: photoIds.length });
     } catch (error) {
       console.error("Error in batch operation:", error);
@@ -991,7 +990,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/analytics", async (req, res) => {
     try {
       const stats = await storage.getCollectionStats();
-      
+
       const analytics = {
         uploadTrends: [
           { date: '2025-01-20', count: 5 },
@@ -1017,7 +1016,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           { tag: 'nature', count: 8 }
         ]
       };
-      
+
       res.json(analytics);
     } catch (error) {
       console.error("Error fetching analytics:", error);
@@ -1025,16 +1024,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Duplicate Detection routes
+  app.get("/api/duplicates/scan", async (req, res) => {
+    try {
+      const minSimilarity = parseInt(req.query.minSimilarity as string) || 85;
+      const includeTiers = req.query.tiers ? (req.query.tiers as string).split(',') : ['bronze', 'silver', 'gold'];
+
+      const analysis = await advancedSearch.findDuplicates(minSimilarity, includeTiers);
+      res.json(analysis);
+    } catch (error) {
+      console.error("Duplicate scan failed:", error);
+      res.status(500).json({ error: "Failed to scan for duplicates" });
+    }
+  });
+
+  app.post("/api/duplicates/process", async (req, res) => {
+    try {
+      const { actions } = req.body;
+
+      if (!Array.isArray(actions)) {
+        return res.status(400).json({ error: "Actions must be an array" });
+      }
+
+      const result = await advancedSearch.processDuplicateActions(actions);
+      res.json(result);
+    } catch (error) {
+      console.error("Duplicate processing failed:", error);
+      res.status(500).json({ error: "Failed to process duplicates" });
+    }
+  });
+
+  app.get("/api/duplicates/stats", async (req, res) => {
+    try {
+      const stats = await advancedSearch.getDuplicateStats();
+      res.json(stats);
+    } catch (error) {
+      console.error("Failed to get duplicate stats:", error);
+      res.status(500).json({ error: "Failed to get duplicate statistics" });
+    }
+  });
+
+  app.get("/api/photos/:id/duplicates", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const minSimilarity = parseInt(req.query.minSimilarity as string) || 85;
+
+      const duplicates = await advancedSearch.findDuplicatesForPhoto(id, minSimilarity);
+      res.json(duplicates);
+    } catch (error) {
+      console.error("Failed to find duplicates for photo:", error);
+      res.status(500).json({ error: "Failed to find duplicates" });
+    }
+  });
+
   // Advanced search endpoint
   app.post("/api/photos/search", async (req, res) => {
     try {
       const { filters = {}, sort = { field: 'createdAt', direction: 'desc' }, limit = 50, offset = 0 } = req.body;
-      
+
       // For now, use the existing silver photos endpoint as a fallback
       // TODO: Implement full advanced search functionality
       const allPhotos = await storage.getFileVersionsByTier('silver');
       const photosWithAssets = [];
-      
+
       for (const photo of allPhotos) {
         const asset = await storage.getMediaAsset(photo.mediaAssetId);
         if (asset) {
@@ -1044,7 +1096,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
       }
-      
+
       // Simple filtering by query if provided
       let filteredPhotos = photosWithAssets;
       if (filters.query) {
@@ -1056,12 +1108,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return filename.includes(query) || location.includes(query) || keywords.includes(query);
         });
       }
-      
+
       // Apply tier filter
       if (filters.tier) {
         filteredPhotos = filteredPhotos.filter(photo => photo.tier === filters.tier);
       }
-      
+
       // Apply rating filter
       if (filters.rating?.min !== undefined || filters.rating?.max !== undefined) {
         filteredPhotos = filteredPhotos.filter(photo => {
@@ -1071,7 +1123,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return true;
         });
       }
-      
+
       // Simple facets
       const facets = {
         tiers: { silver: filteredPhotos.length },
@@ -1079,13 +1131,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         mimeTypes: {},
         eventTypes: {}
       };
-      
+
       const results = {
         photos: filteredPhotos.slice(offset, offset + limit),
         totalCount: filteredPhotos.length,
         facets
       };
-      
+
       res.json(results);
     } catch (error) {
       console.error("Error in advanced search:", error);
@@ -1129,7 +1181,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/photos/:id/metadata", async (req, res) => {
     try {
       const { keywords, eventType, eventName, location } = req.body;
-      
+
       const updates: any = {};
       if (keywords !== undefined) updates.keywords = keywords;
       if (eventType !== undefined) updates.eventType = eventType;
@@ -1251,7 +1303,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/photos/batch-promote", async (req, res) => {
     try {
       const { photoIds } = req.body;
-      
+
       if (!Array.isArray(photoIds) || photoIds.length === 0) {
         return res.status(400).json({ message: "photoIds array is required" });
       }
@@ -1306,10 +1358,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { tier = "silver" } = req.query;
       const photos = await storage.getFileVersionsByTier(tier as "bronze" | "silver" | "gold");
-      
+
       // Simple similarity grouping based on filename patterns and metadata
       const similarGroups = await findSimilarPhotos(photos);
-      
+
       res.json(similarGroups);
     } catch (error) {
       console.error("Error finding similar photos:", error);

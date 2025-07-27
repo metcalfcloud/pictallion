@@ -9,7 +9,8 @@ import {
   Settings, 
   Search,
   Bell,
-  Users
+  Users,
+  Copy // Added Copy icon
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
@@ -21,6 +22,7 @@ const navigationItems = [
   { path: "/gallery", label: "Gallery", icon: Images },
   { path: "/upload", label: "Upload", icon: Upload },
   { path: "/collections", label: "Collections", icon: Images },
+  { path: "/duplicates", label: "Duplicates", icon: Copy }, // Added Duplicates item
   { path: "/silver-review", label: "Silver Review", icon: Camera },
   { path: "/people", label: "People & Faces", icon: Users },
   { path: "/search", label: "Search", icon: Search },
@@ -29,7 +31,7 @@ const navigationItems = [
 
 export default function Sidebar() {
   const [location] = useLocation();
-  
+
 
   const isActive = (path: string) => {
     if (path === "/dashboard") {
@@ -56,7 +58,7 @@ export default function Sidebar() {
         {navigationItems.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.path);
-          
+
           return (
             <Button
               key={item.path}
@@ -81,7 +83,7 @@ export default function Sidebar() {
         })}
       </nav>
 
-      
+
 
       {/* Storage Info */}
       <div className="p-4 border-t border-gray-200">
@@ -97,7 +99,7 @@ export default function Sidebar() {
         </Card>
       </div>
 
-      
+
     </aside>
   );
 }

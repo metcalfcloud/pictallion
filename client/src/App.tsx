@@ -8,9 +8,8 @@ import Gallery from "@/pages/gallery";
 import Upload from "@/pages/upload";
 import Search from "@/pages/search";
 import Collections from "@/pages/collections";
-import SilverReview from "@/pages/silver-review";
 import People from "@/pages/people";
-import Settings from "@/pages/settings";
+import Duplicates from "./pages/duplicates";
 import NotFound from "@/pages/not-found";
 import Sidebar from "@/components/sidebar";
 
@@ -28,7 +27,7 @@ function Router() {
           <Route path="/collections" component={Collections} />
           <Route path="/silver-review" component={SilverReview} />
           <Route path="/people" component={People} />
-          <Route path="/settings" component={Settings} />
+          <Route path="/duplicates" component={Duplicates} />
           <Route component={NotFound} />
         </Switch>
       </main>
