@@ -118,7 +118,9 @@ export function FaceSuggestions() {
   // Create person mutation
   const createPersonMutation = useMutation({
     mutationFn: async (personData: { name: string }): Promise<Person> => {
-      return await apiRequest('POST', '/api/people', personData);
+      const res = await apiRequest('POST', '/api/people', personData);
+      const person: Person = await res.json();
+      return person;
     },
     onSuccess: (newPerson: Person) => {
       if (pendingFaceId) {
