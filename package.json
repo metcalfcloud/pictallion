@@ -1,6 +1,6 @@
 {
   "name": "pictallion",
-  "version": "0.0.20",
+  "version": "0.0.21",
   "description": "Pictallion photo management application",
   "author": {
     "name": "Paul Metcalf",
@@ -152,7 +152,9 @@
     },
     "mac": {
       "target": [
-        { "target": "dmg" }
+        {
+          "target": "dmg"
+        }
       ],
       "icon": "assets/icon.icns"
     },
