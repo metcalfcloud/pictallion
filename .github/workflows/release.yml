@@ -25,7 +25,7 @@ jobs:
         run: npm ci
 
       - name: Run unit/integration tests
-        run: npm test
+        run: cd client && npm test
 
       - name: Build Electron apps (Mac/Win/Linux)
         run: |
