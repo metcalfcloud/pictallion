@@ -6,6 +6,7 @@ yarn-error.log*
 
 # Production builds
 dist/
+!build/icon.ico
 build/
 *.tgz
 *.tar.gz
