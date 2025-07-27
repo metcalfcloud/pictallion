@@ -192,23 +192,23 @@ export const insertSettingSchema = createInsertSchema(settings).omit({
 
 // Types
 export type User = typeof users.$inferSelect;
-export type InsertUser = z.infer<typeof insertUserSchema>;
+export type InsertUser = typeof insertUserSchema._output;
 export type MediaAsset = typeof mediaAssets.$inferSelect;
-export type InsertMediaAsset = z.infer<typeof insertMediaAssetSchema>;
+export type InsertMediaAsset = typeof insertMediaAssetSchema._output;
 export type FileVersion = typeof fileVersions.$inferSelect;
-export type InsertFileVersion = z.infer<typeof insertFileVersionSchema>;
+export type InsertFileVersion = typeof insertFileVersionSchema._output;
 export type AssetHistory = typeof assetHistory.$inferSelect;
-export type InsertAssetHistory = z.infer<typeof insertAssetHistorySchema>;
+export type InsertAssetHistory = typeof insertAssetHistorySchema._output;
 export type Collection = typeof collections.$inferSelect;
-export type InsertCollection = z.infer<typeof insertCollectionSchema>;
+export type InsertCollection = typeof insertCollectionSchema._output;
 export type CollectionPhoto = typeof collectionPhotos.$inferSelect;
-export type InsertCollectionPhoto = z.infer<typeof insertCollectionPhotoSchema>;
+export type InsertCollectionPhoto = typeof insertCollectionPhotoSchema._output;
 export type Person = typeof people.$inferSelect;
-export type InsertPerson = z.infer<typeof insertPersonSchema>;
+export type InsertPerson = typeof insertPersonSchema._output;
 export type Face = typeof faces.$inferSelect;
-export type InsertFace = z.infer<typeof insertFaceSchema>;
+export type InsertFace = typeof insertFaceSchema._output;
 export type Setting = typeof settings.$inferSelect;
-export type InsertSetting = z.infer<typeof insertSettingSchema>;
+export type InsertSetting = typeof insertSettingSchema._output;
 
 // Metadata interfaces
 export interface AIMetadata {
