@@ -306,7 +306,7 @@ export default function Dashboard() {
             <CardContent className="p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
               <div className="grid grid-cols-1 gap-3">
-                {stats?.bronzeCount > 0 && (
+                {(stats?.bronzeCount ?? 0) > 0 && (
                   <Button
                     variant="outline"
                     className="flex items-center justify-between p-4 h-auto border border-green-200 hover:border-green-400 hover:bg-green-50"
@@ -316,7 +316,7 @@ export default function Dashboard() {
                       <div className="flex items-center">
                         <WandSparkles className="h-5 w-5 mr-3 text-green-600" />
                         <div className="text-left">
-                          <div className="font-medium">Process {stats.bronzeCount} new photos</div>
+                          <div className="font-medium">Process {(stats?.bronzeCount ?? 0)} new photos</div>
                           <div className="text-sm text-gray-500">Add AI tags and descriptions</div>
                         </div>
                       </div>
@@ -325,7 +325,7 @@ export default function Dashboard() {
                   </Button>
                 )}
 
-                {stats?.pendingReviewCount > 0 && (
+                {(stats?.pendingReviewCount ?? 0) > 0 && (
                   <Button
                     variant="outline"
                     className="flex items-center justify-between p-4 h-auto border border-yellow-200 hover:border-yellow-400 hover:bg-yellow-50"
@@ -335,7 +335,7 @@ export default function Dashboard() {
                       <div className="flex items-center">
                         <Eye className="h-5 w-5 mr-3 text-yellow-600" />
                         <div className="text-left">
-                          <div className="font-medium">Review {stats.pendingReviewCount} processed photos</div>
+                          <div className="font-medium">Review {(stats?.pendingReviewCount ?? 0)} processed photos</div>
                           <div className="text-sm text-gray-500">Verify AI results and curate</div>
                         </div>
                       </div>
