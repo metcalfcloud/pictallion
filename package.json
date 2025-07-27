@@ -102,6 +102,8 @@
     "zod-validation-error": "^3.4.0"
   },
   "devDependencies": {
+    "@esbuild-kit/core-utils": "latest",
+    "@esbuild-kit/esm-loader": "latest",
     "@replit/vite-plugin-cartographer": "^0.2.7",
     "@replit/vite-plugin-runtime-error-modal": "^0.0.3",
     "@tailwindcss/typography": "^0.5.16",
@@ -118,7 +120,7 @@
     "@types/ws": "^8.18.1",
     "@vitejs/plugin-react": "^4.7.0",
     "autoprefixer": "^10.4.21",
-    "drizzle-kit": "^0.31.4",
+    "drizzle-kit": "^0.18.1",
     "electron": "^37.2.4",
     "electron-builder": "^26.0.12",
     "esbuild": "^0.25.8",
@@ -129,8 +131,8 @@
     "vite": "^6.3.5"
   },
   "optionalDependencies": {
-    "bufferutil": "^4.0.9",
-    "@img/sharp-darwin-arm64": "^0.34.3"
+    "@img/sharp-darwin-arm64": "^0.34.3",
+    "bufferutil": "^4.0.9"
   },
   "build": {
     "appId": "com.pictallion.desktop",
