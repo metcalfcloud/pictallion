@@ -1,7 +1,10 @@
-# Multi-stage build for Pictallion
-FROM node:18-alpine AS builder
+# Build stage
+FROM node:20-alpine AS builder
 
 WORKDIR /app
+
+# Install build dependencies for native modules
+RUN apk add --no-cache python3 make g++ pkgconfig
 
 # Copy package files
 COPY package*.json ./
@@ -12,35 +15,37 @@ RUN npm ci
 # Copy source code
 COPY . .
 
-# Build application using production build script
-RUN chmod +x scripts/build-production.sh && ./scripts/build-production.sh
+# Build application (client and server)
+RUN npm run build
 
 # Production stage
-FROM node:18-alpine AS production
+FROM node:20-alpine AS production
 
 WORKDIR /app
 
-# Copy production package.json
-COPY package*.json ./
+# Install runtime dependencies for native modules
+RUN apk add --no-cache python3
 
-# Install production dependencies only
-RUN npm ci --only=production && npm cache clean --force
-
-# Copy built application from builder stage
+# Copy built application
 COPY --from=builder /app/dist ./dist
-
-# Copy shared directory
 COPY --from=builder /app/shared ./shared
-
-# Copy configuration
 COPY --from=builder /app/drizzle.config.ts ./
 
-# Create media directories
-RUN mkdir -p data/media/bronze data/media/silver data/media/gold
+# Copy package.json and install production dependencies
+COPY package*.json ./
+RUN npm ci --production
 
 # Create non-root user
-RUN addgroup -g 1001 -S nodejs && adduser -S pictallion -u 1001
-RUN chown -R pictallion:nodejs /app
+RUN addgroup -g 1001 -S pictallion && \
+    adduser -S pictallion -u 1001
+
+# Create data directories
+RUN mkdir -p data/media/{bronze,silver,gold,dropzone,archive} && \
+    mkdir -p data/media/dropzone/duplicates && \
+    mkdir -p uploads/temp && \
+    chown -R pictallion:pictallion data uploads
+
+# Switch to non-root user
 USER pictallion
 
 # Expose port
@@ -48,7 +53,7 @@ EXPOSE 5000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:5000/api/health || exit 1
+  CMD node -e "require('http').get('http://localhost:5000/api/stats', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
 
 # Start application
 CMD ["node", "dist/index.js"]
