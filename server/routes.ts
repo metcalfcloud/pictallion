@@ -453,11 +453,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Serve uploaded images
-  app.get("/api/files/*", async (req, res) => {
+  // Serve uploaded images (using express.static for file serving)
+  app.use('/api/files/media', express.static(path.join(process.cwd(), 'data', 'media')));
+  
+  // Fallback route for file serving with query parameters
+  app.get("/api/files/media/:tier/:date/:filename", async (req, res) => {
     try {
-      const filePath = (req.params as any)[0];
-      const fullPath = path.join(process.cwd(), 'data', filePath);
+      const { tier, date, filename } = req.params;
+      const filePath = `${tier}/${date}/${filename}`;
+      const fullPath = path.join(process.cwd(), 'data', 'media', filePath);
 
       // Security check to prevent directory traversal
       if (!fullPath.startsWith(path.join(process.cwd(), 'data'))) {
