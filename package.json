@@ -158,51 +158,30 @@
     },
     "mac": {
       "target": [
-        {
-          "target": "dmg",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
-        }
+        "dmg"
+      ],
+      "arch": [
+        "x64",
+        "arm64"
       ]
     },
     "win": {
       "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64"
-          ]
-        },
-        {
-          "target": "msi",
-          "arch": [
-            "x64"
-          ]
-        }
+        "nsis",
+        "msi"
+      ],
+      "arch": [
+        "x64"
       ]
     },
     "linux": {
       "target": [
-        {
-          "target": "AppImage",
-          "arch": [
-            "x64"
-          ]
-        },
-        {
-          "target": "deb",
-          "arch": [
-            "x64"
-          ]
-        },
-        {
-          "target": "rpm",
-          "arch": [
-            "x64"
-          ]
-        }
+        "AppImage",
+        "deb",
+        "rpm"
+      ],
+      "arch": [
+        "x64"
       ],
       "category": "Photography"
     }
