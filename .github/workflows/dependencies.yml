@@ -19,7 +19,7 @@ jobs:
       - name: 📦 Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
 
       - name: 🔍 Check for updates
@@ -37,13 +37,13 @@ jobs:
           echo "# Dependency Status Report" > dependency-report.md
           echo "Generated on: $(date)" >> dependency-report.md
           echo "" >> dependency-report.md
-          
+
           echo "## Root Dependencies" >> dependency-report.md
           echo "\`\`\`" >> dependency-report.md
           npm list --depth=0 >> dependency-report.md || true
           echo "\`\`\`" >> dependency-report.md
           echo "" >> dependency-report.md
-          
+
           echo "## Client Dependencies" >> dependency-report.md
           echo "\`\`\`" >> dependency-report.md
           cd client && npm list --depth=0 >> ../dependency-report.md || true
@@ -66,7 +66,7 @@ jobs:
       - name: 📦 Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
 
       - name: 🔧 Install dependencies
