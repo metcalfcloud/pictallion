@@ -129,7 +129,8 @@
     "vite": "^6.3.5"
   },
   "optionalDependencies": {
-    "bufferutil": "^4.0.9"
+    "bufferutil": "^4.0.9",
+    "@img/sharp-darwin-arm64": "^0.34.3"
   },
   "build": {
     "appId": "com.pictallion.desktop",
