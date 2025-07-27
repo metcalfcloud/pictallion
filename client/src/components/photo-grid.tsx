@@ -26,7 +26,7 @@ export default function PhotoGrid({
   const getTierBadgeClass = (tier: string) => {
     switch (tier) {
       case 'bronze':
-        return 'bg-orange-500 text-white';
+        return 'bg-my-orange text-white';
       case 'silver':
         return 'bg-gray-500 text-white';
       case 'gold':

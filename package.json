@@ -102,6 +102,7 @@
     "zod-validation-error": "^4.0.1"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.11",
     "@tailwindcss/typography": "^0.5.16",
     "@types/express": "^5.0.3",
     "@types/node": "^24.1.0",
@@ -109,10 +110,12 @@
     "@types/react-dom": "^19.1.6",
     "@types/ws": "^8.18.1",
     "@vitejs/plugin-react": "^4.7.0",
+    "autoprefixer": "^10.4.21",
     "drizzle-kit": "^0.31.4",
     "electron": "^37.2.4",
     "electron-builder": "^26.0.12",
     "esbuild": "^0.25.8",
+    "postcss": "^8.5.6",
     "tailwindcss": "^4.1.11",
     "tsx": "^4.19.1",
     "typescript": "^5.8.3",

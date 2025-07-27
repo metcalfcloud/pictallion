@@ -61,14 +61,16 @@
   }
 
   body {
-    @apply font-sans antialiased text-foreground;
+    font-family: theme('fontFamily.sans');
+    @apply antialiased;
+    color: var(--foreground);
     background-color: var(--background);
   }
 }
 
 @layer components {
   .tier-bronze {
-    @apply bg-orange-500 text-white;
+    @apply bg-my-orange text-white;
   }
   
   .tier-silver {
@@ -78,4 +80,8 @@
   .tier-gold {
     @apply bg-yellow-500 text-white;
   }
+}
+
+.text-foreground {
+  color: var(--foreground);
 }

@@ -1,2 +1,9 @@
-// Minimal Vite config placeholder to resolve missing dependency
-export default {};
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+
+export default defineConfig({
+  plugins: [react()],
+  css: {
+    postcss: "./postcss.config.js",
+  },
+});
