@@ -38,10 +38,19 @@ class FaceDetectionService {
       const modelPath = 'https://vladmandic.github.io/face-api/model';
       
       await Promise.all([
+        // Primary detection models
         faceapi.nets.ssdMobilenetv1.loadFromUri(modelPath),
-        faceapi.nets.faceLandmark68Net.loadFromUri(modelPath),
-        faceapi.nets.faceRecognitionNet.loadFromUri(modelPath),
+        faceapi.nets.mtcnn.loadFromUri(modelPath), // More accurate detection
         faceapi.nets.tinyFaceDetector.loadFromUri(modelPath),
+        
+        // Landmark and recognition models
+        faceapi.nets.faceLandmark68Net.loadFromUri(modelPath),
+        faceapi.nets.faceLandmark68TinyNet.loadFromUri(modelPath), // Faster landmarks
+        faceapi.nets.faceRecognitionNet.loadFromUri(modelPath),
+        
+        // Additional analysis models
+        faceapi.nets.ageGenderNet.loadFromUri(modelPath), // Age/gender prediction
+        faceapi.nets.faceExpressionNet.loadFromUri(modelPath), // Emotion detection
       ]);
       
       this.faceApiInitialized = true;
@@ -93,11 +102,24 @@ class FaceDetectionService {
       // Convert buffer to tensor
       const imageTensor = tf.node.decodeImage(imageBuffer, 3);
       
-      // Detect faces with landmarks and descriptors
-      const detections = await faceapi
-        .detectAllFaces(imageTensor as any, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 }))
-        .withFaceLandmarks()
-        .withFaceDescriptors();
+      // Try MTCNN first for better accuracy, fall back to SSD MobileNet
+      let detections;
+      try {
+        detections = await faceapi
+          .detectAllFaces(imageTensor as any, new faceapi.MtcnnOptions({ minFaceSize: 20 }))
+          .withFaceLandmarks()
+          .withFaceDescriptors()
+          .withAgeAndGender()
+          .withFaceExpressions();
+        
+        console.log(`MTCNN detected ${detections.length} faces with enhanced analysis`);
+      } catch (mtcnnError) {
+        console.log('MTCNN failed, falling back to SSD MobileNet:', mtcnnError);
+        detections = await faceapi
+          .detectAllFaces(imageTensor as any, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 }))
+          .withFaceLandmarks()
+          .withFaceDescriptors();
+      }
       
       // Clean up tensor
       imageTensor.dispose();
@@ -110,7 +132,7 @@ class FaceDetectionService {
         const detection = detections[i];
         const box = detection.detection.box;
         
-        faces.push({
+        const faceData: any = {
           id: `faceapi_face_${Date.now()}_${i}_${Math.random().toString(36).substr(2, 9)}`,
           boundingBox: [
             Math.round(box.x),
@@ -120,7 +142,24 @@ class FaceDetectionService {
           ],
           confidence: Math.round(detection.detection.score * 100),
           embedding: Array.from(detection.descriptor)
-        });
+        };
+
+        // Add enhanced analysis if available
+        if (detection.age !== undefined) {
+          faceData.estimatedAge = Math.round(detection.age);
+        }
+        if (detection.gender) {
+          faceData.estimatedGender = detection.gender;
+          faceData.genderConfidence = Math.round(detection.genderProbability * 100);
+        }
+        if (detection.expressions) {
+          const topExpression = Object.entries(detection.expressions)
+            .sort(([,a], [,b]) => (b as number) - (a as number))[0];
+          faceData.dominantExpression = topExpression[0];
+          faceData.expressionConfidence = Math.round((topExpression[1] as number) * 100);
+        }
+
+        faces.push(faceData);
       }
       
       return faces;
