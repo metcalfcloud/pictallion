@@ -120,7 +120,7 @@
     "@types/ws": "^8.18.1",
     "@vitejs/plugin-react": "^4.7.0",
     "autoprefixer": "^10.4.21",
-    "drizzle-kit": "^0.18.1",
+    "drizzle-kit": "^0.31.4",
     "electron": "^37.2.4",
     "electron-builder": "^26.0.12",
     "esbuild": "^0.25.8",
