@@ -49,30 +49,53 @@ The application uses a relational database with four main tables:
 3. **Gold Tier**: Curated, finalized media with embedded metadata
 
 ### AI Processing Pipeline
-- **Image Analysis**: Ollama with llava:latest for local AI image understanding
+- **Image Analysis**: OpenAI Vision API for comprehensive image understanding
 - **Metadata Extraction**: EXIF data parsing for technical details
 - **Object Detection**: Confidence-scored object identification
 - **Tagging**: Automated tag generation based on content analysis
 - **Description Generation**: Short and long descriptions for searchability
-- **Fallback Mode**: Basic metadata generation when Ollama is not available
+- **Face Detection**: TensorFlow-based face recognition and cropping
+- **Burst Photo Detection**: Intelligent grouping of similar photos taken within time windows
 
 ### File Management
 - **Directory Structure**: Automated creation of required media directories
 - **Batch Organization**: Bronze tier files organized in dated batches (max 500 files)
-- **Duplicate Detection**: Hash-based duplicate identification and handling
+- **Duplicate Detection**: Perceptual hash-based duplicate identification (Gold tier only)
+- **Burst Photo Grouping**: 95%+ similarity detection within ±1 minute time windows
 - **File Validation**: MIME type checking and size limits (50MB)
 
 ### User Interface
 - **Dashboard**: Overview with statistics and recent activity
 - **Gallery**: Grid/list view with filtering by tier and search capabilities
 - **Upload**: Drag-and-drop interface with progress tracking
+- **Burst Photos**: Intelligent grouping and selection interface for burst sequences
+- **People**: Face detection and person management
+- **Duplicates**: Gold tier duplicate detection and resolution
 - **Photo Detail Modal**: Comprehensive metadata display and editing
 
 ## Data Flow
 
 1. **Media Ingestion**: Files uploaded via dropzone → temporary storage → Bronze tier
-2. **AI Processing**: Bronze → Silver tier with AI analysis and metadata enrichment
-3. **Human Review**: Silver tier metadata validation and editing
+2. **Burst Analysis**: Bronze tier photos analyzed for burst sequences (95%+ similarity within ±1 minute)
+3. **AI Processing**: Selected Bronze photos → Silver tier with AI analysis and metadata enrichment
+4. **Human Review**: Silver tier metadata validation and editing
+5. **Final Curation**: Silver → Gold tier for finalized media
+6. **Duplicate Detection**: Gold tier photos scanned for duplicates using perceptual hashing
+
+## Recent Changes
+
+### Burst Photo Detection Implementation (July 27, 2025)
+- Implemented intelligent burst photo detection service using image similarity analysis
+- Added burst selection page for choosing photos from grouped sequences  
+- Modified bronze-to-silver processing to use burst grouping workflow
+- Updated duplicate detection to focus only on Gold tier photos (more relevant for final curation)
+- Added "Burst Photos" navigation link with Zap icon
+- Created comprehensive testing scripts and documentation for end-to-end feature validation
+
+### Testing Infrastructure
+- Created comprehensive testing guide (`scripts/test-pictallion.sh`) with 8 feature testing categories
+- Added structured test photo organization guide (`test-photos/README.md`)
+- Provided testing workflow for validating all features including burst detection, face recognition, AI tagging, and duplicate detection
 4. **Promotion**: Silver → Gold tier with finalized, embedded metadata
 5. **Storage**: Organized file structure with comprehensive audit logging
 
