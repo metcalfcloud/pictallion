@@ -159,19 +159,12 @@
     "mac": {
       "target": [
         "dmg"
-      ],
-      "arch": [
-        "x64",
-        "arm64"
       ]
     },
     "win": {
       "target": [
         "nsis",
         "msi"
-      ],
-      "arch": [
-        "x64"
       ]
     },
     "linux": {
@@ -179,9 +172,6 @@
         "AppImage",
         "deb",
         "rpm"
-      ],
-      "arch": [
-        "x64"
       ],
       "category": "Photography"
     }
