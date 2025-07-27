@@ -5,11 +5,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import * as React from "react";
-import { Search, Grid, List, Filter, Bot, Star, Eye, CheckSquare, Square, MoreHorizontal } from "lucide-react";
+import { Search, Grid, List, Filter, Bot, Star, Eye, CheckSquare, Square, MoreHorizontal, Sparkles } from "lucide-react";
 import PhotoGrid from "@/components/photo-grid";
 import PhotoDetailModal from "@/components/photo-detail-modal";
 import { AdvancedSearch } from "@/components/advanced-search";
 import BatchOperations from "@/components/batch-operations";
+import SmartCollections from "@/components/smart-collections";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -24,11 +25,34 @@ export default function Gallery() {
   const [showBatchOperations, setShowBatchOperations] = useState(false);
   const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
   const [searchFilters, setSearchFilters] = useState<import("@/components/advanced-search").SearchFilters>({});
+  const [showSmartCollections, setShowSmartCollections] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   const { data: photos, isLoading } = useQuery<Photo[]>({
     queryKey: ["/api/photos", tierFilter !== 'all' ? { tier: tierFilter } : {}],
+  });
+
+  const processPhotoMutation = useMutation({
+    mutationFn: async (photoId: string) => {
+      const response = await apiRequest('POST', `/api/photos/${photoId}/process`);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/photos"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+      toast({
+        title: "Processing Complete",
+        description: "Photo has been processed with AI and moved to Silver tier.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Processing Failed", 
+        description: error.message,
+        variant: "destructive"
+      });
+    },
   });
 
   // Handle quick actions from photo grid
@@ -59,28 +83,6 @@ export default function Gallery() {
       window.removeEventListener('quickCollection', handleQuickCollection as EventListener);
     };
   }, [bulkPromoteMutation, toast]);
-
-  const processPhotoMutation = useMutation({
-    mutationFn: async (photoId: string) => {
-      const response = await apiRequest('POST', `/api/photos/${photoId}/process`);
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/photos"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
-      toast({
-        title: "Processing Complete",
-        description: "Photo has been processed with AI and moved to Silver tier.",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Processing Failed", 
-        description: error.message,
-        variant: "destructive"
-      });
-    },
-  });
 
   const filteredPhotos = photos?.filter(photo => {
     if (searchQuery) {
@@ -231,6 +233,15 @@ export default function Gallery() {
               More Filters
             </Button>
 
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setShowSmartCollections(!showSmartCollections)}
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              Collections
+            </Button>
+
             {selectedPhotos.length > 0 && (
               <Button
                 variant="outline"
@@ -292,6 +303,20 @@ export default function Gallery() {
               onSearch={() => {
                 // Apply advanced search filters here
                 console.log('Advanced search filters:', searchFilters);
+              }}
+            />
+          </div>
+        )}
+
+        {/* Smart Collections */}
+        {showSmartCollections && (
+          <div className="mb-6">
+            <SmartCollections
+              selectedPhotos={selectedPhotos}
+              onCollectionSelect={(collectionId) => {
+                // Navigate to collection view or filter by collection
+                console.log('Selected collection:', collectionId);
+                setShowSmartCollections(false);
               }}
             />
           </div>
