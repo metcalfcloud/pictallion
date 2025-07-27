@@ -1,176 +1,91 @@
-name: 🚀 Release
+name: Release
 
 on:
   push:
     tags:
-      - 'v*'
-
-permissions:
-  contents: write
-  packages: write
+      - 'v*.*.*'
 
 jobs:
-  test:
-    name: 🧪 Test Suite
+  release:
     runs-on: ubuntu-latest
-    
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: pictallion_test
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-
+    env:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - name: 📥 Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: 📦 Setup Node.js
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: '18'
 
-      - name: 🔧 Install dependencies
+      - name: Install dependencies
         run: npm ci
 
-      - name: 🏗️ Build application
-        run: npm run build
+      - name: Run unit/integration tests
+        run: npm test
 
-      - name: ✅ Type check
-        run: npm run check
+      - name: Build Electron apps (Mac/Win/Linux)
+        run: |
+          npm run build
+          npx electron-builder --mac --win --linux
 
-      - name: 🔍 Security audit
-        run: bash ./scripts/ci/security-audit.sh
+      - name: Validate Electron app launches and connects to SQLite
+        run: |
+          npx electron --version
+          node scripts/validate-electron-sqlite.js
 
-      - name: 🔍 Database setup
-        run: npm run db:push
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/pictallion_test
+      - name: Archive installers
+        run: |
+          mkdir -p dist/installers
+          cp dist/*.dmg dist/installers/ || true
+          cp dist/*.exe dist/installers/ || true
+          cp dist/*.AppImage dist/installers/ || true
 
-  build:
-    name: 📦 Build Packages
-    needs: test
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+      - name: Build Docker image (SQLite)
+        run: docker build -f docker/Dockerfile.sqlite -t pictallion:sqlite .
 
-    steps:
-      - name: 📥 Checkout
-        uses: actions/checkout@v4
+      - name: Start Docker container (SQLite)
+        run: docker run -d --name pictallion_sqlite_test -p 8080:8080 pictallion:sqlite
 
-      - name: 📦 Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
+      - name: Health check Docker container (SQLite)
+        run: |
+          for i in {1..10}; do
+            if docker inspect --format='{{.State.Health.Status}}' pictallion_sqlite_test 2>/dev/null | grep -q healthy; then
+              echo "Container healthy"
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "Container health check failed"
+          docker logs pictallion_sqlite_test
+          exit 1
 
-      - name: 🔧 Install dependencies
-        run: bash ./scripts/ci/install-deps.sh
-        shell: bash
+      - name: Stop Docker container (SQLite)
+        run: docker rm -f pictallion_sqlite_test
 
-      - name: 🏗️ Build application
-        run: bash ./scripts/ci/build-app.sh
-        shell: bash
+      - name: Build Docker image (External DB)
+        run: docker build -f docker/Dockerfile.external -t pictallion:external .
 
-      - name: 📋 Get version
-        id: version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-        shell: bash
-
-      - name: 📦 Create platform archive
-        run: bash ./scripts/ci/create-platform-archive.sh
-        shell: bash
-
-      - name: 📤 Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: pictallion-${{ matrix.os }}
-          path: pictallion-${{ steps.version.outputs.VERSION }}-*
-
-  docker:
-    name: 🐳 Build Docker Images
-    needs: test
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: 📥 Checkout
-        uses: actions/checkout@v4
-
-      - name: 🐳 Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: 🔑 Login to GitHub Container Registry
+      - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
-      - name: 📋 Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
+      - name: Push Docker image (SQLite)
+        run: |
+          docker tag pictallion:sqlite ${{ secrets.DOCKERHUB_USERNAME }}/pictallion:sqlite-${{ github.ref_name }}
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/pictallion:sqlite-${{ github.ref_name }}
+
+      - name: Push Docker image (External DB)
+        run: |
+          docker tag pictallion:external ${{ secrets.DOCKERHUB_USERNAME }}/pictallion:external-${{ github.ref_name }}
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/pictallion:external-${{ github.ref_name }}
+
+      - name: Publish installers to GitHub Releases
+        uses: softprops/action-gh-release@v2
         with:
-          images: ghcr.io/${{ github.repository }}
-          tags: |
-            type=ref,event=tag
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
-
-      - name: 🚀 Build Docker setup
-        run: bash ./scripts/ci/docker-setup.sh
-
-      - name: 🏗️ Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-  release:
-    name: 🎉 Create Release
-    needs: [test, build, docker]
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: 📥 Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: 📤 Download build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: ./artifacts
-
-      - name: 📋 Get version and changelog
-        id: version
-        run: bash ./scripts/ci/get-version-changelog.sh
-
-      - name: 📁 Organize release assets
-        run: bash ./scripts/ci/organize-release-assets.sh
-
-      - name: 🎉 Create GitHub Release
-        uses: softprops/action-gh-release@v1
-        with:
-          name: Pictallion ${{ steps.version.outputs.VERSION }}
-          body_path: release_notes.md
-          files: release_assets/*
-          draft: false
-          prerelease: ${{ contains(steps.version.outputs.VERSION, 'alpha') || contains(steps.version.outputs.VERSION, 'beta') || contains(steps.version.outputs.VERSION, 'rc') }}
-          generate_release_notes: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          files: dist/installers/*

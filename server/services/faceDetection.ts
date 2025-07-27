@@ -99,7 +99,7 @@ class FaceDetectionService {
         .toBuffer();
       
       // Convert buffer to tensor
-      const imageTensor = tf.node.decodeImage(imageBuffer, 3);
+      const imageTensor: tf.Tensor3D = tf.node.decodeImage(imageBuffer, 3) as tf.Tensor3D;
       
       // Remove MTCNN detection, use SSD MobileNet only
       const detections = await faceapi
@@ -484,7 +484,7 @@ class FaceDetectionService {
         .toBuffer();
       
       // Convert to tensor
-      const faceTensor = tf.node.decodeImage(faceBuffer, 3);
+      const faceTensor: tf.Tensor3D = tf.node.decodeImage(faceBuffer, 3) as tf.Tensor3D;
       
       // Get face descriptor using Face-API
       const detection = await faceapi

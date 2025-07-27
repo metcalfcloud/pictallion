@@ -5,6 +5,13 @@ import * as schema from "@shared/schema";
 
 neonConfig.webSocketConstructor = ws;
 
+const dbType = process.env.DB_TYPE || 'postgres';
+
+if (dbType === 'sqlite') {
+  // Placeholder for SQLite config
+  throw new Error("SQLite support not yet implemented. Set DB_TYPE=postgres for Postgres.");
+}
+
 if (!process.env.DATABASE_URL) {
   throw new Error(
     "DATABASE_URL must be set. Did you forget to provision a database?",

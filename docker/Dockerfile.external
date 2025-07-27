@@ -1,0 +1,17 @@
+# Dockerfile for external database setup
+
+FROM node:18-alpine
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci --production
+
+COPY . .
+
+ENV NODE_ENV=production
+ENV DB_TYPE=postgres
+# DB config via environment variables:
+# DB_TYPE, DB_HOST, DB_PORT, DB_USER, DB_PASS, DB_NAME
+
+CMD ["npm", "start"]
