@@ -14,6 +14,7 @@ import {
   Search, 
   UserPlus, 
   Eye, 
+  EyeOff,
   Edit, 
   Merge, 
   Trash2, 
@@ -64,7 +65,7 @@ interface Face {
 }
 
 export default function PeoplePage() {
-  const [viewMode, setViewMode] = useState<'people' | 'faces' | 'suggestions'>('people');
+  const [viewMode, setViewMode] = useState<'people' | 'faces' | 'suggestions' | 'ignored'>('people');
   const [selectedPerson, setSelectedPerson] = useState<string | null>(null);
   const [selectedFaces, setSelectedFaces] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -93,6 +94,11 @@ export default function PeoplePage() {
   const { data: personPhotos = [], isLoading: personPhotosLoading } = useQuery<any[]>({
     queryKey: ["/api/people", selectedPerson, "photos"],
     enabled: !!selectedPerson,
+  });
+
+  const { data: ignoredFaces = [], isLoading: ignoredFacesLoading } = useQuery<Face[]>({
+    queryKey: ["/api/faces/ignored"],
+    enabled: viewMode === 'ignored',
   });
 
   // Create person mutation
@@ -170,6 +176,22 @@ export default function PeoplePage() {
     onError: () => {
       toast({ title: "Failed to assign faces", variant: "destructive" });
     },
+  });
+
+  // Unignore face mutation
+  const unignoreFaceMutation = useMutation({
+    mutationFn: async (faceId: string) => {
+      return await apiRequest('POST', `/api/faces/${faceId}/unignore`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/faces/ignored"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/faces/unassigned"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/faces/suggestions"] });
+      toast({ title: "Face restored successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to restore face", variant: "destructive" });
+    }
   });
 
   // Set thumbnail mutation
@@ -287,6 +309,14 @@ export default function PeoplePage() {
               <Sparkles className="w-4 h-4" />
               <span>Suggestions</span>
             </Button>
+            <Button
+              variant={viewMode === 'ignored' ? 'default' : 'outline'}
+              onClick={() => setViewMode('ignored')}
+              className="flex items-center space-x-2"
+            >
+              <EyeOff className="w-4 h-4" />
+              <span>Ignored</span>
+            </Button>
           </div>
           
           {viewMode === 'people' && (
@@ -329,6 +359,71 @@ export default function PeoplePage() {
         {/* Face Suggestions View */}
         {viewMode === 'suggestions' && (
           <FaceSuggestions />
+        )}
+
+        {/* Ignored Faces View */}
+        {viewMode === 'ignored' && (
+          <div className="space-y-4">
+            {ignoredFacesLoading ? (
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                {Array.from({ length: 12 }).map((_, i) => (
+                  <div key={i} className="w-32 h-32 bg-muted rounded animate-pulse"></div>
+                ))}
+              </div>
+            ) : ignoredFaces.length > 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                {ignoredFaces.map((face) => (
+                  <div key={face.id} className="relative group">
+                    <div className="w-32 h-32 bg-muted rounded overflow-hidden">
+                      {face.faceCropUrl ? (
+                        <img
+                          src={`/api/files/${face.faceCropUrl}`}
+                          alt="Ignored face"
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                          }}
+                        />
+                      ) : null}
+                      <div className={`w-full h-full flex items-center justify-center ${face.faceCropUrl ? 'hidden' : ''}`}>
+                        <User className="w-8 h-8 text-muted-foreground" />
+                      </div>
+                    </div>
+                    
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-60 transition-all rounded flex items-center justify-center">
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        className="opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => unignoreFaceMutation.mutate(face.id)}
+                        disabled={unignoreFaceMutation.isPending}
+                      >
+                        <Eye className="h-3 w-3 mr-1" />
+                        Restore
+                      </Button>
+                    </div>
+                    
+                    <div className="absolute -top-1 -right-1">
+                      <div className="bg-red-500 text-white text-xs px-1 rounded">
+                        <EyeOff className="w-3 h-3" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <Card>
+                <CardContent className="p-12 text-center">
+                  <EyeOff className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-card-foreground dark:text-white mb-2">No ignored faces</h3>
+                  <p className="text-muted-foreground">
+                    You haven't ignored any faces yet. Use the "Ignore Face" option in suggestions to exclude faces you don't want to tag.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
         )}
 
         {/* People View */}

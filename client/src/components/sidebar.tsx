@@ -30,7 +30,6 @@ const navigationItems = [
   { path: "/burst-selection", label: "Burst Photos", icon: Zap },
   { path: "/duplicates", label: "Duplicates", icon: Copy },
   { path: "/settings", label: "Settings", icon: Settings },
-  { path: "/ignored-faces", label: "Ignored Faces", icon: EyeOff },
 ];
 
 export default function Sidebar() {

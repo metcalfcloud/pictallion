@@ -40,10 +40,10 @@ export interface CollectionStats {
 export interface Face {
   id: string;
   photoId: string;
+  personId?: string;
   boundingBox: [number, number, number, number]; // [x, y, width, height]
-  confidence: number; // 0-100
-  embedding?: number[]; // Face embedding for recognition
-  personId?: string | null;
-  ignored: boolean; // Mark face as ignored
-  createdAt: Date;
+  confidence: number;
+  embedding?: number[];
+  ignored?: boolean;
+  createdAt: string;
 }

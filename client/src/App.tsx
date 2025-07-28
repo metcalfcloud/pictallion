@@ -33,6 +33,9 @@ function Router() {
           <Route path="/silver-review" component={SilverReview} />
           <Route path="/burst-selection" component={BurstSelectionPage} />
           <Route path="/ignored-faces" component={IgnoredFaces} />
+          <Route path="/people" component={People} />
+          <Route path="/duplicates" component={Duplicates} />
+          <Route path="/settings" component={Settings} />
           <Route component={NotFound} />
         </Switch>
       </main>
