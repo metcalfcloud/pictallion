@@ -28,6 +28,7 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, count, sql } from "drizzle-orm";
+import path from "path";
 
 export interface IStorage {
   // User methods
@@ -266,16 +267,13 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(fileVersions.createdAt))
       .limit(limit);
 
-    return results.map(result => {
-      const path = require('path');
-      return {
-        ...result.file_versions,
-        mediaAsset: {
-          ...result.media_assets!,
-          displayFilename: path.basename(result.file_versions.filePath)
-        }
-      };
-    });
+    return results.map(result => ({
+      ...result.file_versions,
+      mediaAsset: {
+        ...result.media_assets!,
+        displayFilename: path.basename(result.file_versions.filePath)
+      }
+    }));
   }
 
   // Collections methods
