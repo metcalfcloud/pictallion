@@ -68,6 +68,7 @@ export default function PeoplePage() {
   const [selectedPerson, setSelectedPerson] = useState<string | null>(null);
   const [selectedFaces, setSelectedFaces] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [assignFacesSearchQuery, setAssignFacesSearchQuery] = useState('');
   const [filterUnassigned, setFilterUnassigned] = useState(false);
   const [isCreatePersonOpen, setIsCreatePersonOpen] = useState(false);
   const [isMergeFacesOpen, setIsMergeFacesOpen] = useState(false);
@@ -456,7 +457,10 @@ export default function PeoplePage() {
                       <Button size="sm" onClick={() => setSelectedFaces([])}>
                         Clear Selection
                       </Button>
-                      <Button size="sm" onClick={() => setIsMergeFacesOpen(true)}>
+                      <Button size="sm" onClick={() => {
+                        setAssignFacesSearchQuery(''); // Clear search when opening dialog
+                        setIsMergeFacesOpen(true);
+                      }}>
                         <Merge className="w-4 h-4 mr-2" />
                         Assign to Person
                       </Button>
@@ -688,7 +692,13 @@ export default function PeoplePage() {
       </Dialog>
 
       {/* Assign Faces to Person Dialog */}
-      <Dialog open={isMergeFacesOpen} onOpenChange={setIsMergeFacesOpen}>
+      <Dialog open={isMergeFacesOpen} onOpenChange={(open) => {
+        setIsMergeFacesOpen(open);
+        if (!open) {
+          // Clear search query when dialog closes
+          setAssignFacesSearchQuery('');
+        }
+      }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Assign Faces to Person</DialogTitle>
@@ -701,15 +711,15 @@ export default function PeoplePage() {
               <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Search people by name..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                value={assignFacesSearchQuery}
+                onChange={(e) => setAssignFacesSearchQuery(e.target.value)}
                 className="pl-10"
               />
             </div>
             <div className="grid grid-cols-2 gap-3 max-h-64 overflow-y-auto">
               {people
                 .filter(person => 
-                  person.name.toLowerCase().includes(searchQuery.toLowerCase())
+                  person.name.toLowerCase().includes(assignFacesSearchQuery.toLowerCase())
                 )
                 .map((person) => (
                 <Button
@@ -747,8 +757,8 @@ export default function PeoplePage() {
               <Button
                 variant="outline"
                 onClick={() => {
-                  // Prefill the person name with the current search query
-                  setNewPersonName(searchQuery.trim());
+                  // Prefill the person name with the current assign faces search query
+                  setNewPersonName(assignFacesSearchQuery.trim());
                   setIsCreatePersonOpen(true);
                 }}
                 className="flex items-center space-x-2"
