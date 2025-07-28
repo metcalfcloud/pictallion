@@ -64,9 +64,41 @@ export class BurstPhotoDetectionService {
           continue;
         }
 
-        // Find photos within 1 minute window
+        // Find photos within 1 minute window using extracted timestamps
         const timeWindow = 60 * 1000; // 1 minute in milliseconds
-        const currentTime = new Date(currentPhoto.createdAt).getTime();
+        const getPhotoTime = (photo: any) => {
+          // First try EXIF datetime fields
+          if (photo.metadata?.exif?.dateTime) {
+            return new Date(photo.metadata.exif.dateTime).getTime();
+          }
+          if (photo.metadata?.exif?.dateTimeOriginal) {
+            return new Date(photo.metadata.exif.dateTimeOriginal).getTime();
+          }
+          
+          // Try to extract from filename if it has timestamp format (YYYYMMDD_HHMMSS)
+          const filename = photo.mediaAsset.originalFilename;
+          const timestampMatch = filename.match(/^(\d{8})_(\d{6})/);
+          if (timestampMatch) {
+            const dateStr = timestampMatch[1]; // YYYYMMDD
+            const timeStr = timestampMatch[2]; // HHMMSS
+            const year = parseInt(dateStr.substring(0, 4));
+            const month = parseInt(dateStr.substring(4, 6)) - 1; // Month is 0-indexed
+            const day = parseInt(dateStr.substring(6, 8));
+            const hour = parseInt(timeStr.substring(0, 2));
+            const minute = parseInt(timeStr.substring(2, 4));
+            const second = parseInt(timeStr.substring(4, 6));
+            
+            const extractedDate = new Date(year, month, day, hour, minute, second);
+            if (!isNaN(extractedDate.getTime())) {
+              return extractedDate.getTime();
+            }
+          }
+          
+          // Fall back to upload time as last resort
+          return new Date(photo.createdAt).getTime();
+        };
+        
+        const currentTime = getPhotoTime(currentPhoto);
         const candidatePhotos = [currentPhoto];
         
         // Look for photos within time window
@@ -76,7 +108,7 @@ export class BurstPhotoDetectionService {
             continue;
           }
 
-          const compareTime = new Date(comparePhoto.createdAt).getTime();
+          const compareTime = getPhotoTime(comparePhoto);
           const timeDiff = Math.abs(compareTime - currentTime);
           
           if (timeDiff > timeWindow) {
@@ -259,16 +291,15 @@ export class BurstPhotoDetectionService {
       // EXIF comparison failed, continue without it
     }
 
-    // Much stricter criteria for burst grouping
-    // Only group if we have multiple strong similarity indicators
-    if (timeDiff <= 2000 && similarityScore >= 0.7) {
-      // Very close in time (under 2 seconds) with decent similarity - likely real burst
-      return Math.min(similarityScore + 0.2, 1.0);
-    } else if (timeDiff <= 5000 && similarityScore >= 0.9) {
-      // Close in time (under 5 seconds) with very high similarity
-      return Math.min(similarityScore, 1.0);
-    } else if (timeDiff <= 30000 && similarityScore >= 0.95) {
-      // Moderately close in time (under 30 seconds) with extremely high similarity
+    // Balanced criteria for burst grouping
+    if (timeDiff <= 10000 && similarityScore >= 0.5) {
+      // Photos within 10 seconds with moderate similarity - likely burst sequence
+      return Math.min(similarityScore + 0.45, 1.0);
+    } else if (timeDiff <= 30000 && similarityScore >= 0.8) {
+      // Photos within 30 seconds with high similarity
+      return Math.min(similarityScore + 0.15, 1.0);
+    } else if (timeDiff <= 60000 && similarityScore >= 0.9) {
+      // Photos within 1 minute with very high similarity
       return Math.min(similarityScore, 1.0);
     }
 
