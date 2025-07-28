@@ -688,8 +688,21 @@ export default function PeoplePage() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
+            <div className="relative">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search people by name..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
             <div className="grid grid-cols-2 gap-3 max-h-64 overflow-y-auto">
-              {people.map((person) => (
+              {people
+                .filter(person => 
+                  person.name.toLowerCase().includes(searchQuery.toLowerCase())
+                )
+                .map((person) => (
                 <Button
                   key={person.id}
                   variant="outline"
