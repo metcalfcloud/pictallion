@@ -35,7 +35,7 @@ interface BurstAnalysis {
 export default function BurstSelectionPage() {
   const [analysis, setAnalysis] = useState<BurstAnalysis | null>(null);
   const [loading, setLoading] = useState(false);
-  const [processing, setProcessing] useState(false);
+  const [processing, setProcessing] = useState(false);
   const [selectedPhotos, setSelectedPhotos] = useState<Map<string, string[]>>(new Map()); // groupId -> photoIds[]
   const [scanProgress, setScanProgress] = useState(0);
   const queryClient = useQueryClient();

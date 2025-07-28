@@ -1,4 +1,3 @@
-typescript
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -358,18 +357,16 @@ export default function SettingsPage() {
   return (
     <div className="flex-1 overflow-auto bg-gray-50 dark:bg-gray-900">
       <div className="p-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Settings</h1>
-        
-      {/* Header */}
-      <header className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <SettingsIcon className="h-8 w-8" />
-            Settings
-          </h1>
-          <p className="text-gray-500 mt-1">Configure Pictallion to match your workflow preferences</p>
-        </div>
-      </header>
+        {/* Header */}
+        <header className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+              <SettingsIcon className="h-8 w-8" />
+              Settings
+            </h1>
+            <p className="text-gray-500 mt-1">Configure Pictallion to match your workflow preferences</p>
+          </div>
+        </header>
 
       {/* Settings Tabs */}
       <Tabs defaultValue="naming" className="w-full">
@@ -699,6 +696,7 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   );
 }
