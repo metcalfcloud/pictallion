@@ -84,7 +84,7 @@ export default function Dashboard() {
       case 'METADATA_EDITED':
         return <Eye className="text-yellow-600" size={16} />;
       default:
-        return <CheckCircle className="text-gray-600" size={16} />;
+        return <CheckCircle className="text-muted-foreground" size={16} />;
     }
   };
 
@@ -93,7 +93,7 @@ export default function Dashboard() {
       case 'bronze':
         return 'bg-orange-500 text-white';
       case 'silver':
-        return 'bg-gray-500 text-white';
+        return 'bg-background0 text-white';
       case 'gold':
         return 'bg-yellow-500 text-white';
       default:
@@ -115,11 +115,11 @@ export default function Dashboard() {
   return (
     <>
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-6 py-4">
+      <header className="bg-card border-b border-border px-6 py-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-3xl font-bold text-gray-900">Your Photo Collection</h2>
-            <p className="text-gray-600 mt-1">Organize, process, and discover your memories</p>
+            <h2 className="text-3xl font-bold text-card-foreground">Your Photo Collection</h2>
+            <p className="text-muted-foreground mt-1">Organize, process, and discover your memories</p>
           </div>
           <div className="flex items-center space-x-3">
             <Button 
@@ -134,23 +134,23 @@ export default function Dashboard() {
       </header>
 
       {/* Content */}
-      <div className="flex-1 p-6 overflow-y-auto bg-gray-50 dark:bg-gray-900">
+      <div className="flex-1 p-6 overflow-y-auto bg-background">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Total Photos</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-1">
+                  <p className="text-sm font-medium text-muted-foreground">Total Photos</p>
+                  <p className="text-3xl font-bold text-card-foreground mt-1">
                     {statsLoading ? "..." : stats?.totalPhotos || 0}
                   </p>
-                  <p className="text-sm text-green-600 mt-1">
+                  <p className="text-sm text-green-600 dark:text-green-400 mt-1">
                     <TrendingUp className="inline w-4 h-4" /> Collection growing
                   </p>
                 </div>
-                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <Images className="text-blue-600 text-xl" />
+                <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center">
+                  <Images className="text-blue-600 dark:text-blue-400 text-xl" />
                 </div>
               </div>
             </CardContent>
@@ -160,16 +160,16 @@ export default function Dashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">AI Processed</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-1">
+                  <p className="text-sm font-medium text-muted-foreground">AI Processed</p>
+                  <p className="text-3xl font-bold text-card-foreground mt-1">
                     {statsLoading ? "..." : stats?.aiProcessedCount || 0}
                   </p>
-                  <p className="text-sm text-green-600 mt-1">
+                  <p className="text-sm text-green-600 dark:text-green-400 mt-1">
                     <Bot className="inline w-4 h-4" /> Processing active
                   </p>
                 </div>
-                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                  <Bot className="text-green-600 text-xl" />
+                <div className="w-12 h-12 bg-green-100 dark:bg-green-900/20 rounded-lg flex items-center justify-center">
+                  <Bot className="text-green-600 dark:text-green-400 text-xl" />
                 </div>
               </div>
             </CardContent>
@@ -179,16 +179,16 @@ export default function Dashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Pending Review</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-1">
+                  <p className="text-sm font-medium text-muted-foreground">Pending Review</p>
+                  <p className="text-3xl font-bold text-card-foreground mt-1">
                     {statsLoading ? "..." : stats?.pendingReviewCount || 0}
                   </p>
-                  <p className="text-sm text-yellow-600 mt-1">
+                  <p className="text-sm text-yellow-600 dark:text-yellow-400 mt-1">
                     <Clock className="inline w-4 h-4" /> Needs attention
                   </p>
                 </div>
-                <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-                  <Eye className="text-yellow-600 text-xl" />
+                <div className="w-12 h-12 bg-yellow-100 dark:bg-yellow-900/20 rounded-lg flex items-center justify-center">
+                  <Eye className="text-yellow-600 dark:text-yellow-400 text-xl" />
                 </div>
               </div>
             </CardContent>
@@ -198,16 +198,16 @@ export default function Dashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Gold Tier</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-1">
+                  <p className="text-sm font-medium text-muted-foreground">Gold Tier</p>
+                  <p className="text-3xl font-bold text-card-foreground mt-1">
                     {statsLoading ? "..." : stats?.goldCount || 0}
                   </p>
-                  <p className="text-sm text-green-600 mt-1">
+                  <p className="text-sm text-green-600 dark:text-green-400 mt-1">
                     <CheckCircle className="inline w-4 h-4" /> Curated
                   </p>
                 </div>
-                <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-                  <Star className="text-yellow-500 text-xl" />
+                <div className="w-12 h-12 bg-yellow-100 dark:bg-yellow-900/20 rounded-lg flex items-center justify-center">
+                  <Star className="text-yellow-500 dark:text-yellow-400 text-xl" />
                 </div>
               </div>
             </CardContent>
@@ -217,52 +217,52 @@ export default function Dashboard() {
         {/* Processing Pipeline */}
         <Card className="mb-8">
           <CardContent className="p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Processing Pipeline</h3>
+            <h3 className="text-lg font-semibold text-card-foreground mb-4">Processing Pipeline</h3>
             <div className="flex items-center justify-between">
               {/* Bronze Tier */}
               <div className="flex-1 text-center">
-                <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <i className="fas fa-inbox text-orange-600 text-2xl"></i>
+                <div className="w-16 h-16 bg-orange-100 dark:bg-orange-900/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <Camera className="text-orange-600 dark:text-orange-400 text-2xl" />
                 </div>
-                <h4 className="font-medium text-gray-900">Bronze Tier</h4>
-                <p className="text-2xl font-bold text-orange-600 mt-1">
+                <h4 className="font-medium text-card-foreground">Bronze Tier</h4>
+                <p className="text-2xl font-bold text-orange-600 dark:text-orange-400 mt-1">
                   {statsLoading ? "..." : stats?.bronzeCount || 0}
                 </p>
-                <p className="text-sm text-gray-500">Raw uploads</p>
+                <p className="text-sm text-muted-foreground">Raw uploads</p>
               </div>
 
               {/* Arrow */}
               <div className="px-4">
-                <ArrowRight className="text-gray-300 text-xl" />
+                <ArrowRight className="text-muted-foreground text-xl" />
               </div>
 
               {/* Silver Tier */}
               <div className="flex-1 text-center">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <WandSparkles className="text-gray-600 text-2xl" />
+                <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <WandSparkles className="text-muted-foreground dark:text-gray-300 text-2xl" />
                 </div>
-                <h4 className="font-medium text-gray-900">Silver Tier</h4>
-                <p className="text-2xl font-bold text-gray-600 mt-1">
+                <h4 className="font-medium text-card-foreground">Silver Tier</h4>
+                <p className="text-2xl font-bold text-muted-foreground dark:text-gray-300 mt-1">
                   {statsLoading ? "..." : stats?.silverCount || 0}
                 </p>
-                <p className="text-sm text-gray-500">AI processed</p>
+                <p className="text-sm text-muted-foreground">AI processed</p>
               </div>
 
               {/* Arrow */}
               <div className="px-4">
-                <ArrowRight className="text-gray-300 text-xl" />
+                <ArrowRight className="text-muted-foreground text-xl" />
               </div>
 
               {/* Gold Tier */}
               <div className="flex-1 text-center">
-                <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <Star className="text-yellow-600 text-2xl" />
+                <div className="w-16 h-16 bg-yellow-100 dark:bg-yellow-900/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <Star className="text-yellow-600 dark:text-yellow-400 text-2xl" />
                 </div>
-                <h4 className="font-medium text-gray-900">Gold Tier</h4>
-                <p className="text-2xl font-bold text-yellow-600 mt-1">
+                <h4 className="font-medium text-card-foreground">Gold Tier</h4>
+                <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400 mt-1">
                   {statsLoading ? "..." : stats?.goldCount || 0}
                 </p>
-                <p className="text-sm text-gray-500">Curated</p>
+                <p className="text-sm text-muted-foreground">Curated</p>
               </div>
             </div>
           </CardContent>
@@ -274,28 +274,28 @@ export default function Dashboard() {
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">Recent Activity</h3>
+                <h3 className="text-lg font-semibold text-card-foreground">Recent Activity</h3>
                 <Button variant="ghost" size="sm">
                   View all
                 </Button>
               </div>
               <div className="space-y-4">
                 {activityLoading ? (
-                  <div className="text-center text-gray-500">Loading...</div>
+                  <div className="text-center text-muted-foreground">Loading...</div>
                 ) : activity && activity.length > 0 ? (
                   activity.slice(0, 5).map((item) => (
                     <div key={item.id} className="flex items-start space-x-3">
-                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                      <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center flex-shrink-0">
                         {getActivityIcon(item.action)}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-gray-900">{item.details}</p>
-                        <p className="text-xs text-gray-500">{formatTimeAgo(item.timestamp)}</p>
+                        <p className="text-sm text-card-foreground">{item.details}</p>
+                        <p className="text-xs text-muted-foreground">{formatTimeAgo(item.timestamp)}</p>
                       </div>
                     </div>
                   ))
                 ) : (
-                  <div className="text-center text-gray-500">No recent activity</div>
+                  <div className="text-center text-muted-foreground">No recent activity</div>
                 )}
               </div>
             </CardContent>
@@ -304,7 +304,7 @@ export default function Dashboard() {
           {/* Quick Actions */}
           <Card>
             <CardContent className="p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+              <h3 className="text-lg font-semibold text-card-foreground mb-4">Quick Actions</h3>
               <div className="grid grid-cols-1 gap-3">
                 {(stats?.bronzeCount ?? 0) > 0 && (
                   <Button
@@ -317,7 +317,7 @@ export default function Dashboard() {
                         <WandSparkles className="h-5 w-5 mr-3 text-green-600" />
                         <div className="text-left">
                           <div className="font-medium">Process {(stats?.bronzeCount ?? 0)} new photos</div>
-                          <div className="text-sm text-gray-500">Add AI tags and descriptions</div>
+                          <div className="text-sm text-muted-foreground">Add AI tags and descriptions</div>
                         </div>
                       </div>
                       <ArrowRight className="h-4 w-4 text-gray-400" />
@@ -336,7 +336,7 @@ export default function Dashboard() {
                         <Eye className="h-5 w-5 mr-3 text-yellow-600" />
                         <div className="text-left">
                           <div className="font-medium">Review {(stats?.pendingReviewCount ?? 0)} processed photos</div>
-                          <div className="text-sm text-gray-500">Verify AI results and curate</div>
+                          <div className="text-sm text-muted-foreground">Verify AI results and curate</div>
                         </div>
                       </div>
                       <ArrowRight className="h-4 w-4 text-gray-400" />
@@ -354,7 +354,7 @@ export default function Dashboard() {
                       <Images className="h-5 w-5 mr-3 text-blue-600" />
                       <div className="text-left">
                         <div className="font-medium">Browse all photos</div>
-                        <div className="text-sm text-gray-500">View your complete collection</div>
+                        <div className="text-sm text-muted-foreground">View your complete collection</div>
                       </div>
                     </div>
                     <ArrowRight className="h-4 w-4 text-gray-400" />
@@ -369,7 +369,7 @@ export default function Dashboard() {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-gray-900">Recent Photos</h3>
+              <h3 className="text-lg font-semibold text-card-foreground">Recent Photos</h3>
               <div className="flex items-center space-x-2">
                 <select className="text-sm border border-gray-300 rounded-lg px-3 py-1 focus:outline-none focus:ring-2 focus:ring-primary">
                   <option value="all">All Tiers</option>
@@ -418,7 +418,7 @@ export default function Dashboard() {
                   </div>
                 ))
               ) : (
-                <div className="col-span-full text-center text-gray-500 py-8">
+                <div className="col-span-full text-center text-muted-foreground py-8">
                   No photos uploaded yet. <Button variant="link" onClick={() => setIsUploadModalOpen(true)}>Upload your first photos</Button>
                 </div>
               )}

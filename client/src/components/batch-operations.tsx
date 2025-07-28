@@ -214,7 +214,7 @@ export default function BatchOperations({
               )}
               {selectedPhotos.length === photos.length ? 'Deselect All' : 'Select All'}
             </Button>
-            <span className="text-sm text-gray-500">
+            <span className="text-sm text-muted-foreground">
               {selectedPhotos.length} of {photos.length} selected
             </span>
           </div>
@@ -249,7 +249,7 @@ export default function BatchOperations({
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium">Processing {currentOperation}...</span>
-            <span className="text-sm text-gray-500">{progress}%</span>
+            <span className="text-sm text-muted-foreground">{progress}%</span>
           </div>
           <Progress value={progress} className="w-full" />
         </div>
@@ -264,7 +264,7 @@ export default function BatchOperations({
             <Trash2 className="h-4 w-4 text-red-500" />
             <span className="font-medium">Delete Photos</span>
           </div>
-          <p className="text-sm text-gray-500 mb-3">
+          <p className="text-sm text-muted-foreground mb-3">
             Permanently delete selected photos
           </p>
           <Button 
@@ -305,7 +305,7 @@ export default function BatchOperations({
             <Bot className="h-4 w-4 text-purple-500" />
             <span className="font-medium">AI Processing</span>
           </div>
-          <p className="text-sm text-gray-500 mb-3">
+          <p className="text-sm text-muted-foreground mb-3">
             Process Bronze photos with AI analysis
           </p>
           <Button 
@@ -440,7 +440,7 @@ export default function BatchOperations({
               />
               {selectedPhotos.includes(photo.id) && (
                 <div className="absolute top-1 right-1">
-                  <CheckSquare className="h-4 w-4 text-blue-500 bg-white rounded" />
+                  <CheckSquare className="h-4 w-4 text-blue-500 bg-card rounded" />
                 </div>
               )}
               <Badge 

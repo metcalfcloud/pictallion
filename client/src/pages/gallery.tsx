@@ -185,11 +185,11 @@ export default function Gallery() {
   return (
     <>
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-6 py-4">
+      <header className="bg-card border-b border-border px-6 py-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-semibold text-gray-900">Gallery</h2>
-            <p className="text-sm text-gray-500">Browse and manage your photo collection</p>
+            <h2 className="text-2xl font-semibold text-card-foreground">Gallery</h2>
+            <p className="text-sm text-muted-foreground">Browse and manage your photo collection</p>
           </div>
           <div className="flex items-center space-x-4">
             <div className="relative">
@@ -324,7 +324,7 @@ export default function Gallery() {
 
         {/* Results Summary */}
         <div className="mb-6">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-muted-foreground">
             Showing {filteredPhotos.length} photos
             {tierFilter !== 'all' && ` in ${tierFilter} tier`}
             {searchQuery && ` matching "${searchQuery}"`}
@@ -360,8 +360,8 @@ export default function Gallery() {
               <div className="text-gray-400 mb-4">
                 <Grid className="w-16 h-16 mx-auto" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No photos found</h3>
-              <p className="text-gray-500 mb-4">
+              <h3 className="text-lg font-semibold text-card-foreground mb-2">No photos found</h3>
+              <p className="text-muted-foreground mb-4">
                 {searchQuery 
                   ? `No photos match your search for "${searchQuery}"`
                   : tierFilter !== 'all'

@@ -174,11 +174,11 @@ export default function Upload() {
   return (
     <>
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-6 py-4">
+      <header className="bg-card border-b border-border px-6 py-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-semibold text-gray-900">Upload Photos</h2>
-            <p className="text-sm text-gray-500">Add new photos to your collection</p>
+            <h2 className="text-2xl font-semibold text-card-foreground">Upload Photos</h2>
+            <p className="text-sm text-muted-foreground">Add new photos to your collection</p>
           </div>
         </div>
       </header>
@@ -199,10 +199,10 @@ export default function Upload() {
               >
                 <input {...getInputProps()} />
                 <UploadIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <h4 className="text-lg font-medium text-gray-900 mb-2">
+                <h4 className="text-lg font-medium text-card-foreground mb-2">
                   {isDragActive ? 'Drop photos here' : 'Drag and drop your photos here'}
                 </h4>
-                <p className="text-gray-500 mb-4">or click to browse your files</p>
+                <p className="text-muted-foreground mb-4">or click to browse your files</p>
                 <Button>Choose Files</Button>
                 <p className="text-xs text-gray-400 mt-4">
                   Supports JPEG, PNG, TIFF, MP4, MOV, AVI files up to 50MB each
@@ -216,7 +216,7 @@ export default function Upload() {
             <Card>
               <CardContent className="p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">
+                  <h3 className="text-lg font-semibold text-card-foreground">
                     Upload Queue ({uploadFiles.length} files)
                   </h3>
                   <div className="flex space-x-2">
@@ -236,10 +236,10 @@ export default function Upload() {
 
                 <div className="space-y-3">
                   {uploadFiles.map((uploadFile) => (
-                    <div key={uploadFile.id} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                    <div key={uploadFile.id} className="flex items-center space-x-3 p-3 bg-background rounded-lg">
                       {getStatusIcon(uploadFile.status)}
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">
+                        <p className="text-sm font-medium text-card-foreground truncate">
                           {uploadFile.file.name}
                         </p>
                         <div className="flex items-center space-x-2 mt-1">
@@ -248,7 +248,7 @@ export default function Upload() {
                               <Progress value={uploadFile.progress} className="h-2" />
                             )}
                           </div>
-                          <span className="text-xs text-gray-500">
+                          <span className="text-xs text-muted-foreground">
                             {getStatusText(uploadFile)}
                           </span>
                         </div>
@@ -272,19 +272,19 @@ export default function Upload() {
           {uploadFiles.length === 0 && (
             <Card>
               <CardContent className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Upload Instructions</h3>
+                <h3 className="text-lg font-semibold text-card-foreground mb-4">Upload Instructions</h3>
                 <div className="grid md:grid-cols-2 gap-6">
                   <div>
-                    <h4 className="font-medium text-gray-900 mb-2">Supported Formats</h4>
-                    <ul className="text-sm text-gray-600 space-y-1">
+                    <h4 className="font-medium text-card-foreground mb-2">Supported Formats</h4>
+                    <ul className="text-sm text-muted-foreground space-y-1">
                       <li>• Images: JPEG, PNG, TIFF</li>
                       <li>• Videos: MP4, MOV, AVI</li>
                       <li>• Maximum size: 50MB per file</li>
                     </ul>
                   </div>
                   <div>
-                    <h4 className="font-medium text-gray-900 mb-2">What Happens Next</h4>
-                    <ul className="text-sm text-gray-600 space-y-1">
+                    <h4 className="font-medium text-card-foreground mb-2">What Happens Next</h4>
+                    <ul className="text-sm text-muted-foreground space-y-1">
                       <li>• Files are uploaded to Bronze tier</li>
                       <li>• Duplicates are automatically detected</li>
                       <li>• Basic metadata is extracted</li>

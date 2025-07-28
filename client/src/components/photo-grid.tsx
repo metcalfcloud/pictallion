@@ -28,7 +28,7 @@ export default function PhotoGrid({
       case 'bronze':
         return 'bg-orange-500 text-white';
       case 'silver':
-        return 'bg-gray-500 text-white';
+        return 'bg-background0 text-white';
       case 'gold':
         return 'bg-yellow-500 text-white';
       default:
@@ -77,7 +77,7 @@ export default function PhotoGrid({
                 <div className="flex-1 p-4">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <h3 className="font-medium text-gray-900 mb-1">
+                      <h3 className="font-medium text-card-foreground mb-1">
                         {photo.mediaAsset.originalFilename}
                       </h3>
                       
@@ -96,7 +96,7 @@ export default function PhotoGrid({
                       </div>
 
                       {photo.metadata?.ai?.shortDescription && (
-                        <p className="text-sm text-gray-600 mb-2">
+                        <p className="text-sm text-muted-foreground mb-2">
                           {photo.metadata.ai.shortDescription}
                         </p>
                       )}
@@ -109,7 +109,7 @@ export default function PhotoGrid({
                             </span>
                           ))}
                           {photo.metadata.ai.aiTags.length > 4 && (
-                            <span className="text-xs text-gray-500">
+                            <span className="text-xs text-muted-foreground">
                               +{photo.metadata.ai.aiTags.length - 4} more
                             </span>
                           )}
@@ -179,7 +179,7 @@ export default function PhotoGrid({
                       </button>
                     ))}
                     {photo.metadata.ai.aiTags.length > 2 && (
-                      <span className="bg-gray-500 text-white px-1.5 py-0.5 rounded text-xs">
+                      <span className="bg-background0 text-white px-1.5 py-0.5 rounded text-xs">
                         +{photo.metadata.ai.aiTags.length - 2}
                       </span>
                     )}
@@ -269,7 +269,7 @@ export default function PhotoGrid({
           {/* Review Badge */}
           {needsReview(photo) && (
             <div className="absolute top-2 right-2">
-              <Badge variant="outline" className="text-yellow-600 border-yellow-600 bg-white">
+              <Badge variant="outline" className="text-yellow-600 border-yellow-600 bg-card">
                 <Eye className="w-3 h-3" />
               </Badge>
             </div>

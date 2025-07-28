@@ -146,34 +146,34 @@ export default function Collections() {
   }
 
   return (
-    <div className="flex-1 overflow-auto bg-gray-50 dark:bg-gray-900">
+    <div className="flex-1 overflow-auto bg-background dark:bg-gray-900">
       <div className="p-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Collections</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400">Organize your photos into custom collections</p>
+        <h1 className="text-2xl font-bold text-card-foreground dark:text-white mb-6">Collections</h1>
+        <p className="text-sm text-muted-foreground dark:text-gray-400">Organize your photos into custom collections</p>
       </div>
 
       {/* Collections Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 p-6">
         {/* Example Collection Card */}
-        <Card className="bg-white dark:bg-gray-800 shadow-md rounded-lg overflow-hidden">
+        <Card className="bg-card dark:bg-gray-800 shadow-md rounded-lg overflow-hidden">
           <CardHeader>
-            <CardTitle className="text-lg font-semibold text-gray-900 dark:text-white">
+            <CardTitle className="text-lg font-semibold text-card-foreground dark:text-white">
               My Vacation
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <p className="text-sm text-muted-foreground dark:text-gray-400">
               A collection of my favorite vacation photos.
             </p>
             <div className="mt-4 flex justify-between items-center">
-              <span className="text-xs text-gray-500 dark:text-gray-400">12 Photos</span>
+              <span className="text-xs text-muted-foreground dark:text-gray-400">12 Photos</span>
               <Button variant="outline">View</Button>
             </div>
           </CardContent>
         </Card>
 
         {/* Add Collection Button */}
-        <Card className="bg-white dark:bg-gray-800 shadow-md rounded-lg overflow-hidden flex items-center justify-center">
+        <Card className="bg-card dark:bg-gray-800 shadow-md rounded-lg overflow-hidden flex items-center justify-center">
           <Button variant="ghost" className="h-full w-full">
             <Plus className="h-6 w-6 mr-2" />
             Add Collection

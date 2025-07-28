@@ -145,7 +145,7 @@ export default function DuplicatesPage() {
       case 'gold': return 'bg-yellow-500';
       case 'silver': return 'bg-gray-400';
       case 'bronze': return 'bg-amber-600';
-      default: return 'bg-gray-500';
+      default: return 'bg-background0';
     }
   };
 
@@ -154,7 +154,7 @@ export default function DuplicatesPage() {
       case 'identical': return 'text-red-600';
       case 'very_similar': return 'text-orange-600';
       case 'similar': return 'text-yellow-600';
-      default: return 'text-gray-600';
+      default: return 'text-muted-foreground';
     }
   };
 
@@ -172,7 +172,7 @@ export default function DuplicatesPage() {
           </CardHeader>
           <CardContent>
             <Progress value={scanProgress} className="w-full" />
-            <p className="text-sm text-gray-500 mt-2">
+            <p className="text-sm text-muted-foreground mt-2">
               {scanProgress < 50 ? 'Reading photo hashes...' : 
                scanProgress < 80 ? 'Comparing similarities...' : 
                'Generating analysis...'}
@@ -189,7 +189,7 @@ export default function DuplicatesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-semibold">Duplicate Detection</h2>
-          <p className="text-gray-600">Find and manage duplicate or similar photos</p>
+          <p className="text-muted-foreground">Find and manage duplicate or similar photos</p>
         </div>
         <div className="space-x-2">
           <Button 
@@ -218,7 +218,7 @@ export default function DuplicatesPage() {
               <div className="flex items-center space-x-2">
                 <AlertCircle className="w-5 h-5 text-orange-500" />
                 <div>
-                  <p className="text-sm text-gray-600">Duplicate Groups</p>
+                  <p className="text-sm text-muted-foreground">Duplicate Groups</p>
                   <p className="text-2xl font-semibold">{analysis.groups.length}</p>
                 </div>
               </div>
@@ -230,7 +230,7 @@ export default function DuplicatesPage() {
               <div className="flex items-center space-x-2">
                 <Eye className="w-5 h-5 text-blue-500" />
                 <div>
-                  <p className="text-sm text-gray-600">Total Duplicates</p>
+                  <p className="text-sm text-muted-foreground">Total Duplicates</p>
                   <p className="text-2xl font-semibold">{analysis.totalDuplicates}</p>
                 </div>
               </div>
@@ -242,7 +242,7 @@ export default function DuplicatesPage() {
               <div className="flex items-center space-x-2">
                 <HardDrive className="w-5 h-5 text-green-500" />
                 <div>
-                  <p className="text-sm text-gray-600">Space Savings</p>
+                  <p className="text-sm text-muted-foreground">Space Savings</p>
                   <p className="text-2xl font-semibold">{formatFileSize(analysis.potentialSpaceSavings)}</p>
                 </div>
               </div>
@@ -254,7 +254,7 @@ export default function DuplicatesPage() {
               <div className="flex items-center space-x-2">
                 <Clock className="w-5 h-5 text-purple-500" />
                 <div>
-                  <p className="text-sm text-gray-600">Last Scan</p>
+                  <p className="text-sm text-muted-foreground">Last Scan</p>
                   <p className="text-sm font-semibold">Just now</p>
                 </div>
               </div>
@@ -323,7 +323,7 @@ export default function DuplicatesPage() {
             <CardContent className="p-8 text-center">
               <Eye className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-semibold mb-2">No Duplicates Found</h3>
-              <p className="text-gray-600">Great! Your photo collection doesn't have any duplicate images.</p>
+              <p className="text-muted-foreground">Great! Your photo collection doesn't have any duplicate images.</p>
             </CardContent>
           </Card>
         )
@@ -346,7 +346,7 @@ function DuplicateGroupCard({
       case 'gold': return 'bg-yellow-500';
       case 'silver': return 'bg-gray-400';
       case 'bronze': return 'bg-amber-600';
-      default: return 'bg-gray-500';
+      default: return 'bg-background0';
     }
   };
 
@@ -355,7 +355,7 @@ function DuplicateGroupCard({
       case 'identical': return 'text-red-600';
       case 'very_similar': return 'text-orange-600';
       case 'similar': return 'text-yellow-600';
-      default: return 'text-gray-600';
+      default: return 'text-muted-foreground';
     }
   };
 
@@ -407,10 +407,10 @@ function DuplicateGroupCard({
                   ? 'border-green-500 bg-green-50' 
                   : selectedAction?.keepPhotoId === photo.id
                   ? 'border-blue-500 bg-blue-50'
-                  : 'border-gray-200'
+                  : 'border-border'
               }`}
             >
-              <div className="aspect-square bg-gray-100 rounded mb-2 overflow-hidden">
+              <div className="aspect-square bg-muted rounded mb-2 overflow-hidden">
                 <img 
                   src={`/api/files/${photo.filePath}`}
                   alt={photo.mediaAsset.originalFilename}
@@ -423,16 +423,16 @@ function DuplicateGroupCard({
                   <Badge className={`${getTierBadgeColor(photo.tier)} text-white text-xs`}>
                     {photo.tier}
                   </Badge>
-                  <span className="text-xs text-gray-500">
+                  <span className="text-xs text-muted-foreground">
                     {photo.similarity}% match
                   </span>
                 </div>
 
-                <p className="text-xs text-gray-600 truncate">
+                <p className="text-xs text-muted-foreground truncate">
                   {photo.mediaAsset.originalFilename}
                 </p>
 
-                <div className="flex items-center justify-between text-xs text-gray-500">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <span>{formatFileSize(photo.fileSize || 0)}</span>
                   {photo.rating && (
                     <div className="flex items-center">

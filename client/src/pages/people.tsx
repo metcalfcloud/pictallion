@@ -209,9 +209,9 @@ export default function PeoplePage() {
   };
 
   return (
-    <div className="flex-1 overflow-auto bg-gray-50 dark:bg-gray-900">
+    <div className="flex-1 overflow-auto bg-background dark:bg-gray-900">
       <div className="p-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">People</h1>
+        <h1 className="text-2xl font-bold text-card-foreground dark:text-white mb-6">People</h1>
         
         {/* Header with view mode tabs */}
         <div className="flex items-center justify-between mb-6">
@@ -302,11 +302,11 @@ export default function PeoplePage() {
                     <CardContent className="p-4">
                       <div className="flex items-center space-x-3 mb-3">
                         <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
-                          <User className="w-6 h-6 text-gray-500" />
+                          <User className="w-6 h-6 text-muted-foreground" />
                         </div>
                         <div>
-                          <h3 className="font-semibold text-gray-900 dark:text-white">{person.name}</h3>
-                          <p className="text-sm text-gray-500">
+                          <h3 className="font-semibold text-card-foreground dark:text-white">{person.name}</h3>
+                          <p className="text-sm text-muted-foreground">
                             {person.faceCount || 0} faces • {person.photoCount || 0} photos
                           </p>
                         </div>
@@ -354,8 +354,8 @@ export default function PeoplePage() {
               <Card>
                 <CardContent className="p-12 text-center">
                   <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No people found</h3>
-                  <p className="text-gray-500 mb-4">
+                  <h3 className="text-lg font-semibold text-card-foreground dark:text-white mb-2">No people found</h3>
+                  <p className="text-muted-foreground mb-4">
                     {searchQuery ? `No people match "${searchQuery}"` : 'Start by adding people to organize your photos'}
                   </p>
                   <Button onClick={() => setIsCreatePersonOpen(true)}>
@@ -438,8 +438,8 @@ export default function PeoplePage() {
               <Card>
                 <CardContent className="p-12 text-center">
                   <Image className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No faces found</h3>
-                  <p className="text-gray-500 mb-4">
+                  <h3 className="text-lg font-semibold text-card-foreground dark:text-white mb-2">No faces found</h3>
+                  <p className="text-muted-foreground mb-4">
                     {filterUnassigned ? 'All faces have been assigned to people' : 'Upload photos with people to see detected faces'}
                   </p>
                 </CardContent>
@@ -496,7 +496,7 @@ export default function PeoplePage() {
           </DialogHeader>
           <div className="grid grid-cols-6 gap-4 max-h-96 overflow-y-auto">
             {/* Face thumbnails would go here */}
-            <div className="text-center text-gray-500 col-span-6 py-8">
+            <div className="text-center text-muted-foreground col-span-6 py-8">
               No face photos available for this person
             </div>
           </div>

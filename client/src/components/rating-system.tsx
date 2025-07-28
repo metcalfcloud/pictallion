@@ -86,7 +86,7 @@ export function RatingSystem({
                 "transition-colors duration-150",
                 star <= currentRating
                   ? "fill-yellow-400 text-yellow-400"
-                  : "text-gray-300 dark:text-gray-600",
+                  : "text-gray-300 dark:text-muted-foreground",
                 interactive && "hover:text-yellow-300 hover:fill-yellow-300"
               )}
             />
@@ -125,7 +125,7 @@ export function QuickRating({ rating, onRatingChange, className }: QuickRatingPr
               "h-4 w-4 transition-colors duration-150",
               star <= rating
                 ? "fill-yellow-400 text-yellow-400"
-                : "text-gray-300 dark:text-gray-600 hover:text-yellow-300"
+                : "text-gray-300 dark:text-muted-foreground hover:text-yellow-300"
             )}
           />
         </Button>

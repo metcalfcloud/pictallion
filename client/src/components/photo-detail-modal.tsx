@@ -70,7 +70,7 @@ export default function PhotoDetailModal({
       case 'bronze':
         return 'bg-orange-500 text-white';
       case 'silver':
-        return 'bg-gray-500 text-white';
+        return 'bg-background0 text-white';
       case 'gold':
         return 'bg-yellow-500 text-white';
       default:
@@ -171,11 +171,11 @@ export default function PhotoDetailModal({
           </div>
 
           {/* Metadata Panel */}
-          <div className="w-96 bg-white dark:bg-gray-900 overflow-y-auto">
+          <div className="w-96 bg-card dark:bg-gray-900 overflow-y-auto">
             <div className="p-6">
               {/* Header */}
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 truncate">
+                <h3 className="text-lg font-semibold text-card-foreground truncate">
                   {photo.mediaAsset.originalFilename}
                 </h3>
                 <Button 
@@ -203,7 +203,7 @@ export default function PhotoDetailModal({
               {/* AI Tags */}
               {photo.metadata?.ai?.aiTags && (
                 <div className="mb-6">
-                  <h4 className="text-sm font-semibold text-gray-900 mb-3">AI Generated Tags</h4>
+                  <h4 className="text-sm font-semibold text-card-foreground mb-3">AI Generated Tags</h4>
                   <div className="flex flex-wrap gap-2">
                     {photo.metadata.ai.aiTags.map((tag: string, index: number) => (
                       <span 
@@ -220,8 +220,8 @@ export default function PhotoDetailModal({
               {/* AI Description */}
               {photo.metadata?.ai?.longDescription && (
                 <div className="mb-6">
-                  <h4 className="text-sm font-semibold text-gray-900 mb-2">Description</h4>
-                  <p className="text-sm text-gray-600">
+                  <h4 className="text-sm font-semibold text-card-foreground mb-2">Description</h4>
+                  <p className="text-sm text-muted-foreground">
                     {photo.metadata.ai.longDescription}
                   </p>
                 </div>
@@ -230,36 +230,36 @@ export default function PhotoDetailModal({
               {/* EXIF Data */}
               {photo.metadata?.exif && (
                 <div className="mb-6">
-                  <h4 className="text-sm font-semibold text-gray-900 mb-3">Camera Settings</h4>
+                  <h4 className="text-sm font-semibold text-card-foreground mb-3">Camera Settings</h4>
                   <div className="space-y-2">
                     {photo.metadata.exif.camera && (
                       <div className="flex justify-between">
-                        <span className="text-sm text-gray-500">Camera</span>
-                        <span className="text-sm text-gray-900">{photo.metadata.exif.camera}</span>
+                        <span className="text-sm text-muted-foreground">Camera</span>
+                        <span className="text-sm text-card-foreground">{photo.metadata.exif.camera}</span>
                       </div>
                     )}
                     {photo.metadata.exif.lens && (
                       <div className="flex justify-between">
-                        <span className="text-sm text-gray-500">Lens</span>
-                        <span className="text-sm text-gray-900">{photo.metadata.exif.lens}</span>
+                        <span className="text-sm text-muted-foreground">Lens</span>
+                        <span className="text-sm text-card-foreground">{photo.metadata.exif.lens}</span>
                       </div>
                     )}
                     {photo.metadata.exif.aperture && (
                       <div className="flex justify-between">
-                        <span className="text-sm text-gray-500">Aperture</span>
-                        <span className="text-sm text-gray-900">{photo.metadata.exif.aperture}</span>
+                        <span className="text-sm text-muted-foreground">Aperture</span>
+                        <span className="text-sm text-card-foreground">{photo.metadata.exif.aperture}</span>
                       </div>
                     )}
                     {photo.metadata.exif.shutter && (
                       <div className="flex justify-between">
-                        <span className="text-sm text-gray-500">Shutter</span>
-                        <span className="text-sm text-gray-900">{photo.metadata.exif.shutter}</span>
+                        <span className="text-sm text-muted-foreground">Shutter</span>
+                        <span className="text-sm text-card-foreground">{photo.metadata.exif.shutter}</span>
                       </div>
                     )}
                     {photo.metadata.exif.iso && (
                       <div className="flex justify-between">
-                        <span className="text-sm text-gray-500">ISO</span>
-                        <span className="text-sm text-gray-900">{photo.metadata.exif.iso}</span>
+                        <span className="text-sm text-muted-foreground">ISO</span>
+                        <span className="text-sm text-card-foreground">{photo.metadata.exif.iso}</span>
                       </div>
                     )}
                   </div>
@@ -269,23 +269,23 @@ export default function PhotoDetailModal({
               {/* Location */}
               {photo.metadata?.ai?.placeName && (
                 <div className="mb-6">
-                  <h4 className="text-sm font-semibold text-gray-900 mb-2">
+                  <h4 className="text-sm font-semibold text-card-foreground mb-2">
                     <MapPin className="w-4 h-4 inline mr-1" />
                     Location
                   </h4>
-                  <p className="text-sm text-gray-600">{photo.metadata.ai.placeName}</p>
+                  <p className="text-sm text-muted-foreground">{photo.metadata.ai.placeName}</p>
                 </div>
               )}
 
               {/* Detected Objects */}
               {photo.metadata?.ai?.detectedObjects && photo.metadata.ai.detectedObjects.length > 0 && (
                 <div className="mb-6">
-                  <h4 className="text-sm font-semibold text-gray-900 mb-3">Detected Objects</h4>
+                  <h4 className="text-sm font-semibold text-card-foreground mb-3">Detected Objects</h4>
                   <div className="space-y-2">
                     {photo.metadata.ai.detectedObjects.map((obj: any, index: number) => (
                       <div key={index} className="flex justify-between">
                         <span className="text-sm text-gray-700">{obj.name}</span>
-                        <span className="text-sm text-gray-500">
+                        <span className="text-sm text-muted-foreground">
                           {Math.round(obj.confidence * 100)}%
                         </span>
                       </div>
@@ -299,7 +299,7 @@ export default function PhotoDetailModal({
               {/* Editable Metadata */}
               {isEditing ? (
                 <div className="space-y-4 mb-6">
-                  <h4 className="text-sm font-semibold text-gray-900">Edit Metadata</h4>
+                  <h4 className="text-sm font-semibold text-card-foreground">Edit Metadata</h4>
                   
                   <div>
                     <Label htmlFor="keywords" className="text-xs">Keywords (comma-separated)</Label>
@@ -407,7 +407,7 @@ export default function PhotoDetailModal({
                 <>
                   {(photo.keywords && photo.keywords.length > 0) && (
                     <div className="mb-4">
-                      <h4 className="text-sm font-semibold text-gray-900 mb-2">Keywords</h4>
+                      <h4 className="text-sm font-semibold text-card-foreground mb-2">Keywords</h4>
                       <div className="flex flex-wrap gap-1">
                         {photo.keywords.map((keyword: string, index: number) => (
                           <Badge key={index} variant="secondary" className="text-xs">
@@ -421,18 +421,18 @@ export default function PhotoDetailModal({
 
                   {photo.location && (
                     <div className="mb-4">
-                      <h4 className="text-sm font-semibold text-gray-900 mb-2">Location</h4>
+                      <h4 className="text-sm font-semibold text-card-foreground mb-2">Location</h4>
                       <div className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4 text-gray-500" />
-                        <span className="text-sm text-gray-600">{photo.location}</span>
+                        <MapPin className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">{photo.location}</span>
                       </div>
                     </div>
                   )}
 
                   {(photo.eventType || photo.eventName) && (
                     <div className="mb-4">
-                      <h4 className="text-sm font-semibold text-gray-900 mb-2">Event</h4>
-                      <div className="text-sm text-gray-600">
+                      <h4 className="text-sm font-semibold text-card-foreground mb-2">Event</h4>
+                      <div className="text-sm text-muted-foreground">
                         {photo.eventType && <div className="capitalize">{photo.eventType}</div>}
                         {photo.eventName && <div>{photo.eventName}</div>}
                       </div>
@@ -441,7 +441,7 @@ export default function PhotoDetailModal({
 
                   {photo.rating && photo.rating > 0 && (
                     <div className="mb-4">
-                      <h4 className="text-sm font-semibold text-gray-900 mb-2">Rating</h4>
+                      <h4 className="text-sm font-semibold text-card-foreground mb-2">Rating</h4>
                       <div className="flex items-center gap-1">
                         {[1, 2, 3, 4, 5].map((starValue) => (
                           <Star 

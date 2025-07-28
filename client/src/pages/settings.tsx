@@ -355,16 +355,16 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="flex-1 overflow-auto bg-gray-50 dark:bg-gray-900">
+    <div className="flex-1 overflow-auto bg-background dark:bg-gray-900">
       <div className="p-6">
         {/* Header */}
         <header className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+            <h1 className="text-3xl font-bold text-card-foreground dark:text-white flex items-center gap-3">
               <SettingsIcon className="h-8 w-8" />
               Settings
             </h1>
-            <p className="text-gray-500 mt-1">Configure Pictallion to match your workflow preferences</p>
+            <p className="text-muted-foreground mt-1">Configure Pictallion to match your workflow preferences</p>
           </div>
         </header>
 
@@ -383,7 +383,7 @@ export default function SettingsPage() {
             <FileImage className="h-5 w-5" />
             Silver Tier File Naming
           </CardTitle>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-muted-foreground">
             Configure how files are named when processed from Bronze to Silver tier.
             AI descriptions will be generated automatically when available.
           </p>
@@ -401,14 +401,14 @@ export default function SettingsPage() {
                   <SelectItem key={pattern.id} value={pattern.id}>
                     <div className="flex flex-col">
                       <span className="font-medium">{pattern.name}</span>
-                      <span className="text-xs text-gray-500">{pattern.description}</span>
+                      <span className="text-xs text-muted-foreground">{pattern.description}</span>
                     </div>
                   </SelectItem>
                 ))}
                 <SelectItem value="custom">
                   <div className="flex flex-col">
                     <span className="font-medium">Custom Pattern</span>
-                    <span className="text-xs text-gray-500">Define your own naming pattern</span>
+                    <span className="text-xs text-muted-foreground">Define your own naming pattern</span>
                   </div>
                 </SelectItem>
               </SelectContent>
@@ -417,11 +417,11 @@ export default function SettingsPage() {
 
           {/* Pattern Details */}
           {selectedPattern !== 'custom' && (
-            <div className="p-4 bg-gray-50 rounded-lg">
+            <div className="p-4 bg-background rounded-lg">
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Badge variant="secondary">Pattern</Badge>
-                  <code className="text-sm bg-white px-2 py-1 rounded">
+                  <code className="text-sm bg-card px-2 py-1 rounded">
                     {namingPatterns.find((p: NamingPattern) => p.id === selectedPattern)?.pattern}
                   </code>
                 </div>
@@ -447,7 +447,7 @@ export default function SettingsPage() {
                   placeholder="Enter your custom naming pattern using placeholders..."
                   className={`mt-1 ${selectedPattern === 'custom' && hasUnsavedChanges() ? "bg-amber-50 border-amber-200" : ""}`}
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   Use placeholders like {"{year}"}, {"{month}"}, {"{day}"}, {"{hour}"}, {"{minute}"}, {"{second}"}, {"{camera}"}, {"{aiDescription}"}, {"{originalFilename}"}
                 </p>
               </div>
@@ -474,10 +474,10 @@ export default function SettingsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-gray-500" />
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
                   <strong>Date & Time:</strong>
                 </div>
-                <div className="pl-6 space-y-1 text-gray-600">
+                <div className="pl-6 space-y-1 text-muted-foreground">
                   <div><code>{"{year}"}</code> - 2024</div>
                   <div><code>{"{month}"}</code> - 07</div>
                   <div><code>{"{day}"}</code> - 26</div>
@@ -488,10 +488,10 @@ export default function SettingsPage() {
               </div>
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <Camera className="h-4 w-4 text-gray-500" />
+                  <Camera className="h-4 w-4 text-muted-foreground" />
                   <strong>Camera & Content:</strong>
                 </div>
-                <div className="pl-6 space-y-1 text-gray-600">
+                <div className="pl-6 space-y-1 text-muted-foreground">
                   <div><code>{"{camera}"}</code> - CanonEOSR5</div>
                   <div><code>{"{lens}"}</code> - 24-70mmf28</div>
                   <div><code>{"{aiDescription}"}</code> - SunsetBeach</div>
@@ -551,7 +551,7 @@ export default function SettingsPage() {
                 <Brain className="h-5 w-5" />
                 AI Provider Status
               </CardTitle>
-              <p className="text-sm text-gray-600">Current availability of AI providers</p>
+              <p className="text-sm text-muted-foreground">Current availability of AI providers</p>
             </CardHeader>
             <CardContent className="space-y-3">
               {aiConfig && (
@@ -597,7 +597,7 @@ export default function SettingsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Provider Configuration</CardTitle>
-              <p className="text-sm text-gray-600">Configure AI providers for photo analysis</p>
+              <p className="text-sm text-muted-foreground">Configure AI providers for photo analysis</p>
             </CardHeader>
             <CardContent className="space-y-6">
               <Tabs defaultValue="general" className="w-full">

@@ -217,7 +217,7 @@ export function FaceSuggestions() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <Eye className="h-4 w-4 text-gray-500" />
+              <Eye className="h-4 w-4 text-muted-foreground" />
               <div>
                 <p className="text-sm text-muted-foreground">Unassigned Faces</p>
                 <p className="text-2xl font-bold">{totalUnassigned}</p>
@@ -357,7 +357,7 @@ export function FaceSuggestions() {
                     <img
                       src={getFaceCropUrl(face)}
                       alt="Face crop"
-                      className="w-20 h-20 rounded-lg object-cover border-2 border-gray-200"
+                      className="w-20 h-20 rounded-lg object-cover border-2 border-border"
                       onError={(e) => {
                         // Fallback to full image if crop fails
                         e.currentTarget.src = `/api/files/${face.photo?.filePath}`;
@@ -406,7 +406,7 @@ export function FaceSuggestions() {
                         <div 
                           key={suggestion.personId} 
                           className={`p-3 border rounded-lg transition-all cursor-pointer hover:shadow-md ${
-                            isThisSelected ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-gray-300'
+                            isThisSelected ? 'border-green-500 bg-green-50' : 'border-border hover:border-gray-300'
                           }`}
                         >
                           <div className="flex items-center gap-3 mb-2">

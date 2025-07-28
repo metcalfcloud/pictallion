@@ -163,7 +163,7 @@ export default function SmartCollections({ onCollectionSelect, selectedPhotos = 
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold">Smart Collections</h3>
-          <p className="text-sm text-gray-500">Organize photos automatically with intelligent grouping</p>
+          <p className="text-sm text-muted-foreground">Organize photos automatically with intelligent grouping</p>
         </div>
         <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
           <DialogTrigger asChild>
@@ -273,7 +273,7 @@ export default function SmartCollections({ onCollectionSelect, selectedPhotos = 
                     </div>
                     
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-600">{collection.photoCount} photos</span>
+                      <span className="text-muted-foreground">{collection.photoCount} photos</span>
                       <div className="flex space-x-1">
                         <Button
                           size="sm"
@@ -313,7 +313,7 @@ export default function SmartCollections({ onCollectionSelect, selectedPhotos = 
                     </Badge>
                   </div>
                   {collection.description && (
-                    <p className="text-xs text-gray-500 mt-1">{collection.description}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{collection.description}</p>
                   )}
                 </CardHeader>
                 <CardContent>
@@ -330,7 +330,7 @@ export default function SmartCollections({ onCollectionSelect, selectedPhotos = 
                     </div>
                     
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-600">{collection.photoCount} photos</span>
+                      <span className="text-muted-foreground">{collection.photoCount} photos</span>
                       <div className="flex space-x-1">
                         {selectedPhotos.length > 0 && (
                           <Button

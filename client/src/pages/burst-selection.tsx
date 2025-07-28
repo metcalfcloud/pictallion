@@ -189,7 +189,7 @@ export default function BurstSelectionPage() {
           </CardHeader>
           <CardContent>
             <Progress value={scanProgress} className="w-full" />
-            <p className="text-sm text-gray-500 mt-2">
+            <p className="text-sm text-muted-foreground mt-2">
               {scanProgress < 30 ? 'Reading photo metadata...' : 
                scanProgress < 60 ? 'Comparing timestamps and similarity...' : 
                scanProgress < 90 ? 'Grouping burst sequences...' :
@@ -207,8 +207,8 @@ export default function BurstSelectionPage() {
         <Card>
           <CardContent className="p-12 text-center">
             <AlertCircle className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No Analysis Available</h3>
-            <p className="text-gray-500 mb-4">Unable to analyze photos for burst sequences.</p>
+            <h3 className="text-lg font-semibold text-card-foreground mb-2">No Analysis Available</h3>
+            <p className="text-muted-foreground mb-4">Unable to analyze photos for burst sequences.</p>
             <Button onClick={() => scanForBurstPhotos()}>Try Again</Button>
           </CardContent>
         </Card>
@@ -220,10 +220,10 @@ export default function BurstSelectionPage() {
     .reduce((sum, photos) => sum + photos.length, 0);
 
   return (
-    <div className="flex-1 overflow-auto bg-gray-50 dark:bg-gray-900">
+    <div className="flex-1 overflow-auto bg-background dark:bg-gray-900">
       <div className="p-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Burst Selection</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400">Select which photos to promote from burst sequences</p>
+        <h1 className="text-2xl font-bold text-card-foreground dark:text-white mb-6">Burst Selection</h1>
+        <p className="text-sm text-muted-foreground dark:text-gray-400">Select which photos to promote from burst sequences</p>
 
         {/* Summary */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
@@ -232,8 +232,8 @@ export default function BurstSelectionPage() {
               <div className="flex items-center space-x-2">
                 <Camera className="w-5 h-5 text-blue-500" />
                 <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Burst Groups</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{analysis.groups.length}</p>
+                  <p className="text-sm font-medium text-muted-foreground dark:text-gray-400">Burst Groups</p>
+                  <p className="text-2xl font-bold text-card-foreground dark:text-white">{analysis.groups.length}</p>
                 </div>
               </div>
             </CardContent>
@@ -244,8 +244,8 @@ export default function BurstSelectionPage() {
               <div className="flex items-center space-x-2">
                 <CheckCircle className="w-5 h-5 text-green-500" />
                 <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Selected for Processing</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{totalSelectedCount}</p>
+                  <p className="text-sm font-medium text-muted-foreground dark:text-gray-400">Selected for Processing</p>
+                  <p className="text-2xl font-bold text-card-foreground dark:text-white">{totalSelectedCount}</p>
                 </div>
               </div>
             </CardContent>
@@ -254,10 +254,10 @@ export default function BurstSelectionPage() {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center space-x-2">
-                <Clock className="w-5 h-5 text-gray-500" />
+                <Clock className="w-5 h-5 text-muted-foreground" />
                 <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Photos</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{analysis.totalPhotos}</p>
+                  <p className="text-sm font-medium text-muted-foreground dark:text-gray-400">Total Photos</p>
+                  <p className="text-2xl font-bold text-card-foreground dark:text-white">{analysis.totalPhotos}</p>
                 </div>
               </div>
             </CardContent>
@@ -274,10 +274,10 @@ export default function BurstSelectionPage() {
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div>
-                      <CardTitle className="text-lg text-gray-900 dark:text-white">
+                      <CardTitle className="text-lg text-card-foreground dark:text-white">
                         Burst Group - {group.photos.length} photos
                       </CardTitle>
-                      <CardDescription className="flex items-center space-x-4 text-gray-500 dark:text-gray-400">
+                      <CardDescription className="flex items-center space-x-4 text-muted-foreground dark:text-gray-400">
                         <span>{group.groupReason}</span>
                         <Badge variant="outline">
                           <Clock className="w-3 h-3 mr-1" />
@@ -319,7 +319,7 @@ export default function BurstSelectionPage() {
                           className={`relative border-2 rounded-lg overflow-hidden cursor-pointer transition-all ${
                             isSelected
                               ? 'border-blue-500 ring-2 ring-blue-200'
-                              : 'border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600'
+                              : 'border-border hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600'
                           }`}
                           onClick={() => togglePhotoSelection(group.id, photo.id)}
                         >
@@ -338,20 +338,20 @@ export default function BurstSelectionPage() {
                             />
                           </div>
 
-                          <div className="p-2 bg-white dark:bg-gray-900">
+                          <div className="p-2 bg-card dark:bg-gray-900">
                             <div className="flex items-center justify-between">
                               <Checkbox
                                 checked={isSelected}
                                 onChange={() => togglePhotoSelection(group.id, photo.id)}
                               />
-                              <span className="text-xs text-gray-500 dark:text-gray-400">
+                              <span className="text-xs text-muted-foreground dark:text-gray-400">
                                 {photo.fileSize ? formatFileSize(photo.fileSize) : 'Unknown'}
                               </span>
                             </div>
-                            <p className="text-xs text-gray-600 dark:text-gray-300 truncate mt-1">
+                            <p className="text-xs text-muted-foreground dark:text-gray-300 truncate mt-1">
                               {photo.mediaAsset.originalFilename}
                             </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                            <p className="text-xs text-muted-foreground dark:text-gray-400">
                               {new Date(photo.createdAt).toLocaleTimeString()}
                             </p>
                           </div>
@@ -369,13 +369,13 @@ export default function BurstSelectionPage() {
         {analysis.ungroupedPhotos.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle className="text-gray-900 dark:text-white">Individual Photos</CardTitle>
-              <CardDescription className="text-gray-500 dark:text-gray-400">
+              <CardTitle className="text-card-foreground dark:text-white">Individual Photos</CardTitle>
+              <CardDescription className="text-muted-foreground dark:text-gray-400">
                 {analysis.ungroupedPhotos.length} photos that don't appear to be part of burst sequences
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
+              <p className="text-sm text-muted-foreground dark:text-gray-300">
                 These photos will be automatically processed individually.
               </p>
             </CardContent>

@@ -320,10 +320,10 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
           >
             <input {...getInputProps()} />
             <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h4 className="text-lg font-medium text-gray-900 mb-2">
+            <h4 className="text-lg font-medium text-card-foreground mb-2">
               {isDragActive ? 'Drop photos here' : 'Drag and drop your photos here'}
             </h4>
-            <p className="text-gray-500 mb-4">or click to browse your files</p>
+            <p className="text-muted-foreground mb-4">or click to browse your files</p>
             <Button type="button">Choose Files</Button>
             <p className="text-xs text-gray-400 mt-4">
               Supports JPEG, PNG, TIFF, MP4, MOV, AVI files up to 50MB each
@@ -342,20 +342,20 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
               
               <div className="space-y-2 max-h-48 overflow-y-auto">
                 {uploadFiles.map((uploadFile) => (
-                  <div key={uploadFile.id} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                  <div key={uploadFile.id} className="flex items-center space-x-3 p-3 bg-background rounded-lg">
                     {getStatusIcon(uploadFile.status)}
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">
+                      <p className="text-sm font-medium text-card-foreground truncate">
                         {uploadFile.file.name}
                       </p>
                       {uploadFile.status === 'uploading' && (
                         <Progress value={uploadFile.progress} className="h-2 mt-1" />
                       )}
                       {uploadFile.message && (
-                        <p className="text-xs text-gray-500 mt-1">{uploadFile.message}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{uploadFile.message}</p>
                       )}
                     </div>
-                    <span className="text-sm text-gray-500">
+                    <span className="text-sm text-muted-foreground">
                       {uploadFile.status === 'uploading' 
                         ? `${Math.round(uploadFile.progress)}%`
                         : uploadFile.status === 'success' 
@@ -436,20 +436,20 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
                            'Recommended: Keep Both'}
                         </Badge>
                       </div>
-                      <p className="text-sm text-gray-600">{conflict.reasoning}</p>
+                      <p className="text-sm text-muted-foreground">{conflict.reasoning}</p>
                     </CardHeader>
 
                     <CardContent className="space-y-4">
                       <div className="grid grid-cols-2 gap-6">
                         {/* Existing File */}
                         <div className="space-y-2">
-                          <h4 className="font-medium text-gray-900 flex items-center gap-2">
+                          <h4 className="font-medium text-card-foreground flex items-center gap-2">
                             <HardDrive className="w-4 h-4" />
                             Existing File
                           </h4>
-                          <div className="bg-gray-50 p-3 rounded-lg space-y-2">
+                          <div className="bg-background p-3 rounded-lg space-y-2">
                             <p className="font-medium text-sm">{conflict.existingPhoto.mediaAsset.originalFilename}</p>
-                            <div className="text-xs text-gray-600 space-y-1">
+                            <div className="text-xs text-muted-foreground space-y-1">
                               <p>Size: {formatFileSize(conflict.existingPhoto.fileSize)}</p>
                               <p>Tier: {conflict.existingPhoto.tier.toUpperCase()}</p>
                               <p className="flex items-center gap-1">
@@ -465,13 +465,13 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
 
                         {/* New File */}
                         <div className="space-y-2">
-                          <h4 className="font-medium text-gray-900 flex items-center gap-2">
+                          <h4 className="font-medium text-card-foreground flex items-center gap-2">
                             <Upload className="w-4 h-4" />
                             New File
                           </h4>
                           <div className="bg-blue-50 p-3 rounded-lg space-y-2">
                             <p className="font-medium text-sm">{conflict.newFile.originalFilename}</p>
-                            <div className="text-xs text-gray-600 space-y-1">
+                            <div className="text-xs text-muted-foreground space-y-1">
                               <p>Size: {formatFileSize(conflict.newFile.fileSize)}</p>
                               <p>Status: Pending Upload</p>
                               {conflict.newFile.metadata?.dateTime && (
@@ -488,7 +488,7 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
                       <div className="flex items-center justify-between">
                         <div className="space-y-1">
                           <label className="text-sm font-medium">Choose Action:</label>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-muted-foreground">
                             This decision will apply to this specific conflict
                           </p>
                         </div>

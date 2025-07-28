@@ -346,7 +346,7 @@ export default function SilverReview() {
                   <Checkbox
                     checked={selectedPhotos.has(selectedPhoto?.id || '')}
                     onCheckedChange={() => selectedPhoto && togglePhotoSelection(selectedPhoto.id)}
-                    className="bg-white border-white"
+                    className="bg-card border-white"
                   />
                 </div>
 

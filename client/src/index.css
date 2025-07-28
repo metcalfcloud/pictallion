@@ -31,6 +31,14 @@
   --success: hsl(142, 71%, 45%);
   --warning: hsl(32, 95%, 44%);
   --error: hsl(0, 84%, 60%);
+  
+  /* Enhanced tier backgrounds */
+  --tier-bronze-bg: hsl(28, 100%, 94%);
+  --tier-silver-bg: hsl(210, 8%, 94%);
+  --tier-gold-bg: hsl(45, 100%, 94%);
+  --tier-bronze-text: hsl(28, 100%, 30%);
+  --tier-silver-text: hsl(210, 8%, 30%);
+  --tier-gold-text: hsl(45, 100%, 30%);
 }
 
 .dark {
@@ -53,6 +61,14 @@
   --destructive: hsl(0, 62.8%, 30.6%);
   --destructive-foreground: hsl(0, 0%, 98%);
   --ring: hsl(240, 4.9%, 83.9%);
+  
+  /* Enhanced tier backgrounds for dark mode */
+  --tier-bronze-bg: hsl(28, 100%, 8%);
+  --tier-silver-bg: hsl(210, 8%, 8%);
+  --tier-gold-bg: hsl(45, 100%, 8%);
+  --tier-bronze-text: hsl(28, 100%, 70%);
+  --tier-silver-text: hsl(210, 8%, 70%);
+  --tier-gold-text: hsl(45, 100%, 70%);
 }
 
 @layer base {
@@ -68,14 +84,17 @@
 
 @layer components {
   .tier-bronze {
-    @apply bg-orange-500 text-white;
+    background-color: var(--tier-bronze-bg);
+    color: var(--tier-bronze-text);
   }
   
   .tier-silver {
-    @apply bg-gray-500 text-white;
+    background-color: var(--tier-silver-bg);
+    color: var(--tier-silver-text);
   }
   
   .tier-gold {
-    @apply bg-yellow-500 text-white;
+    background-color: var(--tier-gold-bg);
+    color: var(--tier-gold-text);
   }
 }
