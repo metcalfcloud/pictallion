@@ -42,9 +42,9 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="w-64 bg-white border-r border-gray-200 flex flex-col">
+    <aside className="w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col">
       {/* Logo */}
-      <div className="p-6 border-b border-gray-200">
+      <div className="p-6 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center justify-between gap-2 px-4 py-6">
           <div className="flex flex-col items-center space-y-3">
             <img 
@@ -90,15 +90,15 @@ export default function Sidebar() {
 
 
       {/* Storage Info */}
-      <div className="p-4 border-t border-gray-200">
+      <div className="p-4 border-t border-gray-200 dark:border-gray-700">
         <Card>
           <CardContent className="p-3">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-700">Storage</span>
-              <span className="text-sm text-gray-500">68%</span>
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Storage</span>
+              <span className="text-sm text-gray-500 dark:text-gray-400">68%</span>
             </div>
             <Progress value={68} className="h-2 mb-1" />
-            <p className="text-xs text-gray-500">2.1 GB of 3.0 GB used</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">2.1 GB of 3.0 GB used</p>
           </CardContent>
         </Card>
       </div>
