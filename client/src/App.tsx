@@ -19,7 +19,7 @@ import Sidebar from "@/components/sidebar";
 
 function Router() {
   return (
-    <div className="min-h-screen flex bg-gray-50">
+    <div className="min-h-screen flex bg-gray-50 dark:bg-gray-900">
       <Sidebar />
       <main className="flex-1 flex flex-col overflow-hidden">
         <Switch>

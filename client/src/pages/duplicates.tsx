@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,7 +33,7 @@ interface DuplicateAnalysis {
   summary: {
     identicalGroups: number;
     verySimilarGroups: number;
-    similarGroups: number;
+    similarGroups: number
   };
 }
 
@@ -52,7 +51,7 @@ export default function DuplicatesPage() {
   const scanForDuplicates = async (minSimilarity: number = 85) => {
     setLoading(true);
     setScanProgress(0);
-    
+
     try {
       // Simulate progress for better UX
       const progressInterval = setInterval(() => {
@@ -61,12 +60,12 @@ export default function DuplicatesPage() {
 
       const response = await fetch(`/api/duplicates/scan?minSimilarity=${minSimilarity}`);
       const data = await response.json();
-      
+
       clearInterval(progressInterval);
       setScanProgress(100);
-      
+
       setAnalysis(data);
-      
+
       // Initialize default actions (keep suggested for all groups)
       const defaultActions = new Map();
       if (data && data.groups && Array.isArray(data.groups)) {
@@ -75,7 +74,7 @@ export default function DuplicatesPage() {
         });
       }
       setSelectedActions(defaultActions);
-      
+
     } catch (error) {
       console.error('Failed to scan for duplicates:', error);
       // Set empty analysis on error
@@ -97,7 +96,7 @@ export default function DuplicatesPage() {
 
   const processDuplicates = async () => {
     if (!analysis || selectedActions.size === 0) return;
-    
+
     setProcessing(true);
     try {
       const actions = Array.from(selectedActions.entries()).map(([groupId, action]) => ({
@@ -112,14 +111,14 @@ export default function DuplicatesPage() {
       });
 
       const result = await response.json();
-      
+
       if (result.errors?.length > 0) {
         console.error('Processing errors:', result.errors);
       }
-      
+
       // Refresh the analysis
       await scanForDuplicates();
-      
+
     } catch (error) {
       console.error('Failed to process duplicates:', error);
     } finally {
@@ -165,7 +164,7 @@ export default function DuplicatesPage() {
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-semibold">Duplicate Detection</h2>
         </div>
-        
+
         <Card>
           <CardHeader>
             <CardTitle>Scanning for Duplicates...</CardTitle>
@@ -225,7 +224,7 @@ export default function DuplicatesPage() {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center space-x-2">
@@ -237,7 +236,7 @@ export default function DuplicatesPage() {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center space-x-2">
@@ -249,7 +248,7 @@ export default function DuplicatesPage() {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center space-x-2">
@@ -418,7 +417,7 @@ function DuplicateGroupCard({
                   className="w-full h-full object-cover"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Badge className={`${getTierBadgeColor(photo.tier)} text-white text-xs`}>
@@ -428,11 +427,11 @@ function DuplicateGroupCard({
                     {photo.similarity}% match
                   </span>
                 </div>
-                
+
                 <p className="text-xs text-gray-600 truncate">
                   {photo.mediaAsset.originalFilename}
                 </p>
-                
+
                 <div className="flex items-center justify-between text-xs text-gray-500">
                   <span>{formatFileSize(photo.fileSize || 0)}</span>
                   {photo.rating && (
@@ -442,13 +441,13 @@ function DuplicateGroupCard({
                     </div>
                   )}
                 </div>
-                
+
                 {photo.id === group.suggestedKeep && (
                   <Badge variant="outline" className="text-xs bg-green-100 text-green-800">
                     Suggested Keep
                   </Badge>
                 )}
-                
+
                 <Button 
                   variant="outline" 
                   size="sm" 

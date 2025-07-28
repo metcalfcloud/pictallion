@@ -1,3 +1,4 @@
+typescript
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -110,7 +111,7 @@ export default function SettingsPage() {
     if (settings.length > 0) {
       const savedPattern = settings.find((s: Setting) => s.key === 'silver_naming_pattern')?.value || 'datetime';
       const savedCustomPattern = settings.find((s: Setting) => s.key === 'custom_naming_pattern')?.value || '';
-      
+
       setSelectedPattern(savedPattern);
       setCustomPattern(savedCustomPattern);
       setOriginalPattern(savedPattern);
@@ -129,7 +130,7 @@ export default function SettingsPage() {
       const response = await fetch("/api/ai/config");
       const data = await response.json();
       setAiConfig(data);
-      
+
       setAiFormData({
         provider: data.currentProvider,
         ollamaBaseUrl: data.config.ollama.baseUrl,
@@ -194,10 +195,10 @@ export default function SettingsPage() {
   const handleSaveNamingSettings = async () => {
     try {
       console.log('Saving naming settings:', { selectedPattern, customPattern });
-      
+
       // Update or create the silver naming pattern setting
       const existingSetting = settings.find((s: Setting) => s.key === 'silver_naming_pattern');
-      
+
       if (existingSetting) {
         await updateSettingMutation.mutateAsync({ key: 'silver_naming_pattern', value: selectedPattern });
       } else {
@@ -223,11 +224,11 @@ export default function SettingsPage() {
           });
         }
       }
-      
+
       // Update original values after successful save
       setOriginalPattern(selectedPattern);
       setOriginalCustomPattern(customPattern);
-      
+
       console.log('Settings saved successfully');
     } catch (error) {
       console.error('Failed to save settings:', error);
@@ -254,11 +255,11 @@ export default function SettingsPage() {
   const getPreviewFilename = () => {
     const pattern = selectedPattern === 'custom' ? customPattern : 
       namingPatterns.find((p: NamingPattern) => p.id === selectedPattern)?.pattern || '{originalFilename}';
-    
+
     // Generate example based on pattern
     const now = new Date();
     let preview = pattern;
-    
+
     preview = preview.replace('{year}', now.getFullYear().toString());
     preview = preview.replace('{month}', (now.getMonth() + 1).toString().padStart(2, '0'));
     preview = preview.replace('{day}', now.getDate().toString().padStart(2, '0'));
@@ -268,7 +269,7 @@ export default function SettingsPage() {
     preview = preview.replace('{camera}', 'CanonEOSR5');
     preview = preview.replace('{aiDescription}', 'SunsetBeach');
     preview = preview.replace('{originalFilename}', 'IMG_2024');
-    
+
     return preview + '.jpg';
   };
 
@@ -277,12 +278,12 @@ export default function SettingsPage() {
       setAiTesting(true);
       const response = await fetch("/api/ai/test", { method: "POST" });
       const data = await response.json();
-      
+
       setAiConfig(prev => prev ? {
         ...prev,
         availableProviders: data
       } : null);
-      
+
       toast({
         title: "Provider Test Complete",
         description: `Ollama: ${data.ollama ? "Available" : "Unavailable"}, OpenAI: ${data.openai ? "Available" : "Unavailable"}`
@@ -301,7 +302,7 @@ export default function SettingsPage() {
   const saveAiConfig = async () => {
     try {
       setAiLoading(true);
-      
+
       const payload = {
         provider: aiFormData.provider,
         ollama: {
@@ -355,7 +356,10 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6">
+    <div className="flex-1 overflow-auto bg-gray-50 dark:bg-gray-900">
+      <div className="p-6">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Settings</h1>
+        
       {/* Header */}
       <header className="flex items-center justify-between">
         <div>

@@ -57,10 +57,10 @@ export default function Upload() {
 
       queryClient.invalidateQueries({ queryKey: ["/api/photos"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
-      
+
       const successCount = data.results.filter((r: any) => r.status === 'success').length;
       const duplicateCount = data.results.filter((r: any) => r.status === 'duplicate').length;
-      
+
       if (successCount > 0) {
         toast({
           title: "Upload Complete",

@@ -42,13 +42,13 @@ export default function SilverReview() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(0);
   const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
   const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = useState(false);
   const [searchFilters, setSearchFilters] = useState<SearchFilters>({ tier: 'silver' });
   const [showOnlyUnreviewed, setShowOnlyUnreviewed] = useState(true);
-  
+
   // Fetch photos with advanced search
   const { data: searchResults, isLoading, refetch } = useQuery({
     queryKey: ['/api/photos/search', searchFilters, showOnlyUnreviewed],
@@ -58,17 +58,17 @@ export default function SilverReview() {
         tier: 'silver' as const,
         isReviewed: showOnlyUnreviewed ? false : undefined
       };
-      
+
       const response = await fetch('/api/photos/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ filters, limit: 100 })
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch photos');
       }
-      
+
       return response.json();
     }
   });
@@ -89,7 +89,7 @@ export default function SilverReview() {
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-      
+
       switch (e.key) {
         case 'ArrowLeft':
         case 'a':
@@ -205,7 +205,7 @@ export default function SilverReview() {
 
   const batchPromote = async () => {
     if (selectedPhotos.size === 0) return;
-    
+
     try {
       for (const photoId of Array.from(selectedPhotos)) {
         await promoteToGoldMutation.mutateAsync(photoId);
@@ -238,7 +238,7 @@ export default function SilverReview() {
             Upload Photos
           </Button>
         </div>
-        
+
         <Card>
           <CardHeader>
             <CardTitle>No Silver Photos Found</CardTitle>
@@ -278,7 +278,7 @@ export default function SilverReview() {
             {showOnlyUnreviewed && " (unreviewed only)"}
           </p>
         </div>
-        
+
         <div className="flex items-center gap-2">
           <div className="flex items-center space-x-2">
             <Checkbox
@@ -288,7 +288,7 @@ export default function SilverReview() {
             />
             <Label htmlFor="unreviewed">Unreviewed only</Label>
           </div>
-          
+
           <Dialog open={isAdvancedSearchOpen} onOpenChange={setIsAdvancedSearchOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" className="flex items-center gap-2">
@@ -340,7 +340,7 @@ export default function SilverReview() {
                     e.currentTarget.src = '/placeholder-image.svg';
                   }}
                 />
-                
+
                 {/* Selection checkbox */}
                 <div className="absolute top-4 left-4">
                   <Checkbox
@@ -397,7 +397,7 @@ export default function SilverReview() {
               <Eye className="h-4 w-4" />
               Mark Reviewed (R)
             </Button>
-            
+
             <Button
               onClick={promoteToGold}
               className="flex items-center gap-2"
@@ -440,7 +440,7 @@ export default function SilverReview() {
                 <Label className="text-xs text-muted-foreground">Filename</Label>
                 <p className="text-sm font-mono break-all">{selectedPhoto?.mediaAsset?.originalFilename || 'Unknown'}</p>
               </div>
-              
+
               <div>
                 <Label className="text-xs text-muted-foreground">Size</Label>
                 <p className="text-sm">{Math.round((selectedPhoto?.fileSize || 0) / 1024 / 1024 * 100) / 100} MB</p>

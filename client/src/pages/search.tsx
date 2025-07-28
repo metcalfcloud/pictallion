@@ -44,7 +44,7 @@ export default function Search() {
     queryKey: ['/api/photos/search', searchFilters, sortBy, sortDirection],
     queryFn: async () => {
       const sort = { field: sortBy, direction: sortDirection };
-      
+
       const response = await fetch('/api/photos/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -54,11 +54,11 @@ export default function Search() {
           limit: 200 
         })
       });
-      
+
       if (!response.ok) {
         throw new Error('Search failed');
       }
-      
+
       return response.json();
     }
   });
@@ -109,7 +109,7 @@ export default function Search() {
                 e.currentTarget.src = '/placeholder-image.svg';
               }}
             />
-            
+
             {/* Tier badge */}
             <Badge className={`absolute top-2 left-2 ${getTierBadgeColor(photo.tier)}`}>
               {photo.tier.charAt(0).toUpperCase() + photo.tier.slice(1)}
@@ -139,7 +139,7 @@ export default function Search() {
             <h3 className="font-medium text-sm truncate mb-2">
               {photo.mediaAsset?.originalFilename || 'Unknown file'}
             </h3>
-            
+
             <div className="space-y-2 text-xs text-muted-foreground">
               <div className="flex items-center gap-4">
                 <span>{formatFileSize(photo.fileSize)}</span>
@@ -399,7 +399,7 @@ export default function Search() {
                   ))}
                 </div>
               )}
-              
+
               {facets.ratings && Object.keys(facets.ratings).length > 0 && (
                 <div>
                   <span className="text-muted-foreground">By Rating:</span>
