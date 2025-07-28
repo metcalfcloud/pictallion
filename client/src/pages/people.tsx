@@ -289,7 +289,11 @@ export default function PeoplePage() {
           </div>
           
           {viewMode === 'people' && (
-            <Button onClick={() => setIsCreatePersonOpen(true)} className="flex items-center space-x-2">
+            <Button onClick={() => {
+              setNewPersonName('');
+              setNewPersonNotes('');
+              setIsCreatePersonOpen(true);
+            }} className="flex items-center space-x-2">
               <UserPlus className="w-4 h-4" />
               <span>Add Person</span>
             </Button>
@@ -418,7 +422,11 @@ export default function PeoplePage() {
                   <p className="text-muted-foreground mb-4">
                     {searchQuery ? `No people match "${searchQuery}"` : 'Start by adding people to organize your photos'}
                   </p>
-                  <Button onClick={() => setIsCreatePersonOpen(true)}>
+                  <Button onClick={() => {
+                    setNewPersonName('');
+                    setNewPersonNotes('');
+                    setIsCreatePersonOpen(true);
+                  }}>
                     <UserPlus className="w-4 h-4 mr-2" />
                     Add First Person
                   </Button>
@@ -738,7 +746,11 @@ export default function PeoplePage() {
             <div className="flex justify-between items-center pt-4 border-t">
               <Button
                 variant="outline"
-                onClick={() => setIsCreatePersonOpen(true)}
+                onClick={() => {
+                  // Prefill the person name with the current search query
+                  setNewPersonName(searchQuery.trim());
+                  setIsCreatePersonOpen(true);
+                }}
                 className="flex items-center space-x-2"
               >
                 <UserPlus className="w-4 h-4" />
