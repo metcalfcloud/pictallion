@@ -375,9 +375,9 @@ export default function PeoplePage() {
         {viewMode === 'faces' && (
           <div className="space-y-4">
             {facesLoading ? (
-              <div className="grid grid-cols-3 md:grid-cols-6 lg:grid-cols-8 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                 {Array.from({ length: 24 }).map((_, i) => (
-                  <div key={i} className="w-24 h-24 bg-muted rounded animate-pulse"></div>
+                  <div key={i} className="w-32 h-32 bg-muted rounded animate-pulse"></div>
                 ))}
               </div>
             ) : filteredFaces.length > 0 ? (
@@ -399,7 +399,7 @@ export default function PeoplePage() {
                   </div>
                 )}
                 
-                <div className="grid grid-cols-3 md:grid-cols-6 lg:grid-cols-8 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                   {filteredFaces.map((face) => (
                     <div
                       key={face.id}
@@ -408,7 +408,7 @@ export default function PeoplePage() {
                       }`}
                       onClick={() => handleFaceSelection(face.id)}
                     >
-                      <div className="w-24 h-24 bg-muted rounded overflow-hidden">
+                      <div className="w-32 h-32 bg-muted rounded overflow-hidden">
                         {face.faceCropUrl ? (
                           <img
                             src={`/api/files/${face.faceCropUrl}`}
@@ -426,11 +426,14 @@ export default function PeoplePage() {
                         </div>
                       </div>
                       
-                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all rounded flex items-center justify-center">
+                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all rounded"></div>
+                      
+                      {/* Selection indicator in top-right corner */}
+                      <div className="absolute top-2 right-2">
                         {selectedFaces.includes(face.id) ? (
-                          <CheckSquare className="w-5 h-5 text-blue-500" />
+                          <CheckSquare className="w-5 h-5 text-blue-500 bg-white rounded shadow-sm" />
                         ) : (
-                          <Square className="w-5 h-5 text-white opacity-0 group-hover:opacity-100" />
+                          <Square className="w-5 h-5 text-white opacity-0 group-hover:opacity-100 bg-black bg-opacity-50 rounded" />
                         )}
                       </div>
                       
