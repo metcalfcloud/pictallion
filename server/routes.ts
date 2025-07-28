@@ -936,27 +936,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
             console.log(`Person ${person.name}: avgSimilarity=${avgSimilarity.toFixed(3)}, confidence=${confidence}%, matches=${match.count}`);
 
-            // Require high confidence, multiple matches, and person has enough face samples for reliable matching
-            if (confidence >= 85 && match.count >= 2 && (person.faceCount || 0) >= 3) {
-              // Generate face crop URL for the person's representative face
-              let representativeFaceUrl = null;
-              if (person.selectedThumbnailFaceId) {
-                // Find the face with the selected thumbnail ID
-                const thumbnailFace = await storage.getFace(person.selectedThumbnailFaceId);
-                if (thumbnailFace && thumbnailFace.boundingBox) {
-                  const photo = await storage.getFileVersion(thumbnailFace.photoId);
-                  if (photo) {
-                    try {
-                      representativeFaceUrl = await faceDetectionService.generateFaceCrop(
-                        photo.filePath, 
-                        thumbnailFace.boundingBox as [number, number, number, number]
-                      );
-                    } catch (error) {
-                      console.error('Failed to generate face crop for representative face:', error);
-                      representativeFaceUrl = photo.filePath; // Fallback to full image
-                    }
-                  }
-                }
+            // Only suggest if confidence is high enough (lowered threshold for better suggestions)
+            if (confidence >= 80) {
+              // Get representative face for this person
+              let representativeFaceUrl = '';
+              if (person.representative_face) {
+                representativeFaceUrl = person.representative_face;
               }
 
               faceSuggestions.push({
