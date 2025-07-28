@@ -165,20 +165,30 @@ export default function PeoplePage() {
 
   // Set thumbnail mutation
   const setThumbnailMutation = useMutation({
-    mutationFn: ({ personId, faceId }: { personId: string; faceId: string }) => 
-      apiRequest('PUT', `/api/people/${personId}/thumbnail`, { faceId }),
+    mutationFn: async ({ personId, faceId }: { personId: string; faceId: string }) => {
+      const response = await fetch(`/api/people/${personId}/thumbnail`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ faceId }),
+      });
+      if (!response.ok) throw new Error('Failed to update thumbnail');
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/people"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/faces"] });
       setIsSelectThumbnailOpen(false);
+      setSelectedPerson(null);
+      setEditingPerson(null);
       toast({
         title: "Success",
-        description: "Thumbnail updated successfully",
+        description: "Profile photo updated successfully",
       });
     },
-    onError: () => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
-        description: "Failed to update thumbnail",
+        description: error.message || "Failed to update profile photo",
         variant: "destructive",
       });
     },

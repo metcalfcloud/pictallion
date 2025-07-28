@@ -713,13 +713,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Verify the face belongs to this person
-      const face = await await storage.getFace(faceId);
+      const face = await storage.getFace(faceId);
       if (!face || face.personId !== req.params.id) {
         return res.status(400).json({ message: "Face does not belong to this person" });
       }
 
-      await storage.setPersonThumbnail(req.params.id, faceId);
-      res.json({ success: true, message: "Thumbnail updated successfully" });
+      // Update the person's selected thumbnail face ID
+      const updatedPerson = await storage.updatePerson(req.params.id, {
+        selectedThumbnailFaceId: faceId
+      });
+
+      if (!updatedPerson) {
+        return res.status(404).json({ message: "Person not found" });
+      }
+
+      res.json({ success: true, message: "Profile photo updated successfully" });
     } catch (error) {
       console.error("Error updating person thumbnail:", error);
       res.status(500).json({ message: "Failed to update thumbnail" });
