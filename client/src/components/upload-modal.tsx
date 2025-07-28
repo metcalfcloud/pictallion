@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -306,6 +306,9 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Upload Photos</DialogTitle>
+          <DialogDescription>
+            Upload photos and videos to your collection. Duplicate detection will help you manage existing files.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">

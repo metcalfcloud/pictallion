@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { 
@@ -314,6 +314,9 @@ export default function Collections() {
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Create New Collection</DialogTitle>
+                  <DialogDescription>
+                    Create a new collection to organize your photos by theme, event, or any way you prefer.
+                  </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
                   <div className="space-y-2">
@@ -376,6 +379,9 @@ export default function Collections() {
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Create New Collection</DialogTitle>
+                  <DialogDescription>
+                    Create a new collection to organize your photos by theme, event, or any way you prefer.
+                  </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
                   <div className="space-y-2">
