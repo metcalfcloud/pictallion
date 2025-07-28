@@ -226,7 +226,10 @@ export default function PeoplePage() {
             </Button>
             <Button
               variant={viewMode === 'faces' ? 'default' : 'outline'}
-              onClick={() => setViewMode('faces')}
+              onClick={() => {
+                setViewMode('faces');
+                setSelectedPerson(null); // Clear person selection when viewing all faces
+              }}
               className="flex items-center space-x-2"
             >
               <Image className="w-4 h-4" />
@@ -372,9 +375,9 @@ export default function PeoplePage() {
         {viewMode === 'faces' && (
           <div className="space-y-4">
             {facesLoading ? (
-              <div className="grid grid-cols-4 md:grid-cols-8 lg:grid-cols-12 gap-4">
+              <div className="grid grid-cols-3 md:grid-cols-6 lg:grid-cols-8 gap-4">
                 {Array.from({ length: 24 }).map((_, i) => (
-                  <div key={i} className="w-16 h-16 bg-muted rounded animate-pulse"></div>
+                  <div key={i} className="w-24 h-24 bg-muted rounded animate-pulse"></div>
                 ))}
               </div>
             ) : filteredFaces.length > 0 ? (
@@ -396,7 +399,7 @@ export default function PeoplePage() {
                   </div>
                 )}
                 
-                <div className="grid grid-cols-4 md:grid-cols-8 lg:grid-cols-12 gap-4">
+                <div className="grid grid-cols-3 md:grid-cols-6 lg:grid-cols-8 gap-4">
                   {filteredFaces.map((face) => (
                     <div
                       key={face.id}
@@ -405,7 +408,7 @@ export default function PeoplePage() {
                       }`}
                       onClick={() => handleFaceSelection(face.id)}
                     >
-                      <div className="w-16 h-16 bg-muted rounded overflow-hidden">
+                      <div className="w-24 h-24 bg-muted rounded overflow-hidden">
                         {face.faceCropUrl ? (
                           <img
                             src={`/api/files/${face.faceCropUrl}`}
