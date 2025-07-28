@@ -271,7 +271,7 @@ export function FaceSuggestions() {
               <div className="flex items-center gap-3">
                 <CheckCircle2 className="h-5 w-5 text-green-600" />
                 <div>
-                  <p className="font-medium text-green-800">
+                  <p className="font-medium text-green-800 dark:text-green-200">
                     {totalSelected} face{totalSelected !== 1 ? 's' : ''} ready for assignment
                   </p>
                   <p className="text-sm text-green-600">

@@ -443,7 +443,7 @@ function DuplicateGroupCard({
                 </div>
 
                 {photo.id === group.suggestedKeep && (
-                  <Badge variant="outline" className="text-xs bg-green-100 text-green-800">
+                  <Badge variant="outline" className="text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
                     Suggested Keep
                   </Badge>
                 )}

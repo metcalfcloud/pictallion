@@ -254,7 +254,7 @@ export default function PeoplePage() {
         {(viewMode === 'people' || viewMode === 'faces') && (
           <div className="flex items-center space-x-4 mb-6">
             <div className="flex-1 relative">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder={viewMode === 'people' ? "Search people..." : "Search faces..."}
                 value={searchQuery}
@@ -288,9 +288,9 @@ export default function PeoplePage() {
                 {Array.from({ length: 6 }).map((_, i) => (
                   <Card key={i} className="h-48 animate-pulse">
                     <CardContent className="p-4">
-                      <div className="bg-gray-200 h-24 rounded mb-4"></div>
-                      <div className="bg-gray-200 h-4 rounded mb-2"></div>
-                      <div className="bg-gray-200 h-3 rounded w-2/3"></div>
+                      <div className="bg-muted h-24 rounded mb-4"></div>
+                      <div className="bg-muted h-4 rounded mb-2"></div>
+                      <div className="bg-muted h-3 rounded w-2/3"></div>
                     </CardContent>
                   </Card>
                 ))}
@@ -301,7 +301,7 @@ export default function PeoplePage() {
                   <Card key={person.id} className="hover:shadow-lg transition-shadow">
                     <CardContent className="p-4">
                       <div className="flex items-center space-x-3 mb-3">
-                        <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
+                        <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center">
                           <User className="w-6 h-6 text-muted-foreground" />
                         </div>
                         <div>
@@ -353,7 +353,7 @@ export default function PeoplePage() {
             ) : (
               <Card>
                 <CardContent className="p-12 text-center">
-                  <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <Users className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-lg font-semibold text-card-foreground dark:text-white mb-2">No people found</h3>
                   <p className="text-muted-foreground mb-4">
                     {searchQuery ? `No people match "${searchQuery}"` : 'Start by adding people to organize your photos'}
@@ -374,7 +374,7 @@ export default function PeoplePage() {
             {facesLoading ? (
               <div className="grid grid-cols-4 md:grid-cols-8 lg:grid-cols-12 gap-4">
                 {Array.from({ length: 24 }).map((_, i) => (
-                  <div key={i} className="w-16 h-16 bg-gray-200 rounded animate-pulse"></div>
+                  <div key={i} className="w-16 h-16 bg-muted rounded animate-pulse"></div>
                 ))}
               </div>
             ) : filteredFaces.length > 0 ? (
@@ -405,7 +405,7 @@ export default function PeoplePage() {
                       }`}
                       onClick={() => handleFaceSelection(face.id)}
                     >
-                      <div className="w-16 h-16 bg-gray-200 rounded overflow-hidden">
+                      <div className="w-16 h-16 bg-muted rounded overflow-hidden">
                         {face.faceCropUrl ? (
                           <img
                             src={face.faceCropUrl}

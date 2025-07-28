@@ -186,12 +186,12 @@ export function AISettingsModal({ open, onOpenChange }: AISettingsModalProps) {
               <div className="flex items-center justify-between">
                 <span className="font-medium">Ollama (Local)</span>
                 {config.availableProviders.ollama ? (
-                  <Badge variant="default" className="bg-green-100 text-green-800">
+                  <Badge variant="default" className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
                     <CheckCircle className="h-3 w-3 mr-1" />
                     Available
                   </Badge>
                 ) : (
-                  <Badge variant="secondary" className="bg-red-100 text-red-800">
+                  <Badge variant="secondary" className="bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200">
                     <XCircle className="h-3 w-3 mr-1" />
                     Unavailable
                   </Badge>
@@ -200,12 +200,12 @@ export function AISettingsModal({ open, onOpenChange }: AISettingsModalProps) {
               <div className="flex items-center justify-between">
                 <span className="font-medium">OpenAI (Cloud)</span>
                 {config.availableProviders.openai ? (
-                  <Badge variant="default" className="bg-green-100 text-green-800">
+                  <Badge variant="default" className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
                     <CheckCircle className="h-3 w-3 mr-1" />
                     Available
                   </Badge>
                 ) : (
-                  <Badge variant="secondary" className="bg-red-100 text-red-800">
+                  <Badge variant="secondary" className="bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200">
                     <XCircle className="h-3 w-3 mr-1" />
                     {config.config.openai.hasApiKey ? "Key Invalid" : "No API Key"}
                   </Badge>
