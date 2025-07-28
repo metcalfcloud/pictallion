@@ -10,8 +10,9 @@ import {
   Search,
   Bell,
   Users,
-  Copy, // Added Copy icon
-  Zap  // For burst photo icon
+  Copy,
+  Zap,
+  Sparkles
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
