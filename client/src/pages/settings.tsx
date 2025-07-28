@@ -347,15 +347,15 @@ export default function SettingsPage() {
     return (
       <div className="p-6">
         <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-200 rounded w-1/4"></div>
-          <div className="h-64 bg-gray-200 rounded"></div>
+          <div className="h-8 bg-muted rounded w-1/4"></div>
+          <div className="h-64 bg-muted rounded"></div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 overflow-auto bg-background dark:bg-gray-900">
+    <div className="flex-1 overflow-auto bg-background">
       <div className="p-6">
         {/* Header */}
         <header className="flex items-center justify-between mb-6">
@@ -393,7 +393,7 @@ export default function SettingsPage() {
           <div className="space-y-4">
             <Label htmlFor="naming-pattern">Naming Pattern</Label>
             <Select value={selectedPattern} onValueChange={setSelectedPattern}>
-              <SelectTrigger className={hasUnsavedChanges() ? "bg-amber-50 border-amber-200" : ""}>
+              <SelectTrigger className={hasUnsavedChanges() ? "bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800" : ""}>
                 <SelectValue placeholder="Select naming pattern" />
               </SelectTrigger>
               <SelectContent>
@@ -427,7 +427,7 @@ export default function SettingsPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant="secondary">Example</Badge>
-                  <span className="text-sm text-gray-700">
+                  <span className="text-sm text-card-foreground">
                     {namingPatterns.find((p: NamingPattern) => p.id === selectedPattern)?.example}
                   </span>
                 </div>
@@ -445,7 +445,7 @@ export default function SettingsPage() {
                   value={customPattern}
                   onChange={(e) => setCustomPattern(e.target.value)}
                   placeholder="Enter your custom naming pattern using placeholders..."
-                  className={`mt-1 ${selectedPattern === 'custom' && hasUnsavedChanges() ? "bg-amber-50 border-amber-200" : ""}`}
+                  className={`mt-1 ${selectedPattern === 'custom' && hasUnsavedChanges() ? "bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800" : ""}`}
                 />
                 <p className="text-xs text-muted-foreground mt-1">
                   Use placeholders like {"{year}"}, {"{month}"}, {"{day}"}, {"{hour}"}, {"{minute}"}, {"{second}"}, {"{camera}"}, {"{aiDescription}"}, {"{originalFilename}"}
@@ -457,11 +457,11 @@ export default function SettingsPage() {
           {/* Preview */}
           <div className="space-y-2">
             <Label>Preview</Label>
-            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
               <div className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-blue-600" />
-                <span className="text-sm font-medium text-blue-900">Generated filename:</span>
-                <code className="text-sm bg-blue-100 px-2 py-1 rounded text-blue-800">
+                <Sparkles className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                <span className="text-sm font-medium text-blue-900 dark:text-blue-100">Generated filename:</span>
+                <code className="text-sm bg-blue-100 dark:bg-blue-900 px-2 py-1 rounded text-blue-800 dark:text-blue-200">
                   {getPreviewFilename()}
                 </code>
               </div>
@@ -526,13 +526,13 @@ export default function SettingsPage() {
       </Card>
 
       {/* AI Integration Notice */}
-      <Card className="border-blue-200 bg-blue-50">
+      <Card className="border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950">
         <CardContent className="pt-6">
           <div className="flex items-start gap-3">
-            <Brain className="h-5 w-5 text-blue-600 mt-0.5" />
+            <Brain className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
             <div>
-              <h3 className="font-medium text-blue-900 mb-1">AI Description Generation</h3>
-              <p className="text-sm text-blue-800">
+              <h3 className="font-medium text-blue-900 dark:text-blue-100 mb-1">AI Description Generation</h3>
+              <p className="text-sm text-blue-800 dark:text-blue-200">
                 When processing photos from Bronze to Silver tier, Pictallion will automatically generate 
                 2-3 word AI descriptions in PascalCase format (e.g., "SunsetBeach", "FamilyDinner"). 
                 These descriptions are used in the filename patterns marked with {"{aiDescription}"}.
