@@ -179,7 +179,7 @@ export function FaceSuggestions() {
   const suggestionsWithFaces = suggestions.map(suggestion => ({
     ...suggestion,
     face: unassignedFaces.find(f => f.id === suggestion.faceId)
-  })).filter(s => s.face || suggestion.faceId); // Keep suggestions even if face data is missing
+  })).filter(s => s.face || s.faceId); // Keep suggestions even if face data is missing
 
   const totalUnassigned = unassignedFaces.length;
   const totalWithSuggestions = suggestions.length;

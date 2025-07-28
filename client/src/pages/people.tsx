@@ -97,7 +97,8 @@ export default function PeoplePage() {
   // Create person mutation
   const createPersonMutation = useMutation({
     mutationFn: async (personData: { name: string; notes?: string }) => {
-      return await apiRequest('POST', '/api/people', personData);
+      const response = await apiRequest('POST', '/api/people', personData);
+      return await response.json();
     },
     onSuccess: (newPerson) => {
       queryClient.invalidateQueries({ queryKey: ["/api/people"] });
