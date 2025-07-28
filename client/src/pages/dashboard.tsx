@@ -309,7 +309,7 @@ export default function Dashboard() {
                 {(stats?.bronzeCount ?? 0) > 0 && (
                   <Button
                     variant="outline"
-                    className="flex items-center justify-between p-4 h-auto border border-green-200 hover:border-green-400 hover:bg-green-50"
+                    className="flex items-center justify-between p-4 h-auto border border-green-200 dark:border-green-800 hover:border-green-400 hover:bg-green-50 dark:hover:bg-green-950"
                     asChild
                   >
                     <Link href="/gallery?tier=bronze">
@@ -320,7 +320,7 @@ export default function Dashboard() {
                           <div className="text-sm text-muted-foreground">Add AI tags and descriptions</div>
                         </div>
                       </div>
-                      <ArrowRight className="h-4 w-4 text-gray-400" />
+                      <ArrowRight className="h-4 w-4 text-muted-foreground" />
                     </Link>
                   </Button>
                 )}
@@ -328,7 +328,7 @@ export default function Dashboard() {
                 {(stats?.pendingReviewCount ?? 0) > 0 && (
                   <Button
                     variant="outline"
-                    className="flex items-center justify-between p-4 h-auto border border-yellow-200 hover:border-yellow-400 hover:bg-yellow-50"
+                    className="flex items-center justify-between p-4 h-auto border border-yellow-200 dark:border-yellow-800 hover:border-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-950"
                     asChild
                   >
                     <Link href="/gallery?tier=silver">
@@ -339,14 +339,14 @@ export default function Dashboard() {
                           <div className="text-sm text-muted-foreground">Verify AI results and curate</div>
                         </div>
                       </div>
-                      <ArrowRight className="h-4 w-4 text-gray-400" />
+                      <ArrowRight className="h-4 w-4 text-muted-foreground" />
                     </Link>
                   </Button>
                 )}
 
                 <Button
                   variant="outline"
-                  className="flex items-center justify-between p-4 h-auto border border-blue-200 hover:border-blue-400 hover:bg-blue-50"
+                  className="flex items-center justify-between p-4 h-auto border border-blue-200 dark:border-blue-800 hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950"
                   asChild
                 >
                   <Link href="/gallery">
@@ -357,7 +357,7 @@ export default function Dashboard() {
                         <div className="text-sm text-muted-foreground">View your complete collection</div>
                       </div>
                     </div>
-                    <ArrowRight className="h-4 w-4 text-gray-400" />
+                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
                   </Link>
                 </Button>
               </div>
@@ -371,13 +371,13 @@ export default function Dashboard() {
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-semibold text-card-foreground">Recent Photos</h3>
               <div className="flex items-center space-x-2">
-                <select className="text-sm border border-gray-300 rounded-lg px-3 py-1 focus:outline-none focus:ring-2 focus:ring-primary">
+                <select className="text-sm border border-border bg-background text-foreground rounded-lg px-3 py-1 focus:outline-none focus:ring-2 focus:ring-primary">
                   <option value="all">All Tiers</option>
                   <option value="bronze">Bronze</option>
                   <option value="silver">Silver</option>
                   <option value="gold">Gold</option>
                 </select>
-                <Button variant="ghost" size="sm" asChild>
+                <Button variant="outline" size="sm" asChild>
                   <Link href="/gallery">View all</Link>
                 </Button>
               </div>
@@ -386,7 +386,7 @@ export default function Dashboard() {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
               {photosLoading ? (
                 Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="w-full h-32 bg-gray-200 rounded-lg animate-pulse" />
+                  <div key={i} className="w-full h-32 bg-muted rounded-lg animate-pulse" />
                 ))
               ) : recentPhotos && recentPhotos.length > 0 ? (
                 recentPhotos.map((photo) => (
