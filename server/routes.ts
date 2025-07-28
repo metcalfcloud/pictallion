@@ -881,7 +881,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json([]);
       }
 
-      const people = await storage.getAllPeople();
+      const people = await storage.getPeople();
       console.log(`Found ${people.length} people for matching suggestions`);
 
       if (people.length === 0) {
@@ -925,8 +925,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Create suggestion entries for this face
         const faceSuggestions = [];
 
-        for (const [personId, match] of personMatches.entries()) {
-          const person = people.find(p => p.id === personId);
+        for (const [personId, match] of Array.from(personMatches.entries())) {
+          const person = people.find((p: any) => p.id === personId);
           if (person) {
             const avgSimilarity = match.totalSimilarity / match.count;
             const confidence = Math.min(95, Math.round(avgSimilarity * 100));

@@ -90,6 +90,7 @@ export interface IStorage {
   createFace(face: InsertFace): Promise<Face>;
   getAllFaces(): Promise<Face[]>;
   getFacesByPerson(personId: string): Promise<Face[]>;
+  getUnassignedFaces(): Promise<Face[]>;
   linkFaceToPerson(faceId: string, personId: string): Promise<void>;
   assignFaceToPerson?(faceId: string, personId: string): Promise<void>;
 

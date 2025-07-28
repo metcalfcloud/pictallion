@@ -389,30 +389,3 @@ export default function Gallery() {
     </>
   );
 }
-
-{viewMode === 'list' && (
-            <div className="space-y-2">
-              {photos.data?.map((photo) => (
-                <Card 
-                  key={photo.id} 
-                  className="p-4 cursor-pointer hover:bg-accent/50 transition-colors"
-                  onClick={() => setSelectedPhoto(photo)}
-                >
-                  <div className="flex items-center space-x-4">
-                    <div className="flex-shrink-0">
-                      <img
-                        src={`/api/files/${photo.filePath}`}
-                        alt={photo.mediaAsset.displayFilename || photo.mediaAsset.originalFilename}
-                        className="w-16 h-16 object-cover rounded"
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-sm font-medium truncate">
-                        {photo.mediaAsset.displayFilename || photo.mediaAsset.originalFilename}
-                      </h3>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          )}
