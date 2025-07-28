@@ -39,6 +39,7 @@ interface Person {
   id: string;
   name: string;
   notes?: string;
+  birthdate?: string;
   createdAt: string;
   updatedAt: string;
   faceCount?: number;
@@ -79,6 +80,7 @@ export default function PeoplePage() {
   const [editingPerson, setEditingPerson] = useState<Person | null>(null);
   const [newPersonName, setNewPersonName] = useState('');
   const [newPersonNotes, setNewPersonNotes] = useState('');
+  const [newPersonBirthdate, setNewPersonBirthdate] = useState('');
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -103,7 +105,7 @@ export default function PeoplePage() {
 
   // Create person mutation
   const createPersonMutation = useMutation({
-    mutationFn: async (personData: { name: string; notes?: string }) => {
+    mutationFn: async (personData: { name: string; notes?: string; birthdate?: string }) => {
       const response = await apiRequest('POST', '/api/people', personData);
       return await response.json();
     },
@@ -112,6 +114,7 @@ export default function PeoplePage() {
       setIsCreatePersonOpen(false);
       setNewPersonName('');
       setNewPersonNotes('');
+      setNewPersonBirthdate('');
       toast({ title: "Person created successfully" });
       
       // If we have selected faces and we're in assign mode, assign them to the new person
@@ -127,7 +130,7 @@ export default function PeoplePage() {
 
   // Update person mutation
   const updatePersonMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: { name: string; notes?: string } }) => {
+    mutationFn: async ({ id, data }: { id: string; data: { name: string; notes?: string; birthdate?: string } }) => {
       return await apiRequest('PUT', `/api/people/${id}`, data);
     },
     onSuccess: () => {
@@ -257,7 +260,8 @@ export default function PeoplePage() {
     if (newPersonName.trim()) {
       createPersonMutation.mutate({
         name: newPersonName.trim(),
-        notes: newPersonNotes.trim() || undefined
+        notes: newPersonNotes.trim() || undefined,
+        birthdate: newPersonBirthdate || undefined
       });
     }
   };
@@ -268,7 +272,8 @@ export default function PeoplePage() {
         id: editingPerson.id,
         data: {
           name: newPersonName.trim(),
-          notes: newPersonNotes.trim() || undefined
+          notes: newPersonNotes.trim() || undefined,
+          birthdate: newPersonBirthdate || undefined
         }
       });
     }
@@ -323,6 +328,7 @@ export default function PeoplePage() {
             <Button onClick={() => {
               setNewPersonName('');
               setNewPersonNotes('');
+              setNewPersonBirthdate('');
               setIsCreatePersonOpen(true);
             }} className="flex items-center space-x-2">
               <UserPlus className="w-4 h-4" />
@@ -488,6 +494,7 @@ export default function PeoplePage() {
                               setEditingPerson(person);
                               setNewPersonName(person.name);
                               setNewPersonNotes(person.notes || '');
+                              setNewPersonBirthdate(person.birthdate ? person.birthdate.split('T')[0] : '');
                               setIsEditPersonOpen(true);
                             }}
                           >
@@ -521,6 +528,7 @@ export default function PeoplePage() {
                   <Button onClick={() => {
                     setNewPersonName('');
                     setNewPersonNotes('');
+                    setNewPersonBirthdate('');
                     setIsCreatePersonOpen(true);
                   }}>
                     <UserPlus className="w-4 h-4 mr-2" />
@@ -643,6 +651,15 @@ export default function PeoplePage() {
               />
             </div>
             <div>
+              <Label htmlFor="person-birthdate">Birthdate (optional)</Label>
+              <Input
+                id="person-birthdate"
+                type="date"
+                value={newPersonBirthdate}
+                onChange={(e) => setNewPersonBirthdate(e.target.value)}
+              />
+            </div>
+            <div>
               <Label htmlFor="person-notes">Notes (optional)</Label>
               <Textarea
                 id="person-notes"
@@ -760,6 +777,15 @@ export default function PeoplePage() {
                 placeholder="Enter person's name"
                 value={newPersonName}
                 onChange={(e) => setNewPersonName(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-person-birthdate">Birthdate (optional)</Label>
+              <Input
+                id="edit-person-birthdate"
+                type="date"
+                value={newPersonBirthdate}
+                onChange={(e) => setNewPersonBirthdate(e.target.value)}
               />
             </div>
             <div>

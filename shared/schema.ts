@@ -67,6 +67,7 @@ export const people = pgTable("people", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
   notes: text("notes"),
+  birthdate: timestamp("birthdate"), // Birthday for age calculation and event detection
   faceCount: integer("face_count").default(0),
   representativeFace: text("representative_face"),
   selectedThumbnailFaceId: text("selected_thumbnail_face_id"), // ID of the face to use as thumbnail
@@ -81,6 +82,21 @@ export const settings = pgTable("settings", {
   description: text("description"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const events = pgTable("events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  type: text("type", { enum: ["holiday", "birthday", "custom"] }).notNull(),
+  date: timestamp("date").notNull(), // For recurring events, this is the base date
+  isRecurring: boolean("is_recurring").default(false),
+  recurringType: text("recurring_type", { enum: ["yearly", "monthly", "weekly"] }),
+  country: text("country"), // For holidays: US, UK, etc.
+  region: text("region"), // For regional holidays
+  personId: varchar("person_id").references(() => people.id), // For birthday events
+  isEnabled: boolean("is_enabled").default(true),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const faces = pgTable("faces", {
@@ -131,6 +147,7 @@ export const collectionPhotosRelations = relations(collectionPhotos, ({ one }) =
 
 export const peopleRelations = relations(people, ({ many }) => ({
   faces: many(faces),
+  birthdays: many(events),
 }));
 
 export const facesRelations = relations(faces, ({ one }) => ({
@@ -140,6 +157,13 @@ export const facesRelations = relations(faces, ({ one }) => ({
   }),
   person: one(people, {
     fields: [faces.personId],
+    references: [people.id],
+  }),
+}));
+
+export const eventsRelations = relations(events, ({ one }) => ({
+  person: one(people, {
+    fields: [events.personId],
     references: [people.id],
   }),
 }));
@@ -191,6 +215,11 @@ export const insertSettingSchema = createInsertSchema(settings).omit({
   updatedAt: true,
 });
 
+export const insertEventSchema = createInsertSchema(events).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof insertUserSchema._output;
@@ -210,6 +239,8 @@ export type Face = typeof faces.$inferSelect;
 export type InsertFace = typeof insertFaceSchema._output;
 export type Setting = typeof settings.$inferSelect;
 export type InsertSetting = typeof insertSettingSchema._output;
+export type Event = typeof events.$inferSelect;
+export type InsertEvent = typeof insertEventSchema._output;
 
 // Metadata interfaces
 export interface AIMetadata {

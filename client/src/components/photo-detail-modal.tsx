@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { Photo } from "@shared/types";
@@ -53,6 +53,52 @@ export default function PhotoDetailModal({
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  // Extract photo date from EXIF or filename
+  const extractPhotoDate = (photo: Photo): string | null => {
+    try {
+      // First try EXIF datetime fields
+      if (photo.metadata?.exif?.dateTime) {
+        return new Date(photo.metadata.exif.dateTime).toISOString().split('T')[0];
+      }
+      if (photo.metadata?.exif?.dateTimeOriginal) {
+        return new Date(photo.metadata.exif.dateTimeOriginal).toISOString().split('T')[0];
+      }
+      
+      // Try to extract from filename if it has timestamp format (YYYYMMDD_HHMMSS)
+      const filename = photo.mediaAsset?.originalFilename || '';
+      const timestampMatch = filename.match(/^(\d{8})_(\d{6})/);
+      if (timestampMatch) {
+        const dateStr = timestampMatch[1]; // YYYYMMDD
+        const year = parseInt(dateStr.substring(0, 4));
+        const month = parseInt(dateStr.substring(4, 6)) - 1; // Month is 0-indexed
+        const day = parseInt(dateStr.substring(6, 8));
+        
+        const extractedDate = new Date(year, month, day);
+        if (!isNaN(extractedDate.getTime())) {
+          return extractedDate.toISOString().split('T')[0];
+        }
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Error extracting photo date:', error);
+      return null;
+    }
+  };
+
+  const photoDate = extractPhotoDate(photo);
+
+  // Query detected events for this photo
+  const { data: detectedEvents = [] } = useQuery({
+    queryKey: ['/api/events/detect', photoDate],
+    queryFn: async () => {
+      if (!photoDate) return [];
+      const response = await apiRequest('POST', '/api/events/detect', { photoDate });
+      return await response.json();
+    },
+    enabled: !!photoDate,
+  });
 
   // Initialize edited metadata when photo changes
   useEffect(() => {
@@ -429,13 +475,68 @@ export default function PhotoDetailModal({
                     </div>
                   )}
 
-                  {(photo.eventType || photo.eventName) && (
+                  {/* Events Section */}
+                  {((photo.eventType || photo.eventName) || detectedEvents.length > 0) && (
                     <div className="mb-4">
-                      <h4 className="text-sm font-semibold text-card-foreground mb-2">Event</h4>
-                      <div className="text-sm text-muted-foreground">
-                        {photo.eventType && <div className="capitalize">{photo.eventType}</div>}
-                        {photo.eventName && <div>{photo.eventName}</div>}
-                      </div>
+                      <h4 className="text-sm font-semibold text-card-foreground mb-2">
+                        <Calendar className="w-4 h-4 inline mr-1" />
+                        Events
+                      </h4>
+                      
+                      {/* Manual/Saved Event */}
+                      {(photo.eventType || photo.eventName) && (
+                        <div className="mb-2 p-2 bg-background rounded border">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              {photo.eventType && (
+                                <Badge variant="outline" className="text-xs mb-1">
+                                  {photo.eventType.charAt(0).toUpperCase() + photo.eventType.slice(1)}
+                                </Badge>
+                              )}
+                              {photo.eventName && (
+                                <div className="text-sm font-medium text-card-foreground">
+                                  {photo.eventName}
+                                </div>
+                              )}
+                            </div>
+                            <Badge variant="secondary" className="text-xs">Saved</Badge>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Auto-Detected Events */}
+                      {detectedEvents.length > 0 && (
+                        <div className="space-y-2">
+                          <div className="text-xs text-muted-foreground">Auto-detected events:</div>
+                          {detectedEvents.map((event: any, index: number) => (
+                            <div key={index} className="p-2 bg-muted/50 rounded border-l-2 border-blue-500">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <Badge variant="outline" className="text-xs mb-1">
+                                    {event.eventType.charAt(0).toUpperCase() + event.eventType.slice(1)}
+                                  </Badge>
+                                  <div className="text-sm font-medium text-card-foreground">
+                                    {event.eventName}
+                                  </div>
+                                  {event.age !== undefined && (
+                                    <div className="text-xs text-muted-foreground mt-1">
+                                      Age: {event.age} years old
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="text-right">
+                                  <Badge 
+                                    variant={event.confidence >= 95 ? "default" : event.confidence >= 80 ? "secondary" : "outline"}
+                                    className="text-xs"
+                                  >
+                                    {event.confidence}%
+                                  </Badge>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
 

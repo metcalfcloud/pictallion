@@ -13,7 +13,50 @@ import { metadataEmbedding } from "./services/metadataEmbedding";
 import { faceDetectionService } from "./services/faceDetection.js";
 import { burstPhotoService } from "./services/burstPhotoDetection";
 import { generateSilverFilename } from "./services/aiNaming";
+import { eventDetectionService } from "./services/eventDetection";
 import { insertMediaAssetSchema, insertFileVersionSchema, insertAssetHistorySchema } from "@shared/schema";
+
+// Helper function to extract photo date from metadata or filename
+function extractPhotoDate(photo: any): Date | null {
+  try {
+    // First try EXIF datetime fields
+    if (photo.metadata?.exif?.dateTime) {
+      return new Date(photo.metadata.exif.dateTime);
+    }
+    if (photo.metadata?.exif?.dateTimeOriginal) {
+      return new Date(photo.metadata.exif.dateTimeOriginal);
+    }
+    
+    // Try to extract from filename if it has timestamp format (YYYYMMDD_HHMMSS)
+    const filename = photo.mediaAsset?.originalFilename || '';
+    const timestampMatch = filename.match(/^(\d{8})_(\d{6})/);
+    if (timestampMatch) {
+      const dateStr = timestampMatch[1]; // YYYYMMDD
+      const timeStr = timestampMatch[2]; // HHMMSS
+      const year = parseInt(dateStr.substring(0, 4));
+      const month = parseInt(dateStr.substring(4, 6)) - 1; // Month is 0-indexed
+      const day = parseInt(dateStr.substring(6, 8));
+      const hour = parseInt(timeStr.substring(0, 2));
+      const minute = parseInt(timeStr.substring(2, 4));
+      const second = parseInt(timeStr.substring(4, 6));
+      
+      const extractedDate = new Date(year, month, day, hour, minute, second);
+      if (!isNaN(extractedDate.getTime())) {
+        return extractedDate;
+      }
+    }
+    
+    // Fall back to file creation time
+    if (photo.createdAt) {
+      return new Date(photo.createdAt);
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error extracting photo date:', error);
+    return null;
+  }
+}
 
 // Similarity detection function
 async function findSimilarPhotos(photos: any[]): Promise<any[]> {
@@ -414,6 +457,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Detect faces in the image
       const detectedFaces = await faceDetectionService.detectFaces(photo.filePath);
 
+      // Detect events based on photo date
+      let eventType: string | undefined;
+      let eventName: string | undefined;
+      const asset = await storage.getMediaAsset(photo.mediaAssetId);
+      const photoWithAsset = { ...photo, mediaAsset: asset };
+      const photoDate = extractPhotoDate(photoWithAsset);
+      if (photoDate) {
+        try {
+          const detectedEvents = await eventDetectionService.detectEvents(photoDate);
+          if (detectedEvents.length > 0) {
+            // Use the highest confidence event
+            const bestEvent = detectedEvents.reduce((max, event) => 
+              event.confidence > max.confidence ? event : max
+            );
+            if (bestEvent.confidence >= 80) { // Only use high-confidence matches
+              eventType = bestEvent.eventType;
+              eventName = bestEvent.eventName;
+            }
+          }
+        } catch (error) {
+          console.error('Event detection failed for photo:', req.params.id, error);
+        }
+      }
+
       // Combine existing metadata with enhanced AI metadata
       const existingMetadata = photo.metadata || {};
       const combinedMetadata = {
@@ -431,6 +498,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         mimeType: photo.mimeType,
         metadata: combinedMetadata as any,
         aiShortDescription: enhancedMetadata.shortDescription,
+        eventType: eventType || undefined,
+        eventName: eventName || undefined,
         isReviewed: false,
       });
 
@@ -1478,6 +1547,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Detect faces
             const detectedFaces = await faceDetectionService.detectFaces(photo.filePath);
 
+            // Detect events based on photo date
+            let eventType: string | undefined;
+            let eventName: string | undefined;
+            const photoWithAsset = { ...photo, mediaAsset };
+            const photoDate = extractPhotoDate(photoWithAsset);
+            if (photoDate) {
+              try {
+                const detectedEvents = await eventDetectionService.detectEvents(photoDate);
+                if (detectedEvents.length > 0) {
+                  // Use the highest confidence event
+                  const bestEvent = detectedEvents.reduce((max, event) => 
+                    event.confidence > max.confidence ? event : max
+                  );
+                  if (bestEvent.confidence >= 80) { // Only use high-confidence matches
+                    eventType = bestEvent.eventType;
+                    eventName = bestEvent.eventName;
+                  }
+                }
+              } catch (error) {
+                console.error('Event detection failed for photo:', photoId, error);
+              }
+            }
+
             // Create silver version
             const combinedMetadata = {
               ...(photo.metadata || {}),
@@ -1493,6 +1585,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               mimeType: photo.mimeType,
               metadata: combinedMetadata as any,
               aiShortDescription: enhancedMetadata.shortDescription,
+              eventType: eventType || undefined,
+              eventName: eventName || undefined,
               isReviewed: false,
             });
 
@@ -1566,6 +1660,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const silverPath = await fileManager.copyToSilver(photo.filePath, newFilename);
             const detectedFaces = await faceDetectionService.detectFaces(photo.filePath);
 
+            // Detect events based on photo date
+            let eventType: string | undefined;
+            let eventName: string | undefined;
+            const photoWithAsset = { ...photo, mediaAsset };
+            const photoDate = extractPhotoDate(photoWithAsset);
+            if (photoDate) {
+              try {
+                const detectedEvents = await eventDetectionService.detectEvents(photoDate);
+                if (detectedEvents.length > 0) {
+                  // Use the highest confidence event
+                  const bestEvent = detectedEvents.reduce((max, event) => 
+                    event.confidence > max.confidence ? event : max
+                  );
+                  if (bestEvent.confidence >= 80) { // Only use high-confidence matches
+                    eventType = bestEvent.eventType;
+                    eventName = bestEvent.eventName;
+                  }
+                }
+              } catch (error) {
+                console.error('Event detection failed for photo:', photoId, error);
+              }
+            }
+
             const combinedMetadata = {
               ...(photo.metadata || {}),
               ai: enhancedMetadata,
@@ -1580,6 +1697,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               mimeType: photo.mimeType,
               metadata: combinedMetadata as any,
               aiShortDescription: enhancedMetadata.shortDescription,
+              eventType: eventType || undefined,
+              eventName: eventName || undefined,
               isReviewed: false,
             });
 
@@ -1970,6 +2089,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching naming patterns:", error);
       res.status(500).json({ message: "Failed to fetch naming patterns" });
+    }
+  });
+
+  // Event Detection Routes
+  app.get("/api/events", async (req, res) => {
+    try {
+      const events = await storage.getEvents();
+      res.json(events);
+    } catch (error) {
+      console.error("Error fetching events:", error);
+      res.status(500).json({ message: "Failed to fetch events" });
+    }
+  });
+
+  app.post("/api/events", async (req, res) => {
+    try {
+      const event = await storage.createEvent(req.body);
+      res.status(201).json(event);
+    } catch (error) {
+      console.error("Error creating event:", error);
+      res.status(500).json({ message: "Failed to create event" });
+    }
+  });
+
+  app.get("/api/events/holiday-sets", async (req, res) => {
+    try {
+      const { eventDetectionService } = await import("./services/eventDetection");
+      const holidaySets = eventDetectionService.getAvailableHolidaySets();
+      res.json(holidaySets);
+    } catch (error) {
+      console.error("Error fetching holiday sets:", error);
+      res.status(500).json({ message: "Failed to fetch holiday sets" });
+    }
+  });
+
+  app.post("/api/events/detect", async (req, res) => {
+    try {
+      const { photoDate } = req.body;
+      if (!photoDate) {
+        return res.status(400).json({ message: "Photo date is required" });
+      }
+      
+      const { eventDetectionService } = await import("./services/eventDetection");
+      const events = await eventDetectionService.detectEvents(new Date(photoDate));
+      res.json(events);
+    } catch (error) {
+      console.error("Error detecting events:", error);
+      res.status(500).json({ message: "Failed to detect events" });
+    }
+  });
+
+  app.post("/api/people/:personId/age-in-photo", async (req, res) => {
+    try {
+      const { photoDate } = req.body;
+      if (!photoDate) {
+        return res.status(400).json({ message: "Photo date is required" });
+      }
+
+      const person = await storage.getPerson(req.params.personId);
+      if (!person || !person.birthdate) {
+        return res.status(404).json({ message: "Person not found or no birthdate set" });
+      }
+
+      const { eventDetectionService } = await import("./services/eventDetection");
+      const age = eventDetectionService.calculateAgeInPhoto(new Date(person.birthdate), new Date(photoDate));
+      
+      res.json({ age, personName: person.name });
+    } catch (error) {
+      console.error("Error calculating age:", error);
+      res.status(500).json({ message: "Failed to calculate age" });
     }
   });
 

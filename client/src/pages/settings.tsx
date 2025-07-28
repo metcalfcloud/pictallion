@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import EventSettings from "@/components/event-settings";
 
 interface Setting {
   id: string;
@@ -370,9 +371,10 @@ export default function SettingsPage() {
 
       {/* Settings Tabs */}
       <Tabs defaultValue="naming" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="naming">File Naming</TabsTrigger>
           <TabsTrigger value="ai">AI Configuration</TabsTrigger>
+          <TabsTrigger value="events">Event Detection</TabsTrigger>
         </TabsList>
 
         <TabsContent value="naming" className="space-y-6">
@@ -694,6 +696,11 @@ export default function SettingsPage() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Event Detection Settings Tab */}
+        <TabsContent value="events" className="space-y-6">
+          <EventSettings />
         </TabsContent>
       </Tabs>
       </div>

@@ -8,6 +8,7 @@ import {
   people,
   faces,
   settings,
+  events,
   type User, 
   type InsertUser,
   type MediaAsset,
@@ -24,7 +25,9 @@ import {
   type Face,
   type InsertFace,
   type Setting,
-  type InsertSetting
+  type InsertSetting,
+  type Event,
+  type InsertEvent
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, count, sql } from "drizzle-orm";
@@ -100,6 +103,14 @@ export interface IStorage {
   createSetting(data: InsertSetting): Promise<Setting>;
   updateSetting(key: string, value: string): Promise<Setting>;
   deleteSetting(key: string): Promise<void>;
+
+  // Events methods
+  createEvent(event: InsertEvent): Promise<Event>;
+  getEvents(): Promise<Event[]>;
+  getEvent(id: string): Promise<Event | undefined>;
+  updateEvent(id: string, updates: Partial<Event>): Promise<Event>;
+  deleteEvent(id: string): Promise<void>;
+  getEventsByType(type: 'holiday' | 'birthday' | 'custom'): Promise<Event[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -327,9 +338,15 @@ export class DatabaseStorage implements IStorage {
 
   // People & Faces methods
   async createPerson(person: InsertPerson): Promise<Person> {
+    // Convert birthdate string to Date if provided
+    const processedPerson = { ...person };
+    if (processedPerson.birthdate && typeof processedPerson.birthdate === 'string') {
+      processedPerson.birthdate = new Date(processedPerson.birthdate);
+    }
+    
     const [newPerson] = await db
       .insert(people)
-      .values(person)
+      .values(processedPerson)
       .returning();
     return newPerson;
   }
@@ -340,9 +357,15 @@ export class DatabaseStorage implements IStorage {
 
   async updatePerson(id: string, updates: Partial<Person>): Promise<Person | undefined> {
     try {
+      // Convert birthdate string to Date if provided
+      const processedUpdates = { ...updates };
+      if (processedUpdates.birthdate && typeof processedUpdates.birthdate === 'string') {
+        processedUpdates.birthdate = new Date(processedUpdates.birthdate);
+      }
+      
       const [updated] = await db
         .update(people)
-        .set({ ...updates })
+        .set(processedUpdates)
         .where(eq(people.id, id))
         .returning();
       return updated || undefined;
@@ -488,6 +511,37 @@ export class DatabaseStorage implements IStorage {
 
   async deleteSetting(key: string): Promise<void> {
     await db.delete(settings).where(eq(settings.key, key));
+  }
+
+  // Events methods
+  async createEvent(event: InsertEvent): Promise<Event> {
+    const [newEvent] = await db.insert(events).values(event).returning();
+    return newEvent;
+  }
+
+  async getEvents(): Promise<Event[]> {
+    return await db.select().from(events).orderBy(events.date);
+  }
+
+  async getEvent(id: string): Promise<Event | undefined> {
+    const [event] = await db.select().from(events).where(eq(events.id, id));
+    return event || undefined;
+  }
+
+  async updateEvent(id: string, updates: Partial<Event>): Promise<Event> {
+    const [event] = await db.update(events)
+      .set(updates)
+      .where(eq(events.id, id))
+      .returning();
+    return event;
+  }
+
+  async deleteEvent(id: string): Promise<void> {
+    await db.delete(events).where(eq(events.id, id));
+  }
+
+  async getEventsByType(type: 'holiday' | 'birthday' | 'custom'): Promise<Event[]> {
+    return await db.select().from(events).where(eq(events.type, type));
   }
 }
 
