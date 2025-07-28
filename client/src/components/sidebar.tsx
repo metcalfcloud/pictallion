@@ -45,18 +45,17 @@ export default function Sidebar() {
   return (
     <aside className="w-64 bg-card border-r border-border flex flex-col">
       {/* Logo */}
-      <div className="border-b border-border">
-        <div className="flex items-center justify-between">
-          <div className="flex-1 flex justify-center">
-            <img 
-              src={pictallionLogo} 
-              alt="Pictallion Logo" 
-              className="h-40 w-auto object-contain filter drop-shadow-sm"
-            />
-          </div>
-          <div className="absolute top-2 right-2">
-            <ThemeToggle />
-          </div>
+      <div className="border-b border-border p-2">
+        <div className="flex items-start justify-between mb-2">
+          <div className="flex-1"></div>
+          <ThemeToggle />
+        </div>
+        <div className="flex justify-center">
+          <img 
+            src={pictallionLogo} 
+            alt="Pictallion Logo" 
+            className="h-32 w-auto object-contain filter drop-shadow-sm"
+          />
         </div>
       </div>
 
