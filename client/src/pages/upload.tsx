@@ -152,7 +152,7 @@ export default function Upload() {
       case 'uploading':
         return <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />;
       default:
-        return <File className="w-4 h-4 text-gray-400" />;
+        return <File className="w-4 h-4 text-muted-foreground" />;
     }
   };
 
@@ -194,17 +194,17 @@ export default function Upload() {
                 className={`border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors ${
                   isDragActive 
                     ? 'border-primary bg-primary/5' 
-                    : 'border-gray-300 hover:border-primary hover:bg-primary/5'
+                    : 'border-border hover:border-primary hover:bg-primary/5'
                 }`}
               >
                 <input {...getInputProps()} />
-                <UploadIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <UploadIcon className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
                 <h4 className="text-lg font-medium text-card-foreground mb-2">
                   {isDragActive ? 'Drop photos here' : 'Drag and drop your photos here'}
                 </h4>
                 <p className="text-muted-foreground mb-4">or click to browse your files</p>
                 <Button>Choose Files</Button>
-                <p className="text-xs text-gray-400 mt-4">
+                <p className="text-xs text-muted-foreground mt-4">
                   Supports JPEG, PNG, TIFF, MP4, MOV, AVI files up to 50MB each
                 </p>
               </div>

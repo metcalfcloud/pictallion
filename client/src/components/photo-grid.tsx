@@ -32,7 +32,7 @@ export default function PhotoGrid({
       case 'gold':
         return 'bg-yellow-500 text-white';
       default:
-        return 'bg-gray-300 text-gray-700';
+        return 'bg-muted text-muted-foreground';
     }
   };
 

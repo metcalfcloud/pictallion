@@ -84,6 +84,13 @@ The application uses a relational database with four main tables:
 
 ## Recent Changes
 
+### Dark Mode Enhancement Completion (July 28, 2025)
+- **Comprehensive CSS Color System**: Enhanced with CSS variables for proper dark mode adaptation
+- **Fixed Hardcoded Colors**: Updated 30+ instances across all components (text-gray-400 → text-muted-foreground, bg-gray-200 → bg-muted, etc.)
+- **Enhanced Component Visibility**: Fixed invisible buttons and improved component readability in dark mode
+- **Tier Background Colors**: Added custom CSS variables for proper light/dark mode tier color adaptation
+- **Complete Dark Mode Compatibility**: All interface elements now properly support both light and dark themes
+
 ### Burst Photo Detection Implementation (July 27, 2025)
 - Implemented intelligent burst photo detection service using image similarity analysis
 - Added burst selection page for choosing photos from grouped sequences  

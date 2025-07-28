@@ -263,7 +263,7 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
       case 'uploading':
         return <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />;
       default:
-        return <File className="w-4 h-4 text-gray-400" />;
+        return <File className="w-4 h-4 text-muted-foreground" />;
     }
   };
 
@@ -315,17 +315,17 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
             className={`border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors ${
               isDragActive 
                 ? 'border-primary bg-primary/5' 
-                : 'border-gray-300 hover:border-primary hover:bg-primary/5'
+                : 'border-border hover:border-primary hover:bg-primary/5'
             }`}
           >
             <input {...getInputProps()} />
-            <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <Upload className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
             <h4 className="text-lg font-medium text-card-foreground mb-2">
               {isDragActive ? 'Drop photos here' : 'Drag and drop your photos here'}
             </h4>
             <p className="text-muted-foreground mb-4">or click to browse your files</p>
             <Button type="button">Choose Files</Button>
-            <p className="text-xs text-gray-400 mt-4">
+            <p className="text-xs text-muted-foreground mt-4">
               Supports JPEG, PNG, TIFF, MP4, MOV, AVI files up to 50MB each
             </p>
           </div>
@@ -392,7 +392,7 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
             <Button 
               onClick={() => setShowConflicts(true)}
               variant="outline"
-              className="border-orange-300 text-orange-700 hover:bg-orange-50"
+              className="border-orange-300 dark:border-orange-700 text-orange-700 dark:text-orange-300 hover:bg-orange-50 dark:hover:bg-orange-950"
             >
               Resolve Conflicts ({uploadFiles.filter(f => f.status === 'conflict').length})
             </Button>

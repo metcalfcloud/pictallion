@@ -231,7 +231,7 @@ export default function BatchOperations({
                 </div>
               ))}
               {selectedPhotos.length > 5 && (
-                <div className="w-8 h-8 rounded bg-gray-200 flex items-center justify-center text-xs">
+                <div className="w-8 h-8 rounded bg-muted flex items-center justify-center text-xs">
                   +{selectedPhotos.length - 5}
                 </div>
               )}
@@ -429,7 +429,7 @@ export default function BatchOperations({
               className={`relative cursor-pointer rounded border-2 transition-all ${
                 selectedPhotos.includes(photo.id) 
                   ? 'border-blue-500 ring-2 ring-blue-200' 
-                  : 'border-transparent hover:border-gray-300'
+                  : 'border-transparent hover:border-border'
               }`}
               onClick={() => togglePhoto(photo.id)}
             >

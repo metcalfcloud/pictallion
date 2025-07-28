@@ -74,7 +74,7 @@ export default function PhotoDetailModal({
       case 'gold':
         return 'bg-yellow-500 text-white';
       default:
-        return 'bg-gray-300 text-gray-700';
+        return 'bg-muted text-muted-foreground';
     }
   };
 
@@ -284,7 +284,7 @@ export default function PhotoDetailModal({
                   <div className="space-y-2">
                     {photo.metadata.ai.detectedObjects.map((obj: any, index: number) => (
                       <div key={index} className="flex justify-between">
-                        <span className="text-sm text-gray-700">{obj.name}</span>
+                        <span className="text-sm text-card-foreground">{obj.name}</span>
                         <span className="text-sm text-muted-foreground">
                           {Math.round(obj.confidence * 100)}%
                         </span>
@@ -367,7 +367,7 @@ export default function PhotoDetailModal({
                           key={starValue}
                           type="button"
                           onClick={() => setEditedMetadata(prev => ({ ...prev, rating: starValue }))}
-                          className={`p-1 rounded ${editedMetadata.rating >= starValue ? 'text-yellow-400' : 'text-gray-300'}`}
+                          className={`p-1 rounded ${editedMetadata.rating >= starValue ? 'text-yellow-400' : 'text-muted-foreground'}`}
                         >
                           <Star className="w-4 h-4 fill-current" />
                         </button>
@@ -446,7 +446,7 @@ export default function PhotoDetailModal({
                         {[1, 2, 3, 4, 5].map((starValue) => (
                           <Star 
                             key={starValue}
-                            className={`w-4 h-4 ${(photo.rating ?? 0) >= starValue ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} 
+                            className={`w-4 h-4 ${(photo.rating ?? 0) >= starValue ? 'text-yellow-400 fill-current' : 'text-muted-foreground'}`} 
                           />
                         ))}
                       </div>

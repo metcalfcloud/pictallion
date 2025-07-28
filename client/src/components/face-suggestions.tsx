@@ -314,7 +314,7 @@ export function FaceSuggestions() {
       {!suggestionsLoading && !facesLoading && suggestionsWithFaces.length === 0 && totalUnassigned > 0 && (
         <Card>
           <CardContent className="p-8 text-center">
-            <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-medium mb-2">No Face Suggestions Available</h3>
             <p className="text-muted-foreground mb-4">
               There are {totalUnassigned} unassigned faces, but no suggestions could be generated. 
@@ -406,7 +406,7 @@ export function FaceSuggestions() {
                         <div 
                           key={suggestion.personId} 
                           className={`p-3 border rounded-lg transition-all cursor-pointer hover:shadow-md ${
-                            isThisSelected ? 'border-green-500 bg-green-50' : 'border-border hover:border-gray-300'
+                            isThisSelected ? 'border-green-500 bg-green-50 dark:bg-green-950' : 'border-border hover:border-muted-foreground'
                           }`}
                         >
                           <div className="flex items-center gap-3 mb-2">
