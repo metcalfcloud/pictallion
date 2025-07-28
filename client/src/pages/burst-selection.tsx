@@ -345,14 +345,32 @@ export default function BurstSelectionPage() {
                                 onChange={() => togglePhotoSelection(group.id, photo.id)}
                               />
                               <span className="text-xs text-muted-foreground dark:text-gray-400">
-                                {photo.fileSize ? formatFileSize(photo.fileSize) : 'Unknown'}
+                                {photo.metadata?.exif?.camera || 'Unknown camera'}
                               </span>
                             </div>
                             <p className="text-xs text-muted-foreground dark:text-gray-300 truncate mt-1">
-                              {photo.mediaAsset.originalFilename}
+                              {(() => {
+                                // Extract actual photo time from filename (YYYYMMDD_HHMMSS format)
+                                const filename = photo.mediaAsset.originalFilename;
+                                const match = filename.match(/^(\d{8})_(\d{6})/);
+                                if (match) {
+                                  const dateStr = match[1]; // YYYYMMDD
+                                  const timeStr = match[2]; // HHMMSS
+                                  const year = dateStr.substring(0, 4);
+                                  const month = dateStr.substring(4, 6);
+                                  const day = dateStr.substring(6, 8);
+                                  const hour = timeStr.substring(0, 2);
+                                  const minute = timeStr.substring(2, 4);
+                                  const second = timeStr.substring(4, 6);
+                                  return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
+                                }
+                                return filename;
+                              })()}
                             </p>
                             <p className="text-xs text-muted-foreground dark:text-gray-400">
-                              {new Date(photo.createdAt).toLocaleTimeString()}
+                              {photo.metadata?.exif?.iso ? `ISO ${photo.metadata.exif.iso}` : ''} 
+                              {photo.metadata?.exif?.aperture ? ` • ${photo.metadata.exif.aperture}` : ''}
+                              {photo.metadata?.exif?.shutter ? ` • ${photo.metadata.exif.shutter}` : ''}
                             </p>
                           </div>
                         </div>
