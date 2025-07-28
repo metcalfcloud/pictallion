@@ -80,13 +80,13 @@ export default function PhotoGrid({
                       <h3 className="font-medium text-card-foreground mb-1">
                         {photo.mediaAsset.originalFilename}
                       </h3>
-                      
+
                       <div className="flex items-center space-x-2 mb-2">
                         <Badge className={cn("text-xs", getTierBadgeClass(photo.tier))}>
                           {getTierIcon(photo.tier)}
                           <span className="ml-1 capitalize">{photo.tier}</span>
                         </Badge>
-                        
+
                         {needsReview(photo) && (
                           <Badge variant="outline" className="text-yellow-600 border-yellow-600">
                             <Eye className="w-3 h-3 mr-1" />
@@ -128,7 +128,7 @@ export default function PhotoGrid({
                           {isProcessing ? 'Processing...' : 'Process with AI'}
                         </Button>
                       )}
-                      
+
                       <Button variant="ghost" size="sm">
                         <MoreVertical className="w-4 h-4" />
                       </Button>
@@ -157,7 +157,7 @@ export default function PhotoGrid({
               className="w-full h-32 object-cover rounded-lg"
             />
             <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 rounded-lg" />
-            
+
             {/* Enhanced hover info */}
             <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-200 p-2 flex flex-col justify-between">
               <div className="space-y-1">
@@ -202,7 +202,7 @@ export default function PhotoGrid({
                       AI
                     </button>
                   )}
-                  
+
                   {photo.tier === 'silver' && (
                     <button
                       className="bg-yellow-500 hover:bg-yellow-600 text-white px-2 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1"
@@ -233,7 +233,7 @@ export default function PhotoGrid({
                   </button>
                 </div>
               </div>
-              
+
               <div className="text-white text-xs space-y-1">
                 {photo.metadata?.ai?.shortDescription && (
                   <p className="line-clamp-2 bg-black bg-opacity-50 p-1 rounded">
@@ -291,7 +291,7 @@ export default function PhotoGrid({
                   <Bot className="w-3 h-3" />
                 </Button>
               )}
-              
+
               <Button
                 variant="secondary"
                 size="sm"

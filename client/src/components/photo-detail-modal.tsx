@@ -50,7 +50,7 @@ export default function PhotoDetailModal({
     eventName: '',
     rating: 0
   });
-  
+
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -300,7 +300,7 @@ export default function PhotoDetailModal({
               {isEditing ? (
                 <div className="space-y-4 mb-6">
                   <h4 className="text-sm font-semibold text-card-foreground">Edit Metadata</h4>
-                  
+
                   <div>
                     <Label htmlFor="keywords" className="text-xs">Keywords (comma-separated)</Label>
                     <Input
