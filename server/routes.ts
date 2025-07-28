@@ -940,8 +940,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             if (confidence >= 93 && match.count >= 3) {
               // Get representative face for this person
               let representativeFaceUrl = '';
-              if (person.representative_face) {
-                representativeFaceUrl = person.representative_face;
+              if (person.representativeFace) {
+                representativeFaceUrl = person.representativeFace;
               }
 
               faceSuggestions.push({
