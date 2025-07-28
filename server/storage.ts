@@ -216,6 +216,14 @@ export class DatabaseStorage implements IStorage {
     await db.delete(fileVersions).where(eq(fileVersions.id, id));
   }
 
+  async getAllFileVersions() {
+    return await db.select().from(fileVersions).orderBy(desc(fileVersions.createdAt));
+  }
+
+  async deleteFacesByPhoto(photoId: string): Promise<void> {
+    await db.delete(faces).where(eq(faces.photoId, photoId));
+  }
+
   async createAssetHistory(history: InsertAssetHistory): Promise<AssetHistory> {
     const [record] = await db
       .insert(assetHistory)
@@ -309,7 +317,7 @@ export class DatabaseStorage implements IStorage {
   async deleteCollection(id: string): Promise<void> {
     // First delete all photos from the collection
     await db.delete(collectionPhotos).where(eq(collectionPhotos.collectionId, id));
-    
+
     // Then delete the collection itself
     await db.delete(collections).where(eq(collections.id, id));
   }
@@ -343,7 +351,7 @@ export class DatabaseStorage implements IStorage {
     if (processedPerson.birthdate && typeof processedPerson.birthdate === 'string') {
       processedPerson.birthdate = new Date(processedPerson.birthdate);
     }
-    
+
     const [newPerson] = await db
       .insert(people)
       .values(processedPerson)
@@ -362,7 +370,7 @@ export class DatabaseStorage implements IStorage {
       if (processedUpdates.birthdate && typeof processedUpdates.birthdate === 'string') {
         processedUpdates.birthdate = new Date(processedUpdates.birthdate);
       }
-      
+
       const [updated] = await db
         .update(people)
         .set(processedUpdates)

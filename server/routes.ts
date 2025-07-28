@@ -204,10 +204,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get photos by tier
+  // Get photos by tier with intelligent deduplication
   app.get("/api/photos", async (req, res) => {
     try {
-      const tier = req.query.tier as "bronze" | "silver" | "gold" | "unprocessed" | undefined;
+      const tier = req.query.tier as "bronze" | "silver" | "gold" | "unprocessed" | "all_versions" | undefined;
+      const showAllVersions = req.query.showAllVersions === 'true';
 
       if (tier === 'unprocessed') {
         // Get bronze photos that haven't been processed to silver, 
@@ -247,10 +248,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         res.json(unprocessedPhotos);
-      } else if (tier) {
-        const photos = await storage.getFileVersionsByTier(tier);
+      } else if (tier === 'all_versions') {
+        // Show all versions of all photos (admin view)
+        const allVersions = await storage.getAllFileVersions();
         const photosWithAssets = await Promise.all(
-          photos.map(async (photo) => {
+          allVersions.map(async (photo) => {
+            const asset = await storage.getMediaAsset(photo.mediaAssetId);
+            const enhancedAsset = {
+              ...asset,
+              displayFilename: path.basename(photo.filePath)
+            };
+            return { ...photo, mediaAsset: enhancedAsset };
+          })
+        );
+        res.json(photosWithAssets);
+      } else if (tier) {
+        // Show specific tier, but filter out superseded versions unless explicitly requested
+        const photos = await storage.getFileVersionsByTier(tier);
+        let filteredPhotos = photos;
+
+        if (!showAllVersions) {
+          // Filter out photos that have been superseded by higher tiers
+          const photosWithSuperseded = await Promise.all(
+            photos.map(async (photo) => {
+              const versions = await storage.getFileVersionsByAsset(photo.mediaAssetId);
+              const hasSilver = versions.some(v => v.tier === 'silver');
+              const hasGold = versions.some(v => v.tier === 'gold');
+
+              let isSuperseded = false;
+              if (photo.tier === 'bronze' && (hasSilver || hasGold)) {
+                isSuperseded = true;
+              } else if (photo.tier === 'silver' && hasGold) {
+                isSuperseded = true;
+              }
+
+              return { ...photo, isSuperseded };
+            })
+          );
+
+          filteredPhotos = photosWithSuperseded.filter(photo => !photo.isSuperseded);
+        }
+
+        const photosWithAssets = await Promise.all(
+          filteredPhotos.map(async (photo) => {
             const asset = await storage.getMediaAsset(photo.mediaAssetId);
             const enhancedAsset = {
               ...asset,
@@ -261,8 +301,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         );
         res.json(photosWithAssets);
       } else {
-        const photos = await storage.getRecentPhotos(100); // Get more for full gallery
-        res.json(photos);
+        // Default view: show highest tier version of each asset
+        const allAssets = await storage.getAllMediaAssets();
+        const highestTierPhotos = [];
+
+        for (const asset of allAssets) {
+          const versions = await storage.getFileVersionsByAsset(asset.id);
+          
+          // Find highest tier version (Gold > Silver > Bronze)
+          const goldVersion = versions.find(v => v.tier === 'gold');
+          const silverVersion = versions.find(v => v.tier === 'silver');
+          const bronzeVersion = versions.find(v => v.tier === 'bronze');
+
+          const highestVersion = goldVersion || silverVersion || bronzeVersion;
+          if (highestVersion) {
+            const enhancedAsset = {
+              ...asset,
+              displayFilename: path.basename(highestVersion.filePath)
+            };
+            highestTierPhotos.push({ ...highestVersion, mediaAsset: enhancedAsset });
+          }
+        }
+
+        // Sort by creation date, most recent first
+        highestTierPhotos.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        
+        res.json(highestTierPhotos.slice(0, 100)); // Limit to 100 for performance
       }
     } catch (error) {
       console.error("Error fetching photos:", error);
@@ -2007,6 +2071,187 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error in batch promotion:", error);
       res.status(500).json({ message: "Failed to batch promote photos" });
+    }
+  });
+
+  // Demote photo to lower tier
+  app.post("/api/photos/:id/demote", async (req, res) => {
+    try {
+      const photo = await storage.getFileVersion(req.params.id);
+      if (!photo) {
+        return res.status(404).json({ message: "Photo not found" });
+      }
+
+      // Can only demote Gold to Silver or Silver to Bronze
+      if (photo.tier === 'bronze') {
+        return res.status(400).json({ message: "Cannot demote Bronze tier photos" });
+      }
+
+      // Check if lower tier version exists to revert to
+      const versions = await storage.getFileVersionsByAsset(photo.mediaAssetId);
+      let targetVersion = null;
+
+      if (photo.tier === 'gold') {
+        targetVersion = versions.find(v => v.tier === 'silver');
+        if (!targetVersion) {
+          return res.status(400).json({ message: "No Silver version found to demote to" });
+        }
+      } else if (photo.tier === 'silver') {
+        targetVersion = versions.find(v => v.tier === 'bronze'); 
+        if (!targetVersion) {
+          return res.status(400).json({ message: "No Bronze version found to demote to" });
+        }
+      }
+
+      // Delete the current higher tier version
+      await storage.deleteFileVersion(photo.id);
+
+      // Log demotion
+      await storage.createAssetHistory({
+        mediaAssetId: photo.mediaAssetId,
+        action: 'DEMOTED',
+        details: `Demoted from ${photo.tier} tier back to ${targetVersion.tier} tier`,
+      });
+
+      // Return the target version info
+      const asset = await storage.getMediaAsset(targetVersion.mediaAssetId);
+      const enhancedAsset = {
+        ...asset,
+        displayFilename: path.basename(targetVersion.filePath)
+      };
+
+      res.json({ 
+        success: true, 
+        message: `Photo demoted from ${photo.tier} to ${targetVersion.tier}`,
+        activeVersion: { ...targetVersion, mediaAsset: enhancedAsset }
+      });
+    } catch (error) {
+      console.error("Error demoting photo:", error);
+      res.status(500).json({ message: "Failed to demote photo" });
+    }
+  });
+
+  // Reprocess photo (regenerate AI analysis and metadata)
+  app.post("/api/photos/:id/reprocess", async (req, res) => {
+    try {
+      const photo = await storage.getFileVersion(req.params.id);
+      if (!photo) {
+        return res.status(404).json({ message: "Photo not found" });
+      }
+
+      if (photo.tier === 'bronze') {
+        return res.status(400).json({ message: "Use /process endpoint for Bronze photos" });
+      }
+
+      if (!photo.mimeType.startsWith('image/')) {
+        return res.status(400).json({ message: "AI reprocessing only supports images" });
+      }
+
+      // Re-run AI analysis
+      const aiMetadata = await aiService.analyzeImage(photo.filePath, "openai");
+      const enhancedMetadata = await aiService.enhanceMetadataWithShortDescription(aiMetadata, photo.filePath);
+
+      // Re-detect faces
+      const detectedFaces = await faceDetectionService.detectFaces(photo.filePath);
+
+      // Re-detect events
+      let eventType: string | undefined;
+      let eventName: string | undefined;
+      const asset = await storage.getMediaAsset(photo.mediaAssetId);
+      const photoWithAsset = { ...photo, mediaAsset: asset };
+      const photoDate = extractPhotoDate(photoWithAsset);
+      if (photoDate) {
+        try {
+          const detectedEvents = await eventDetectionService.detectEvents(photoDate);
+          if (detectedEvents.length > 0) {
+            const bestEvent = detectedEvents.reduce((max, event) => 
+              event.confidence > max.confidence ? event : max
+            );
+            if (bestEvent.confidence >= 80) {
+              eventType = bestEvent.eventType;
+              eventName = bestEvent.eventName;
+            }
+          }
+        } catch (error) {
+          console.error('Event detection failed during reprocessing:', error);
+        }
+      }
+
+      // Update metadata
+      const combinedMetadata = {
+        ...(photo.metadata || {}),
+        ai: enhancedMetadata,
+      };
+
+      const updatedPhoto = await storage.updateFileVersion(photo.id, {
+        metadata: combinedMetadata as any,
+        aiShortDescription: enhancedMetadata.shortDescription,
+        eventType: eventType || undefined,
+        eventName: eventName || undefined,
+        isReviewed: false, // Reset review status since metadata changed
+      });
+
+      // Delete old faces and add new ones
+      await storage.deleteFacesByPhoto(photo.id);
+      for (const face of detectedFaces) {
+        await storage.createFace({
+          photoId: photo.id,
+          boundingBox: face.boundingBox,
+          confidence: face.confidence,
+          embedding: face.embedding,
+          personId: face.personId || null,
+        });
+      }
+
+      // Log reprocessing
+      await storage.createAssetHistory({
+        mediaAssetId: photo.mediaAssetId,
+        action: 'REPROCESSED',
+        details: `${photo.tier} tier photo reprocessed with updated AI analysis`,
+      });
+
+      res.json({ 
+        success: true, 
+        message: "Photo reprocessed successfully",
+        updatedPhoto 
+      });
+    } catch (error) {
+      console.error("Error reprocessing photo:", error);
+      res.status(500).json({ message: "Failed to reprocess photo" });
+    }
+  });
+
+  // Get all versions of a media asset
+  app.get("/api/photos/:id/versions", async (req, res) => {
+    try {
+      const photo = await storage.getFileVersion(req.params.id);
+      if (!photo) {
+        return res.status(404).json({ message: "Photo not found" });
+      }
+
+      const versions = await storage.getFileVersionsByAsset(photo.mediaAssetId);
+      const versionsWithAssets = await Promise.all(
+        versions.map(async (version) => {
+          const asset = await storage.getMediaAsset(version.mediaAssetId);
+          const enhancedAsset = {
+            ...asset,
+            displayFilename: path.basename(version.filePath)
+          };
+          return { ...version, mediaAsset: enhancedAsset };
+        })
+      );
+
+      // Sort by tier priority (Gold > Silver > Bronze)
+      const tierPriority = { gold: 3, silver: 2, bronze: 1 };
+      versionsWithAssets.sort((a, b) => 
+        (tierPriority[b.tier as keyof typeof tierPriority] || 0) - 
+        (tierPriority[a.tier as keyof typeof tierPriority] || 0)
+      );
+
+      res.json(versionsWithAssets);
+    } catch (error) {
+      console.error("Error fetching photo versions:", error);
+      res.status(500).json({ message: "Failed to fetch photo versions" });
     }
   });
 
