@@ -171,19 +171,23 @@ export default function PeoplePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ faceId }),
       });
-      if (!response.ok) throw new Error('Failed to update thumbnail');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to update thumbnail');
+      }
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/people"] });
       queryClient.invalidateQueries({ queryKey: ["/api/faces"] });
-      setIsSelectThumbnailOpen(false);
-      setSelectedPerson(null);
-      setEditingPerson(null);
       toast({
         title: "Success",
         description: "Profile photo updated successfully",
       });
+      // Close dialog and clear state
+      setIsSelectThumbnailOpen(false);
+      setSelectedPerson(null);
+      setEditingPerson(null);
     },
     onError: (error: Error) => {
       toast({
@@ -215,6 +219,27 @@ export default function PeoplePage() {
   const handleAssignFaces = (personId: string) => {
     if (selectedFaces.length > 0) {
       assignFacesToPersonMutation.mutate({ faceIds: selectedFaces, personId });
+    }
+  };
+
+  const handleCreatePerson = () => {
+    if (newPersonName.trim()) {
+      createPersonMutation.mutate({
+        name: newPersonName.trim(),
+        notes: newPersonNotes.trim() || undefined
+      });
+    }
+  };
+
+  const handleEditPerson = () => {
+    if (editingPerson && newPersonName.trim()) {
+      updatePersonMutation.mutate({
+        id: editingPerson.id,
+        data: {
+          name: newPersonName.trim(),
+          notes: newPersonNotes.trim() || undefined
+        }
+      });
     }
   };
 
@@ -341,7 +366,9 @@ export default function PeoplePage() {
                             size="sm"
                             variant="outline"
                             onClick={() => {
-                              setSelectedPerson(person.id);
+                              setEditingPerson(person);
+                              setNewPersonName(person.name);
+                              setNewPersonNotes(person.notes || '');
                               setIsEditPersonOpen(true);
                             }}
                           >
@@ -485,6 +512,8 @@ export default function PeoplePage() {
               <Input
                 id="person-name"
                 placeholder="Enter person's name"
+                value={newPersonName}
+                onChange={(e) => setNewPersonName(e.target.value)}
               />
             </div>
             <div>
@@ -492,13 +521,20 @@ export default function PeoplePage() {
               <Textarea
                 id="person-notes"
                 placeholder="Add any notes about this person"
+                value={newPersonNotes}
+                onChange={(e) => setNewPersonNotes(e.target.value)}
               />
             </div>
             <div className="flex justify-end space-x-2">
               <Button variant="outline" onClick={() => setIsCreatePersonOpen(false)}>
                 Cancel
               </Button>
-              <Button>Create Person</Button>
+              <Button 
+                onClick={handleCreatePerson}
+                disabled={!newPersonName.trim() || createPersonMutation.isPending}
+              >
+                {createPersonMutation.isPending ? 'Creating...' : 'Create Person'}
+              </Button>
             </div>
           </div>
         </DialogContent>
@@ -577,6 +613,88 @@ export default function PeoplePage() {
                 </div>
               ));
             })()}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Person Dialog */}
+      <Dialog open={isEditPersonOpen} onOpenChange={setIsEditPersonOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Person</DialogTitle>
+            <DialogDescription>
+              Update the person's name and notes.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="edit-person-name">Name</Label>
+              <Input
+                id="edit-person-name"
+                placeholder="Enter person's name"
+                value={newPersonName}
+                onChange={(e) => setNewPersonName(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-person-notes">Notes (optional)</Label>
+              <Textarea
+                id="edit-person-notes"
+                placeholder="Add any notes about this person"
+                value={newPersonNotes}
+                onChange={(e) => setNewPersonNotes(e.target.value)}
+              />
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setIsEditPersonOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleEditPerson}
+                disabled={!newPersonName.trim() || updatePersonMutation.isPending}
+              >
+                {updatePersonMutation.isPending ? 'Updating...' : 'Update Person'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Photos Dialog */}
+      <Dialog open={isViewPhotosOpen} onOpenChange={setIsViewPhotosOpen}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>
+              Photos of {people.find(p => p.id === selectedPerson)?.name || 'Person'}
+            </DialogTitle>
+            <DialogDescription>
+              All photos containing this person's face.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 max-h-96 overflow-y-auto">
+            {personPhotosLoading ? (
+              Array.from({ length: 12 }).map((_, i) => (
+                <div key={i} className="aspect-square bg-muted rounded animate-pulse"></div>
+              ))
+            ) : personPhotos.length > 0 ? (
+              personPhotos.map((photo) => (
+                <div key={photo.id} className="aspect-square bg-muted rounded overflow-hidden">
+                  <img
+                    src={`/api/files/${photo.filePath}`}
+                    alt={photo.mediaAsset.originalFilename}
+                    className="w-full h-full object-cover hover:scale-105 transition-transform cursor-pointer"
+                    onClick={() => {
+                      // Could open photo detail modal here
+                      console.log('Open photo:', photo.id);
+                    }}
+                  />
+                </div>
+              ))
+            ) : (
+              <div className="col-span-full text-center text-muted-foreground py-8">
+                No photos found for this person
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
