@@ -23,7 +23,7 @@ const navigationItems = [
   { path: "/dashboard", label: "Home", icon: ChartLine },
   { path: "/gallery", label: "Photos", icon: Images },
   { path: "/upload", label: "Upload", icon: Upload },
-  { path: "/collections", label: "Albums", icon: Images },
+  { path: "/collections", label: "Collections", icon: Images },
   { path: "/people", label: "People", icon: Users },
   { path: "/burst-selection", label: "Burst Photos", icon: Zap },
   { path: "/duplicates", label: "Duplicates", icon: Copy },
