@@ -179,7 +179,7 @@ export function FaceSuggestions() {
   const suggestionsWithFaces = suggestions.map(suggestion => ({
     ...suggestion,
     face: unassignedFaces.find(f => f.id === suggestion.faceId)
-  })).filter(s => s.face);
+  })).filter(s => s.face || suggestion.faceId); // Keep suggestions even if face data is missing
 
   const totalUnassigned = unassignedFaces.length;
   const totalWithSuggestions = suggestions.length;
@@ -344,7 +344,7 @@ export function FaceSuggestions() {
       {/* Face suggestion cards */}
       <div className="space-y-4">
         {suggestionsWithFaces.map((item) => {
-          const face = item.face!;
+          const face = item.face;
           const isSelected = selectedAssignments.some(a => a.faceId === item.faceId);
           const selectedPerson = selectedAssignments.find(a => a.faceId === item.faceId);
           
@@ -354,32 +354,48 @@ export function FaceSuggestions() {
                 <div className="flex items-center gap-4">
                   {/* Face crop */}
                   <div className="relative">
-                    <img
-                      src={face.faceCropUrl ? `/api/files/${face.faceCropUrl}` : getFaceCropUrl(face)}
-                      alt="Face crop"
-                      className="w-20 h-20 rounded-lg object-cover border-2 border-border"
-                      onError={(e) => {
-                        // First fallback to the other crop method, then to full image
-                        if (face.faceCropUrl && e.currentTarget.src.includes(face.faceCropUrl)) {
-                          e.currentTarget.src = getFaceCropUrl(face);
-                        } else {
-                          e.currentTarget.src = `/api/files/${face.photo?.filePath}`;
-                        }
-                      }}
-                    />
-                    <Badge className="absolute -top-1 -right-1 text-xs">
-                      {Math.round(face.confidence)}%
-                    </Badge>
+                    {face ? (
+                      <>
+                        <img
+                          src={face.faceCropUrl ? `/api/files/${face.faceCropUrl}` : getFaceCropUrl(face)}
+                          alt="Face crop"
+                          className="w-20 h-20 rounded-lg object-cover border-2 border-border"
+                          onError={(e) => {
+                            // First fallback to the other crop method, then to full image
+                            if (face.faceCropUrl && e.currentTarget.src.includes(face.faceCropUrl)) {
+                              e.currentTarget.src = getFaceCropUrl(face);
+                            } else {
+                              e.currentTarget.src = `/api/files/${face.photo?.filePath}`;
+                            }
+                          }}
+                        />
+                        <Badge className="absolute -top-1 -right-1 text-xs">
+                          {Math.round(face.confidence)}%
+                        </Badge>
+                      </>
+                    ) : (
+                      <div className="w-20 h-20 rounded-lg bg-muted border-2 border-border flex items-center justify-center">
+                        <Eye className="w-8 h-8 text-muted-foreground" />
+                        <Badge className="absolute -top-1 -right-1 text-xs bg-yellow-500">
+                          Missing
+                        </Badge>
+                      </div>
+                    )}
                   </div>
                   
                   {/* Face info */}
                   <div className="flex-1">
-                    <h3 className="font-medium">Unassigned Face</h3>
+                    <h3 className="font-medium">
+                      {face ? 'Unassigned Face' : 'Face (Missing Data)'}
+                    </h3>
                     <p className="text-sm text-muted-foreground">
-                      From: {face.photo?.mediaAsset.originalFilename}
+                      {face?.photo?.mediaAsset.originalFilename ? 
+                        `From: ${face.photo.mediaAsset.originalFilename}` : 
+                        `Face ID: ${item.faceId}`
+                      }
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Confidence: {Math.round(face.confidence)}% • {item.suggestions.length} suggestion{item.suggestions.length !== 1 ? 's' : ''}
+                      {face ? `Confidence: ${Math.round(face.confidence)}%` : 'Face data missing'} • {item.suggestions.length} suggestion{item.suggestions.length !== 1 ? 's' : ''}
                     </p>
                   </div>
 
