@@ -387,9 +387,7 @@ export default function BurstSelectionPage() {
                                 return <p className="text-sm text-muted-foreground truncate">{filename}</p>;
                               })()}
                             </div>
-                            <p className="text-xs text-muted-foreground dark:text-gray-400">
-                              {photo.fileSize ? formatFileSize(photo.fileSize) : ''}
-                            </p>
+
                           </div>
                         </div>
                       );
