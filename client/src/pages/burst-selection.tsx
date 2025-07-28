@@ -345,7 +345,7 @@ export default function BurstSelectionPage() {
                                 onChange={() => togglePhotoSelection(group.id, photo.id)}
                               />
                             </div>
-                            <p className="text-sm font-medium text-card-foreground dark:text-white truncate mt-1">
+                            <div className="mt-1">
                               {(() => {
                                 // Extract and format actual photo time from filename (YYYYMMDD_HHMMSS format)
                                 const filename = photo.mediaAsset.originalFilename;
@@ -361,18 +361,32 @@ export default function BurstSelectionPage() {
                                   const second = timeStr.substring(4, 6);
                                   
                                   const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute), parseInt(second));
-                                  return date.toLocaleString('en-US', {
+                                  const dateStr2 = date.toLocaleDateString('en-US', {
                                     month: 'short',
                                     day: 'numeric',
+                                    year: 'numeric'
+                                  });
+                                  const timeStr2 = date.toLocaleTimeString('en-US', {
                                     hour: 'numeric',
                                     minute: '2-digit',
                                     second: '2-digit',
                                     hour12: true
                                   });
+                                  
+                                  return (
+                                    <>
+                                      <p className="text-sm font-medium text-card-foreground dark:text-white truncate">
+                                        {dateStr2}
+                                      </p>
+                                      <p className="text-xs text-muted-foreground dark:text-gray-400">
+                                        {timeStr2}
+                                      </p>
+                                    </>
+                                  );
                                 }
-                                return filename;
+                                return <p className="text-sm text-muted-foreground truncate">{filename}</p>;
                               })()}
-                            </p>
+                            </div>
                             <p className="text-xs text-muted-foreground dark:text-gray-400">
                               {photo.fileSize ? formatFileSize(photo.fileSize) : ''}
                             </p>
