@@ -19,7 +19,8 @@ import {
   Sparkles,
   Eye,
   AlertCircle,
-  CheckCircle2
+  CheckCircle2,
+  User
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -430,13 +431,20 @@ export function FaceSuggestions() {
                           }`}
                         >
                           <div className="flex items-center gap-3 mb-2">
-                            <Avatar className="w-10 h-10">
-                              <AvatarImage 
-                                src={suggestion.representativeFace ? `/api/files/${suggestion.representativeFace}` : ''}
-                                alt={suggestion.personName}
-                              />
-                              <AvatarFallback className="text-xs">{suggestion.personName.charAt(0)}</AvatarFallback>
-                            </Avatar>
+                            <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center overflow-hidden">
+                              {suggestion.representativeFace ? (
+                                <img
+                                  src={`/api/files/${suggestion.representativeFace}`}
+                                  alt={suggestion.personName}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                    e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                                  }}
+                                />
+                              ) : null}
+                              <User className={`w-6 h-6 text-muted-foreground ${suggestion.representativeFace ? 'hidden' : ''}`} />
+                            </div>
                             <div className="flex-1 min-w-0">
                               <p className="font-medium text-sm truncate">{suggestion.personName}</p>
                               <p className="text-xs text-muted-foreground">
