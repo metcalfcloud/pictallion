@@ -645,23 +645,26 @@ class FaceDetectionService {
       const imageWidth = imageInfo.width || 1000;
       const imageHeight = imageInfo.height || 1000;
       
-      // Use proper portrait framing with generous context
+      // Use very tight cropping with minimal padding
       const faceCenterX = x + width / 2;
       const faceCenterY = y + height / 2;
       const faceSize = Math.max(width, height);
-      const cropSize = Math.min(faceSize * 4, Math.min(imageWidth, imageHeight) * 0.4);
+      const cropSize = faceSize * 1.2; // Just 20% padding around face
       
-      // Center crop around face
-      let finalCropX = Math.max(0, faceCenterX - cropSize / 2);
-      let finalCropY = Math.max(0, faceCenterY - cropSize / 2);
-      let finalCropSize = Math.min(cropSize, Math.min(imageWidth - finalCropX, imageHeight - finalCropY));
+      // Center crop around face with bounds checking
+      let finalCropX = faceCenterX - cropSize / 2;
+      let finalCropY = faceCenterY - cropSize / 2;
+      let finalCropSize = cropSize;
       
-      // Adjust if crop extends beyond image bounds
-      if (finalCropX + finalCropSize > imageWidth) {
-        finalCropX = imageWidth - finalCropSize;
-      }
-      if (finalCropY + finalCropSize > imageHeight) {
-        finalCropY = imageHeight - finalCropSize;
+      // Ensure crop stays within image bounds
+      finalCropX = Math.max(0, Math.min(finalCropX, imageWidth - finalCropSize));
+      finalCropY = Math.max(0, Math.min(finalCropY, imageHeight - finalCropSize));
+      
+      // If crop is too large for image, reduce it but keep it centered
+      if (finalCropSize > imageWidth || finalCropSize > imageHeight) {
+        finalCropSize = Math.min(imageWidth, imageHeight) * 0.9;
+        finalCropX = Math.max(0, faceCenterX - finalCropSize / 2);
+        finalCropY = Math.max(0, faceCenterY - finalCropSize / 2);
       }
       
       console.log(`Face crop: center [${faceCenterX}, ${faceCenterY}] → crop [${finalCropX}, ${finalCropY}, ${finalCropSize}x${finalCropSize}] from ${imageWidth}x${imageHeight}`);
