@@ -56,6 +56,8 @@ The application uses a relational database with four main tables:
 - **Description Generation**: Short and long descriptions for searchability
 - **Face Detection**: TensorFlow-based face recognition and cropping
 - **Burst Photo Detection**: Intelligent grouping of similar photos taken within time windows
+- **Event Detection**: Automatic holiday and birthday detection with confidence scoring
+- **Age Calculation**: Smart age calculation for birthday events based on photo date vs. birthdate
 
 ### File Management
 - **Directory Structure**: Automated creation of required media directories
@@ -71,7 +73,9 @@ The application uses a relational database with four main tables:
 - **Burst Photos**: Intelligent grouping and selection interface for burst sequences
 - **People**: Face detection and person management
 - **Duplicates**: Gold tier duplicate detection and resolution
-- **Photo Detail Modal**: Comprehensive metadata display and editing
+- **Photo Detail Modal**: Comprehensive metadata display, editing, and event detection
+- **Events Page**: Browse photos by detected events and celebrations
+- **Event Settings**: Configure holiday detection for different countries
 
 ## Data Flow
 
@@ -98,6 +102,16 @@ The application uses a relational database with four main tables:
 - Updated duplicate detection to focus only on Gold tier photos (more relevant for final curation)
 - Added "Burst Photos" navigation link with Zap icon
 - Created comprehensive testing scripts and documentation for end-to-end feature validation
+
+### Event Detection System Implementation (July 28, 2025)
+- **Comprehensive Event Detection**: Smart holiday and birthday detection with confidence scoring (80%+ threshold)
+- **Enhanced Database Schema**: Added birthdate fields to people table with string-to-Date conversion handling
+- **API Integration**: Added /api/events/detect, /api/events/age-calculation, and /api/events/holiday-sets endpoints
+- **Events Page**: New dedicated page to browse photos by detected events with gallery and timeline views
+- **Event Settings**: Configurable holiday detection for multiple countries (US, UK) in settings page
+- **Photo Detail Enhancement**: Events section in photo modal showing both manual and auto-detected events
+- **Age Calculation**: Automatic age computation for birthday events based on photo dates
+- **Silver Tier Integration**: Event detection occurs automatically during Bronze→Silver processing
 
 ### Testing Infrastructure
 - Created comprehensive testing guide (`scripts/test-pictallion.sh`) with 8 feature testing categories

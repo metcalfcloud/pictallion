@@ -13,6 +13,7 @@ import SilverReview from "./pages/silver-review";
 import { IgnoredFaces } from "./pages/ignored-faces";
 import People from "@/pages/people";
 import Duplicates from "@/pages/duplicates";
+import Events from "@/pages/events";
 import Settings from "@/pages/settings";
 import NotFound from "@/pages/not-found";
 import Sidebar from "@/components/sidebar";
@@ -35,6 +36,7 @@ function Router() {
           <Route path="/ignored-faces" component={IgnoredFaces} />
           <Route path="/people" component={People} />
           <Route path="/duplicates" component={Duplicates} />
+          <Route path="/events" component={Events} />
           <Route path="/settings" component={Settings} />
           <Route component={NotFound} />
         </Switch>

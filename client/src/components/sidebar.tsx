@@ -13,7 +13,8 @@ import {
   Copy,
   Zap,
   Sparkles,
-  EyeOff
+  EyeOff,
+  Calendar
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
@@ -27,6 +28,7 @@ const navigationItems = [
   { path: "/upload", label: "Upload", icon: Upload },
   { path: "/collections", label: "Collections", icon: Images },
   { path: "/people", label: "People", icon: Users },
+  { path: "/events", label: "Events", icon: Calendar },
   { path: "/burst-selection", label: "Burst Photos", icon: Zap },
   { path: "/duplicates", label: "Duplicates", icon: Copy },
   { path: "/settings", label: "Settings", icon: Settings },
