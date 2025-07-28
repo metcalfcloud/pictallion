@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
@@ -20,7 +20,8 @@ import {
   Eye,
   AlertCircle,
   CheckCircle2,
-  User
+  User,
+  Search
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -63,6 +64,7 @@ export function FaceSuggestions() {
   const [pendingFaceId, setPendingFaceId] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Fetch face suggestions
   const { data: suggestions = [], isLoading: suggestionsLoading, refetch: refetchSuggestions } = useQuery<FaceSuggestion[]>({
@@ -199,7 +201,7 @@ export function FaceSuggestions() {
             AI-powered suggestions to help organize unassigned faces
           </p>
         </div>
-        
+
         <div className="flex items-center gap-3">
           <Button
             onClick={() => reprocessMutation.mutate()}
@@ -348,7 +350,7 @@ export function FaceSuggestions() {
           const face = item.face;
           const isSelected = selectedAssignments.some(a => a.faceId === item.faceId);
           const selectedPerson = selectedAssignments.find(a => a.faceId === item.faceId);
-          
+
           return (
             <Card key={item.faceId} className={`transition-all ${isSelected ? 'ring-2 ring-blue-500 bg-blue-50' : ''}`}>
               <CardHeader>
@@ -383,7 +385,7 @@ export function FaceSuggestions() {
                       </div>
                     )}
                   </div>
-                  
+
                   {/* Face info */}
                   <div className="flex-1">
                     <h3 className="font-medium">
@@ -411,18 +413,18 @@ export function FaceSuggestions() {
                   )}
                 </div>
               </CardHeader>
-              
+
               <CardContent>
                 <div className="space-y-3">
                   <div className="flex items-center gap-2 mb-3">
                     <Users className="h-4 w-4" />
                     <span className="text-sm font-medium">Suggested People:</span>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                     {item.suggestions.slice(0, 6).map((suggestion) => {
                       const isThisSelected = selectedPerson?.personId === suggestion.personId;
-                      
+
                       return (
                         <div 
                           key={suggestion.personId} 
@@ -455,9 +457,9 @@ export function FaceSuggestions() {
                               </p>
                             </div>
                           </div>
-                          
+
                           <Progress value={suggestion.confidence} className="h-1 mb-2" />
-                          
+
                           <div className="flex gap-1">
                             <Button
                               size="sm"
@@ -481,9 +483,9 @@ export function FaceSuggestions() {
                       );
                     })}
                   </div>
-                  
+
                   <Separator />
-                  
+
                   <div className="flex justify-between items-center">
                     <p className="text-sm text-muted-foreground">
                       Not the right person?
