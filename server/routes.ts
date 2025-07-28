@@ -897,8 +897,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           continue;
         }
 
-        // Find similar faces assigned to people
-        const similarFaces = await faceDetectionService.findSimilarFaces(face.embedding, 0.6); // Lower threshold for more suggestions
+        // Find similar faces assigned to people - using industry standard threshold
+        // Face recognition industry standard: 0.4 euclidean distance (0.8 cosine similarity) for high confidence matches
+        const similarFaces = await faceDetectionService.findSimilarFaces(face.embedding, 0.8);
 
         if (similarFaces.length === 0) {
           console.log(`No similar faces found for face ${face.id}`);
@@ -929,9 +930,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const person = people.find((p: any) => p.id === personId);
           if (person) {
             const avgSimilarity = match.totalSimilarity / match.count;
-            const confidence = Math.min(95, Math.round(avgSimilarity * 100));
+            // Convert cosine similarity to confidence percentage more accurately
+            // Industry standard: require >85% confidence for face suggestions (0.85+ cosine similarity)
+            const confidence = Math.round(avgSimilarity * 100);
 
-            if (confidence >= 50) { // Only include suggestions with reasonable confidence
+            console.log(`Person ${person.name}: avgSimilarity=${avgSimilarity.toFixed(3)}, confidence=${confidence}%, matches=${match.count}`);
+
+            // Require high confidence, multiple matches, and person has enough face samples for reliable matching
+            if (confidence >= 85 && match.count >= 2 && (person.faceCount || 0) >= 3) {
               // Generate face crop URL for the person's representative face
               let representativeFaceUrl = null;
               if (person.selectedThumbnailFaceId) {
