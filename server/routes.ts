@@ -897,9 +897,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           continue;
         }
 
-        // Find similar faces assigned to people - using stricter industry standard threshold
-        // Face recognition industry standard: 0.6 euclidean distance (0.85 cosine similarity) for reliable matches
-        const similarFaces = await faceDetectionService.findSimilarFaces(face.embedding, 0.85);
+        // Find similar faces assigned to people - using very strict threshold to minimize false positives
+        // Ultra-conservative: 0.9 cosine similarity (90%+ match) for suggestions
+        const similarFaces = await faceDetectionService.findSimilarFaces(face.embedding, 0.90);
 
         if (similarFaces.length === 0) {
           console.log(`No similar faces found for face ${face.id}`);
@@ -936,8 +936,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
             console.log(`Person ${person.name}: avgSimilarity=${avgSimilarity.toFixed(3)}, confidence=${confidence}%, matches=${match.count}`);
 
-            // Require high confidence and multiple face matches for reliable suggestions
-            if (confidence >= 88 && match.count >= 2) {
+            // Require very high confidence and multiple strong matches to suggest faces
+            if (confidence >= 93 && match.count >= 3) {
               // Get representative face for this person
               let representativeFaceUrl = '';
               if (person.representative_face) {
