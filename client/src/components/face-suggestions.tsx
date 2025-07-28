@@ -355,12 +355,16 @@ export function FaceSuggestions() {
                   {/* Face crop */}
                   <div className="relative">
                     <img
-                      src={getFaceCropUrl(face)}
+                      src={face.faceCropUrl ? `/api/files/${face.faceCropUrl}` : getFaceCropUrl(face)}
                       alt="Face crop"
                       className="w-20 h-20 rounded-lg object-cover border-2 border-border"
                       onError={(e) => {
-                        // Fallback to full image if crop fails
-                        e.currentTarget.src = `/api/files/${face.photo?.filePath}`;
+                        // First fallback to the other crop method, then to full image
+                        if (face.faceCropUrl && e.currentTarget.src.includes(face.faceCropUrl)) {
+                          e.currentTarget.src = getFaceCropUrl(face);
+                        } else {
+                          e.currentTarget.src = `/api/files/${face.photo?.filePath}`;
+                        }
                       }}
                     />
                     <Badge className="absolute -top-1 -right-1 text-xs">

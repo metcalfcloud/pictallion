@@ -408,15 +408,19 @@ export default function PeoplePage() {
                       <div className="w-16 h-16 bg-muted rounded overflow-hidden">
                         {face.faceCropUrl ? (
                           <img
-                            src={face.faceCropUrl}
+                            src={`/api/files/${face.faceCropUrl}`}
                             alt="Face crop"
                             className="w-full h-full object-cover"
+                            onError={(e) => {
+                              // Fallback to user icon if image fails to load
+                              e.currentTarget.style.display = 'none';
+                              e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                            }}
                           />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <User className="w-8 h-8 text-gray-400" />
-                          </div>
-                        )}
+                        ) : null}
+                        <div className={`w-full h-full flex items-center justify-center ${face.faceCropUrl ? 'hidden' : ''}`}>
+                          <User className="w-8 h-8 text-gray-400" />
+                        </div>
                       </div>
                       
                       <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all rounded flex items-center justify-center">
