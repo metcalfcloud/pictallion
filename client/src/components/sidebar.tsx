@@ -51,7 +51,7 @@ export default function Sidebar() {
             <img 
               src={pictallionLogo} 
               alt="Pictallion Logo" 
-              className="h-20 w-auto object-contain filter drop-shadow-sm"
+              className="h-40 w-auto object-contain filter drop-shadow-sm"
             />
           </div>
           <ThemeToggle />
