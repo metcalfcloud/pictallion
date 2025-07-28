@@ -1,6 +1,4 @@
 
-#!/usr/bin/env node
-
 /**
  * Media Library and Database Reset Script
  * 
