@@ -182,7 +182,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (hasBronze && !hasSilver) {
             const bronzeVersion = versions.find(v => v.tier === 'bronze');
             if (bronzeVersion) {
-              unprocessedPhotos.push({ ...bronzeVersion, mediaAsset: asset });
+              const enhancedAsset = {
+                ...asset,
+                displayFilename: path.basename(bronzeVersion.filePath)
+              };
+              unprocessedPhotos.push({ ...bronzeVersion, mediaAsset: enhancedAsset });
             }
           }
 
@@ -190,7 +194,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (hasSilver && !hasGold) {
             const silverVersion = versions.find(v => v.tier === 'silver');
             if (silverVersion) {
-              unprocessedPhotos.push({ ...silverVersion, mediaAsset: asset });
+              const enhancedAsset = {
+                ...asset,
+                displayFilename: path.basename(silverVersion.filePath)
+              };
+              unprocessedPhotos.push({ ...silverVersion, mediaAsset: enhancedAsset });
             }
           }
         }
@@ -201,7 +209,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const photosWithAssets = await Promise.all(
           photos.map(async (photo) => {
             const asset = await storage.getMediaAsset(photo.mediaAssetId);
-            return { ...photo, mediaAsset: asset };
+            const enhancedAsset = {
+              ...asset,
+              displayFilename: path.basename(photo.filePath)
+            };
+            return { ...photo, mediaAsset: enhancedAsset };
           })
         );
         res.json(photosWithAssets);

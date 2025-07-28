@@ -266,10 +266,16 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(fileVersions.createdAt))
       .limit(limit);
 
-    return results.map(result => ({
-      ...result.file_versions,
-      mediaAsset: result.media_assets!
-    }));
+    return results.map(result => {
+      const path = require('path');
+      return {
+        ...result.file_versions,
+        mediaAsset: {
+          ...result.media_assets!,
+          displayFilename: path.basename(result.file_versions.filePath)
+        }
+      };
+    });
   }
 
   // Collections methods
