@@ -45,13 +45,13 @@ export default function Sidebar() {
   return (
     <aside className="w-64 bg-card border-r border-border flex flex-col">
       {/* Logo */}
-      <div className="p-4 border-b border-border">
+      <div className="px-4 py-2 border-b border-border">
         <div className="flex items-center justify-between gap-2">
           <div className="flex-1 flex justify-center">
             <img 
               src={pictallionLogo} 
               alt="Pictallion Logo" 
-              className="h-8 w-auto object-contain filter drop-shadow-sm"
+              className="h-12 w-auto object-contain filter drop-shadow-sm"
             />
           </div>
           <ThemeToggle />
