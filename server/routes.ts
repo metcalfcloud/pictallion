@@ -268,7 +268,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               ...conflict,
               filename: file.originalname
             })));
-            
+
             results.push({
               filename: file.originalname,
               status: 'conflict',
@@ -730,7 +730,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate the new cover photo for the response
       const photo = await storage.getFileVersion(face.photoId);
       let coverPhotoPath = null;
-      
+
       if (photo && face.boundingBox) {
         try {
           coverPhotoPath = await faceDetectionService.generateFaceCrop(
@@ -859,14 +859,95 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get face suggestions for unassigned faces
-  app.get("/api/faces/suggestions", async (req, res) => {
+  // Face suggestions endpoint
+  app.get('/api/faces/suggestions', async (req, res) => {
     try {
-      const suggestions = await faceDetectionService.reprocessUnassignedFaces();
+      const unassignedFaces = await storage.getUnassignedFaces();
+      console.log(`Found ${unassignedFaces.length} unassigned faces for suggestions`);
+
+      if (unassignedFaces.length === 0) {
+        return res.json([]);
+      }
+
+      const people = await storage.getAllPeople();
+      console.log(`Found ${people.length} people for matching suggestions`);
+
+      if (people.length === 0) {
+        return res.json([]);
+      }
+
+      const suggestions = [];
+
+      // Generate suggestions for each unassigned face
+      for (const face of unassignedFaces) {
+        if (!face.embedding || !Array.isArray(face.embedding)) {
+          console.log(`Skipping face ${face.id} - no embedding available`);
+          continue;
+        }
+
+        // Find similar faces assigned to people
+        const similarFaces = await faceDetectionService.findSimilarFaces(face.embedding, 0.6); // Lower threshold for more suggestions
+
+        if (similarFaces.length === 0) {
+          console.log(`No similar faces found for face ${face.id}`);
+          continue;
+        }
+
+        // Group by person and calculate confidence scores
+        const personMatches = new Map();
+
+        for (const similar of similarFaces) {
+          if (similar.personId) {
+            const existing = personMatches.get(similar.personId) || { count: 0, totalSimilarity: 0 };
+            existing.count++;
+            existing.totalSimilarity += similar.similarity;
+            personMatches.set(similar.personId, existing);
+          }
+        }
+
+        if (personMatches.size === 0) {
+          console.log(`No person matches found for face ${face.id}`);
+          continue;
+        }
+
+        // Create suggestion entries for this face
+        const faceSuggestions = [];
+
+        for (const [personId, match] of personMatches.entries()) {
+          const person = people.find(p => p.id === personId);
+          if (person) {
+            const avgSimilarity = match.totalSimilarity / match.count;
+            const confidence = Math.min(95, Math.round(avgSimilarity * 100));
+
+            if (confidence >= 50) { // Only include suggestions with reasonable confidence
+              faceSuggestions.push({
+                personId: person.id,
+                confidence: confidence,
+                representativeFace: person.selectedThumbnailFaceId,
+                personName: person.name
+              });
+            }
+          }
+        }
+
+        if (faceSuggestions.length > 0) {
+          // Sort by confidence and take top 3
+          faceSuggestions.sort((a, b) => b.confidence - a.confidence);
+
+          suggestions.push({
+            faceId: face.id,
+            suggestions: faceSuggestions.slice(0, 3)
+          });
+
+          console.log(`Created ${faceSuggestions.length} suggestions for face ${face.id}`);
+        }
+      }
+
+      console.log(`Returning ${suggestions.length} face suggestions total`);
       res.json(suggestions);
     } catch (error) {
-      console.error("Error generating face suggestions:", error);
-      res.status(500).json({ message: "Failed to generate face suggestions" });
+      console.error('Failed to get face suggestions:', error);
+      res.status(500).json({ error: 'Failed to get face suggestions' });
     }
   });
 
@@ -1079,7 +1160,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const minSimilarity = parseInt(req.query.minSimilarity as string) || 85;
       const { duplicateDetectionService } = await import("./services/duplicateDetection");
-      
+
       const analysis = await duplicateDetectionService.findDuplicates(minSimilarity);
       res.json(analysis);
     } catch (error) {
@@ -1098,7 +1179,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { duplicateDetectionService } = await import("./services/duplicateDetection");
       const result = await duplicateDetectionService.processDuplicateActions(actions);
-      
+
       res.json(result);
     } catch (error) {
       console.error("Duplicate processing failed:", error);
@@ -1247,7 +1328,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Process burst group selections
       for (const selection of selections) {
         const { groupId, selectedPhotoIds } = selection;
-        
+
         if (!Array.isArray(selectedPhotoIds)) {
           continue;
         }
@@ -1276,7 +1357,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
             // Get media asset for filename generation
             const mediaAsset = await storage.getMediaAsset(photo.mediaAssetId);
-            
+
             // Generate filename
             let newFilename: string | undefined = undefined;
             if (enhancedMetadata.shortDescription && mediaAsset) {
@@ -1368,7 +1449,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
             // Get media asset for filename generation
             const mediaAsset = await storage.getMediaAsset(photo.mediaAssetId);
-            
+
             let newFilename: string | undefined = undefined;
             if (enhancedMetadata.shortDescription && mediaAsset) {
               const namingContext = {
@@ -1729,7 +1810,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error finding similar photos:", error);
       res.status(500).json({ message: "Failed to analyze photo similarity" });
     }
-  });
+    });
 
   // Settings routes
   app.get("/api/settings", async (req, res) => {
