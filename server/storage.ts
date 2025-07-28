@@ -76,6 +76,7 @@ export interface IStorage {
   createCollection(collection: InsertCollection): Promise<Collection>;
   getCollections(): Promise<Collection[]>;
   getCollection(id: string): Promise<Collection | undefined>;
+  deleteCollection(id: string): Promise<void>;
   addPhotoToCollection(collectionId: string, photoId: string): Promise<void>;
   getCollectionPhotos(collectionId: string): Promise<Array<FileVersion & { mediaAsset: MediaAsset }>>;
 
@@ -287,6 +288,14 @@ export class DatabaseStorage implements IStorage {
   async getCollection(id: string): Promise<Collection | undefined> {
     const [collection] = await db.select().from(collections).where(eq(collections.id, id));
     return collection || undefined;
+  }
+
+  async deleteCollection(id: string): Promise<void> {
+    // First delete all photos from the collection
+    await db.delete(collectionPhotos).where(eq(collectionPhotos.collectionId, id));
+    
+    // Then delete the collection itself
+    await db.delete(collections).where(eq(collections.id, id));
   }
 
   async addPhotoToCollection(collectionId: string, photoId: string): Promise<void> {

@@ -1083,6 +1083,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete("/api/collections/:id", async (req, res) => {
+    try {
+      await storage.deleteCollection(req.params.id);
+      res.json({ success: true, message: "Collection deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting collection:", error);
+      res.status(500).json({ message: "Failed to delete collection" });
+    }
+  });
+
   // Batch operations
   app.post("/api/photos/batch", async (req, res) => {
     try {
