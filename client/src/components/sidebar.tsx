@@ -45,8 +45,8 @@ export default function Sidebar() {
   return (
     <aside className="w-64 bg-card border-r border-border flex flex-col">
       {/* Logo */}
-      <div className="px-2 py-0.5 border-b border-border">
-        <div className="flex items-center justify-between gap-1">
+      <div className="border-b border-border">
+        <div className="flex items-center justify-between">
           <div className="flex-1 flex justify-center">
             <img 
               src={pictallionLogo} 
@@ -54,7 +54,9 @@ export default function Sidebar() {
               className="h-40 w-auto object-contain filter drop-shadow-sm"
             />
           </div>
-          <ThemeToggle />
+          <div className="absolute top-2 right-2">
+            <ThemeToggle />
+          </div>
         </div>
       </div>
 
