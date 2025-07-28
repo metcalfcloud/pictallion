@@ -932,10 +932,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const confidence = Math.min(95, Math.round(avgSimilarity * 100));
 
             if (confidence >= 50) { // Only include suggestions with reasonable confidence
+              // Generate face crop URL for the person's representative face
+              let representativeFaceUrl = null;
+              if (person.selectedThumbnailFaceId) {
+                // Find the face with the selected thumbnail ID
+                const thumbnailFace = await storage.getFace(person.selectedThumbnailFaceId);
+                if (thumbnailFace && thumbnailFace.boundingBox) {
+                  const photo = await storage.getFileVersion(thumbnailFace.photoId);
+                  if (photo) {
+                    try {
+                      representativeFaceUrl = await faceDetectionService.generateFaceCrop(
+                        photo.filePath, 
+                        thumbnailFace.boundingBox as [number, number, number, number]
+                      );
+                    } catch (error) {
+                      console.error('Failed to generate face crop for representative face:', error);
+                      representativeFaceUrl = photo.filePath; // Fallback to full image
+                    }
+                  }
+                }
+              }
+
               faceSuggestions.push({
                 personId: person.id,
                 confidence: confidence,
-                representativeFace: person.selectedThumbnailFaceId,
+                representativeFace: representativeFaceUrl,
                 personName: person.name
               });
             }
