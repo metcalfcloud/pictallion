@@ -727,7 +727,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Person not found" });
       }
 
-      res.json({ success: true, message: "Profile photo updated successfully" });
+      // Generate the new cover photo for the response
+      const photo = await storage.getFileVersion(face.photoId);
+      let coverPhotoPath = null;
+      
+      if (photo && face.boundingBox) {
+        try {
+          coverPhotoPath = await faceDetectionService.generateFaceCrop(
+            photo.filePath, 
+            face.boundingBox as [number, number, number, number]
+          );
+        } catch (error) {
+          console.error('Failed to generate face crop for new thumbnail:', error);
+          coverPhotoPath = photo.filePath;
+        }
+      }
+
+      res.json({ 
+        success: true, 
+        message: "Profile photo updated successfully",
+        coverPhoto: coverPhotoPath
+      });
     } catch (error) {
       console.error("Error updating person thumbnail:", error);
       res.status(500).json({ message: "Failed to update thumbnail" });

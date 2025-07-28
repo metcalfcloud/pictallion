@@ -43,6 +43,7 @@ interface Person {
   faceCount?: number;
   photoCount?: number;
   coverPhoto?: string;
+  selectedThumbnailFaceId?: string;
 }
 
 interface Face {
@@ -339,8 +340,19 @@ export default function PeoplePage() {
                   <Card key={person.id} className="hover:shadow-lg transition-shadow">
                     <CardContent className="p-4">
                       <div className="flex items-center space-x-3 mb-3">
-                        <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center">
-                          <User className="w-6 h-6 text-muted-foreground" />
+                        <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center overflow-hidden">
+                          {person.coverPhoto ? (
+                            <img
+                              src={`/api/files/${person.coverPhoto}`}
+                              alt={person.name}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                                e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                              }}
+                            />
+                          ) : null}
+                          <User className={`w-6 h-6 text-muted-foreground ${person.coverPhoto ? 'hidden' : ''}`} />
                         </div>
                         <div>
                           <h3 className="font-semibold text-card-foreground dark:text-white">{person.name}</h3>
