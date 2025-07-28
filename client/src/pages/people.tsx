@@ -99,12 +99,18 @@ export default function PeoplePage() {
     mutationFn: async (personData: { name: string; notes?: string }) => {
       return await apiRequest('POST', '/api/people', personData);
     },
-    onSuccess: () => {
+    onSuccess: (newPerson) => {
       queryClient.invalidateQueries({ queryKey: ["/api/people"] });
       setIsCreatePersonOpen(false);
       setNewPersonName('');
       setNewPersonNotes('');
       toast({ title: "Person created successfully" });
+      
+      // If we have selected faces and we're in assign mode, assign them to the new person
+      if (selectedFaces.length > 0 && isMergeFacesOpen) {
+        handleAssignFaces(newPerson.id);
+        setIsMergeFacesOpen(false);
+      }
     },
     onError: () => {
       toast({ title: "Failed to create person", variant: "destructive" });
@@ -666,6 +672,66 @@ export default function PeoplePage() {
                 disabled={!newPersonName.trim() || updatePersonMutation.isPending}
               >
                 {updatePersonMutation.isPending ? 'Updating...' : 'Update Person'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Assign Faces to Person Dialog */}
+      <Dialog open={isMergeFacesOpen} onOpenChange={setIsMergeFacesOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Assign Faces to Person</DialogTitle>
+            <DialogDescription>
+              Select a person to assign the {selectedFaces.length} selected face{selectedFaces.length !== 1 ? 's' : ''} to.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3 max-h-64 overflow-y-auto">
+              {people.map((person) => (
+                <Button
+                  key={person.id}
+                  variant="outline"
+                  className="h-auto p-3 justify-start"
+                  onClick={() => {
+                    handleAssignFaces(person.id);
+                    setIsMergeFacesOpen(false);
+                  }}
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center overflow-hidden">
+                      {person.coverPhoto ? (
+                        <img
+                          src={`/api/files/${person.coverPhoto}`}
+                          alt={person.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <User className="w-4 h-4 text-muted-foreground" />
+                      )}
+                    </div>
+                    <div className="text-left">
+                      <div className="font-medium">{person.name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {person.faceCount || 0} faces
+                      </div>
+                    </div>
+                  </div>
+                </Button>
+              ))}
+            </div>
+            <div className="flex justify-between items-center pt-4 border-t">
+              <Button
+                variant="outline"
+                onClick={() => setIsCreatePersonOpen(true)}
+                className="flex items-center space-x-2"
+              >
+                <UserPlus className="w-4 h-4" />
+                <span>Create New Person</span>
+              </Button>
+              <Button variant="outline" onClick={() => setIsMergeFacesOpen(false)}>
+                Cancel
               </Button>
             </div>
           </div>
