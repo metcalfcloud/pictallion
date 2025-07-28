@@ -110,12 +110,10 @@ async function truncateDatabase() {
   try {
     console.log('🗃️  Truncating database tables...');
     
-    // Disable foreign key checks temporarily
-    await client.query('SET session_replication_role = replica;');
-    
     let truncatedCount = 0;
     for (const table of TABLES_TO_TRUNCATE) {
       try {
+        // Use CASCADE to handle foreign key constraints
         await client.query(`TRUNCATE TABLE ${table} CASCADE;`);
         console.log(`  ✅ Truncated table: ${table}`);
         truncatedCount++;
@@ -123,9 +121,6 @@ async function truncateDatabase() {
         console.log(`  ⚠️  Could not truncate ${table}: ${error.message}`);
       }
     }
-    
-    // Re-enable foreign key checks
-    await client.query('SET session_replication_role = DEFAULT;');
     
     console.log(`📊 Truncated ${truncatedCount} database tables`);
     
