@@ -46,10 +46,6 @@ export default function Sidebar() {
     <aside className="w-64 bg-card border-r border-border flex flex-col">
       {/* Logo */}
       <div className="border-b border-border p-2">
-        <div className="flex items-start justify-between mb-2">
-          <div className="flex-1"></div>
-          <ThemeToggle />
-        </div>
         <div className="flex justify-center">
           <img 
             src={pictallionLogo} 
@@ -91,8 +87,8 @@ export default function Sidebar() {
 
 
 
-      {/* Storage Info */}
-      <div className="p-4 border-t border-border dark:border-gray-700">
+      {/* Storage Info & Theme Toggle */}
+      <div className="p-4 border-t border-border dark:border-gray-700 space-y-3">
         <Card>
           <CardContent className="p-3">
             <div className="flex items-center justify-between mb-2">
@@ -103,6 +99,10 @@ export default function Sidebar() {
             <p className="text-xs text-muted-foreground dark:text-gray-400">2.1 GB of 3.0 GB used</p>
           </CardContent>
         </Card>
+        
+        <div className="flex justify-center">
+          <ThemeToggle />
+        </div>
       </div>
 
 
