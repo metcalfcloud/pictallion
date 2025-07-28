@@ -331,7 +331,7 @@ export default function BurstSelectionPage() {
 
                           <div className="aspect-square bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
                             <img
-                              src={`/api/files${photo.filePath}`}
+                              src={`/api/files/${photo.filePath}`}
                               alt={photo.mediaAsset.originalFilename}
                               className="w-full h-full object-cover"
                               loading="lazy"

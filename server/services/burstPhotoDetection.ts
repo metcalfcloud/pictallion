@@ -128,14 +128,53 @@ export class BurstPhotoDetectionService {
       }
     }
 
-    // Time proximity is the strongest indicator for burst photos
-    const time1 = new Date(photo1.createdAt).getTime();
-    const time2 = new Date(photo2.createdAt).getTime();
+    // Time proximity is important but not enough alone for burst photos
+    // Use actual photo capture time from multiple sources in order of preference
+    const getPhotoTime = (photo: any) => {
+      // First try EXIF datetime fields
+      if (photo.metadata?.exif?.dateTime) {
+        return new Date(photo.metadata.exif.dateTime).getTime();
+      }
+      if (photo.metadata?.exif?.dateTimeOriginal) {
+        return new Date(photo.metadata.exif.dateTimeOriginal).getTime();
+      }
+      
+      // Try to extract from filename if it has timestamp format (YYYYMMDD_HHMMSS)
+      const filename = photo.mediaAsset.originalFilename;
+      const timestampMatch = filename.match(/^(\d{8})_(\d{6})/);
+      if (timestampMatch) {
+        const dateStr = timestampMatch[1]; // YYYYMMDD
+        const timeStr = timestampMatch[2]; // HHMMSS
+        const year = parseInt(dateStr.substring(0, 4));
+        const month = parseInt(dateStr.substring(4, 6)) - 1; // Month is 0-indexed
+        const day = parseInt(dateStr.substring(6, 8));
+        const hour = parseInt(timeStr.substring(0, 2));
+        const minute = parseInt(timeStr.substring(2, 4));
+        const second = parseInt(timeStr.substring(4, 6));
+        
+        const extractedDate = new Date(year, month, day, hour, minute, second);
+        if (!isNaN(extractedDate.getTime())) {
+          return extractedDate.getTime();
+        }
+      }
+      
+      // Fall back to upload time as last resort
+      return new Date(photo.createdAt).getTime();
+    };
+    
+    const time1 = getPhotoTime(photo1);
+    const time2 = getPhotoTime(photo2);
     const timeDiff = Math.abs(time1 - time2);
     
-    if (timeDiff <= 60000) { // Within 1 minute
-      const timeScore = Math.max(0.6, 1.0 - (timeDiff / 60000) * 0.4); // 0.6 to 1.0 based on closeness
-      similarityScore += timeScore;
+    // More strict time-based scoring
+    if (timeDiff <= 5000) { // Within 5 seconds - very strong indicator
+      similarityScore += 0.4;
+      factorsChecked++;
+    } else if (timeDiff <= 30000) { // Within 30 seconds - moderate indicator  
+      similarityScore += 0.2;
+      factorsChecked++;
+    } else if (timeDiff <= 60000) { // Within 1 minute - weak indicator
+      similarityScore += 0.1;
       factorsChecked++;
     }
 
@@ -143,32 +182,47 @@ export class BurstPhotoDetectionService {
     const name1 = photo1.mediaAsset.originalFilename.toLowerCase();
     const name2 = photo2.mediaAsset.originalFilename.toLowerCase();
     
-    // More flexible filename matching
-    const baseName1 = name1.replace(/\.(jpg|jpeg|png|tiff)$/i, '').replace(/_?\d+$/, '');
-    const baseName2 = name2.replace(/\.(jpg|jpeg|png|tiff)$/i, '').replace(/_?\d+$/, '');
+    // Extract base names and numbers for burst detection
+    const extractBaseAndNumber = (filename: string) => {
+      const withoutExt = filename.replace(/\.(jpg|jpeg|png|tiff)$/i, '');
+      const match = withoutExt.match(/^(.+?)[-_]?(\d+)$/);
+      if (match) {
+        return { base: match[1], number: parseInt(match[2]) };
+      }
+      return { base: withoutExt, number: null };
+    };
     
-    // Check various similarity patterns
-    if (baseName1 === baseName2 && baseName1.length > 2) {
-      similarityScore += 0.3;
-      factorsChecked++;
-    } else if (baseName1.length > 5 && baseName2.length > 5) {
-      // Similar prefix (common for camera naming patterns)
-      const commonPrefix = this.getCommonPrefix(baseName1, baseName2);
-      if (commonPrefix.length >= Math.min(baseName1.length, baseName2.length) * 0.7) {
+    const file1 = extractBaseAndNumber(name1);
+    const file2 = extractBaseAndNumber(name2);
+    
+    // Strong similarity: exact base name with sequential numbers
+    if (file1.base === file2.base && file1.number !== null && file2.number !== null) {
+      const numberDiff = Math.abs(file1.number - file2.number);
+      if (numberDiff <= 3) { // Sequential or very close numbers
+        similarityScore += 0.4;
+        factorsChecked++;
+      }
+    } else if (file1.base.length > 8 && file2.base.length > 8) {
+      // Weaker similarity: common prefix for longer names
+      const commonPrefix = this.getCommonPrefix(file1.base, file2.base);
+      if (commonPrefix.length >= Math.min(file1.base.length, file2.base.length) * 0.8) {
         similarityScore += 0.2;
         factorsChecked++;
       }
     }
 
-    // File size similarity (burst photos should be similar size)
+    // File size similarity (burst photos should be very similar in size)
     if (photo1.fileSize && photo2.fileSize) {
       const sizeDiff = Math.abs(photo1.fileSize - photo2.fileSize);
       const avgSize = (photo1.fileSize + photo2.fileSize) / 2;
       const sizeRatio = 1 - (sizeDiff / avgSize);
-      if (sizeRatio > 0.8) { // More lenient size threshold
-        similarityScore += 0.2;
+      if (sizeRatio > 0.95) { // Very strict size similarity for bursts
+        similarityScore += 0.3;
+        factorsChecked++;
+      } else if (sizeRatio > 0.85) { // Moderate similarity
+        similarityScore += 0.1;
+        factorsChecked++;
       }
-      factorsChecked++;
     }
 
     // EXIF data similarity (same camera settings indicate burst)
@@ -205,9 +259,17 @@ export class BurstPhotoDetectionService {
       // EXIF comparison failed, continue without it
     }
 
-    // If we have time proximity and at least one other factor, likely a burst
-    if (timeDiff <= 60000 && factorsChecked >= 2) {
-      similarityScore = Math.max(similarityScore, 0.95);
+    // Much stricter criteria for burst grouping
+    // Only group if we have multiple strong similarity indicators
+    if (timeDiff <= 2000 && similarityScore >= 0.7) {
+      // Very close in time (under 2 seconds) with decent similarity - likely real burst
+      return Math.min(similarityScore + 0.2, 1.0);
+    } else if (timeDiff <= 5000 && similarityScore >= 0.9) {
+      // Close in time (under 5 seconds) with very high similarity
+      return Math.min(similarityScore, 1.0);
+    } else if (timeDiff <= 30000 && similarityScore >= 0.95) {
+      // Moderately close in time (under 30 seconds) with extremely high similarity
+      return Math.min(similarityScore, 1.0);
     }
 
     return Math.min(similarityScore, 1.0);
