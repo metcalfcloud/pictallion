@@ -344,13 +344,10 @@ export default function BurstSelectionPage() {
                                 checked={isSelected}
                                 onChange={() => togglePhotoSelection(group.id, photo.id)}
                               />
-                              <span className="text-xs text-muted-foreground dark:text-gray-400">
-                                {photo.metadata?.exif?.camera || 'Unknown camera'}
-                              </span>
                             </div>
-                            <p className="text-xs text-muted-foreground dark:text-gray-300 truncate mt-1">
+                            <p className="text-sm font-medium text-card-foreground dark:text-white truncate mt-1">
                               {(() => {
-                                // Extract actual photo time from filename (YYYYMMDD_HHMMSS format)
+                                // Extract and format actual photo time from filename (YYYYMMDD_HHMMSS format)
                                 const filename = photo.mediaAsset.originalFilename;
                                 const match = filename.match(/^(\d{8})_(\d{6})/);
                                 if (match) {
@@ -362,15 +359,22 @@ export default function BurstSelectionPage() {
                                   const hour = timeStr.substring(0, 2);
                                   const minute = timeStr.substring(2, 4);
                                   const second = timeStr.substring(4, 6);
-                                  return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
+                                  
+                                  const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute), parseInt(second));
+                                  return date.toLocaleString('en-US', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    hour: 'numeric',
+                                    minute: '2-digit',
+                                    second: '2-digit',
+                                    hour12: true
+                                  });
                                 }
                                 return filename;
                               })()}
                             </p>
                             <p className="text-xs text-muted-foreground dark:text-gray-400">
-                              {photo.metadata?.exif?.iso ? `ISO ${photo.metadata.exif.iso}` : ''} 
-                              {photo.metadata?.exif?.aperture ? ` • ${photo.metadata.exif.aperture}` : ''}
-                              {photo.metadata?.exif?.shutter ? ` • ${photo.metadata.exif.shutter}` : ''}
+                              {photo.fileSize ? formatFileSize(photo.fileSize) : ''}
                             </p>
                           </div>
                         </div>
