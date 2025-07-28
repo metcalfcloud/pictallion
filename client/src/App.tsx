@@ -9,7 +9,7 @@ import Gallery from "@/pages/gallery";
 import Upload from "@/pages/upload";
 import Search from "@/pages/search";
 import Collections from "./pages/collections";
-import { SilverReview } from "./pages/silver-review";
+import SilverReview from "./pages/silver-review";
 import { IgnoredFaces } from "./pages/ignored-faces";
 import People from "@/pages/people";
 import Duplicates from "@/pages/duplicates";
