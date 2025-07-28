@@ -342,6 +342,7 @@ export default function PeoplePage() {
                           size="sm"
                           variant="outline"
                           onClick={() => {
+                            setEditingPerson(person);
                             setSelectedPerson(person.id);
                             setIsSelectThumbnailOpen(true);
                           }}
@@ -505,10 +506,67 @@ export default function PeoplePage() {
             </DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-6 gap-4 max-h-96 overflow-y-auto">
-            {/* Face thumbnails would go here */}
-            <div className="text-center text-muted-foreground col-span-6 py-8">
-              No face photos available for this person
-            </div>
+            {selectedPerson && (() => {
+              const personFaces = faces.filter(face => face.personId === selectedPerson);
+              
+              if (personFaces.length === 0) {
+                return (
+                  <div className="text-center text-muted-foreground col-span-6 py-8">
+                    No face photos available for this person
+                  </div>
+                );
+              }
+              
+              return personFaces.map((face) => (
+                <div
+                  key={face.id}
+                  className="relative cursor-pointer group"
+                  onClick={() => {
+                    setThumbnailMutation.mutate({ 
+                      personId: selectedPerson, 
+                      faceId: face.id 
+                    });
+                  }}
+                >
+                  <div className="w-full aspect-square bg-muted rounded overflow-hidden border-2 border-transparent hover:border-blue-500 transition-colors">
+                    {face.faceCropUrl ? (
+                      <img
+                        src={`/api/files/${face.faceCropUrl}`}
+                        alt="Face option"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                        }}
+                      />
+                    ) : null}
+                    <div className={`w-full h-full flex items-center justify-center ${face.faceCropUrl ? 'hidden' : ''}`}>
+                      <User className="w-8 h-8 text-muted-foreground" />
+                    </div>
+                  </div>
+                  
+                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all rounded flex items-center justify-center">
+                    <Button
+                      size="sm"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setThumbnailMutation.mutate({ 
+                          personId: selectedPerson, 
+                          faceId: face.id 
+                        });
+                      }}
+                    >
+                      Select
+                    </Button>
+                  </div>
+                  
+                  <div className="mt-2 text-xs text-center text-muted-foreground">
+                    {Math.round(face.confidence)}% confidence
+                  </div>
+                </div>
+              ));
+            })()}
           </div>
         </DialogContent>
       </Dialog>
