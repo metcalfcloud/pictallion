@@ -115,10 +115,11 @@ export class BurstPhotoDetectionService {
 
   /**
    * Calculate similarity between two photos
-   * Uses multiple factors: filename similarity, file size, EXIF data
+   * Uses multiple factors: filename similarity, file size, EXIF data, time proximity
    */
   private async calculatePhotoSimilarity(photo1: any, photo2: any): Promise<number> {
     let similarityScore = 0;
+    let factorsChecked = 0;
 
     // File hash comparison (if available)
     if (photo1.fileHash && photo2.fileHash) {
@@ -127,16 +128,36 @@ export class BurstPhotoDetectionService {
       }
     }
 
+    // Time proximity is the strongest indicator for burst photos
+    const time1 = new Date(photo1.createdAt).getTime();
+    const time2 = new Date(photo2.createdAt).getTime();
+    const timeDiff = Math.abs(time1 - time2);
+    
+    if (timeDiff <= 60000) { // Within 1 minute
+      const timeScore = Math.max(0.6, 1.0 - (timeDiff / 60000) * 0.4); // 0.6 to 1.0 based on closeness
+      similarityScore += timeScore;
+      factorsChecked++;
+    }
+
     // Filename similarity (burst photos often have sequential names)
     const name1 = photo1.mediaAsset.originalFilename.toLowerCase();
     const name2 = photo2.mediaAsset.originalFilename.toLowerCase();
     
-    // Extract base filename without extension and sequence numbers
-    const baseName1 = name1.replace(/\d+\.(jpg|jpeg|png|tiff)$/i, '').replace(/_\d+$/, '');
-    const baseName2 = name2.replace(/\d+\.(jpg|jpeg|png|tiff)$/i, '').replace(/_\d+$/, '');
+    // More flexible filename matching
+    const baseName1 = name1.replace(/\.(jpg|jpeg|png|tiff)$/i, '').replace(/_?\d+$/, '');
+    const baseName2 = name2.replace(/\.(jpg|jpeg|png|tiff)$/i, '').replace(/_?\d+$/, '');
     
-    if (baseName1 === baseName2 && baseName1.length > 3) {
-      similarityScore += 0.4;
+    // Check various similarity patterns
+    if (baseName1 === baseName2 && baseName1.length > 2) {
+      similarityScore += 0.3;
+      factorsChecked++;
+    } else if (baseName1.length > 5 && baseName2.length > 5) {
+      // Similar prefix (common for camera naming patterns)
+      const commonPrefix = this.getCommonPrefix(baseName1, baseName2);
+      if (commonPrefix.length >= Math.min(baseName1.length, baseName2.length) * 0.7) {
+        similarityScore += 0.2;
+        factorsChecked++;
+      }
     }
 
     // File size similarity (burst photos should be similar size)
@@ -144,9 +165,10 @@ export class BurstPhotoDetectionService {
       const sizeDiff = Math.abs(photo1.fileSize - photo2.fileSize);
       const avgSize = (photo1.fileSize + photo2.fileSize) / 2;
       const sizeRatio = 1 - (sizeDiff / avgSize);
-      if (sizeRatio > 0.9) {
-        similarityScore += 0.3;
+      if (sizeRatio > 0.8) { // More lenient size threshold
+        similarityScore += 0.2;
       }
+      factorsChecked++;
     }
 
     // EXIF data similarity (same camera settings indicate burst)
@@ -157,25 +179,49 @@ export class BurstPhotoDetectionService {
       if (metadata1?.exif && metadata2?.exif) {
         const exif1 = metadata1.exif;
         const exif2 = metadata2.exif;
+        let exifScore = 0;
         
         // Check camera settings
         if (exif1.make === exif2.make && exif1.model === exif2.model) {
-          similarityScore += 0.1;
+          exifScore += 0.05;
         }
         
         if (exif1.iso === exif2.iso) {
-          similarityScore += 0.1;
+          exifScore += 0.05;
         }
         
         if (exif1.focalLength === exif2.focalLength) {
-          similarityScore += 0.1;
+          exifScore += 0.05;
         }
+
+        if (exif1.aperture === exif2.aperture) {
+          exifScore += 0.05;
+        }
+
+        similarityScore += exifScore;
+        if (exifScore > 0) factorsChecked++;
       }
     } catch (error) {
       // EXIF comparison failed, continue without it
     }
 
+    // If we have time proximity and at least one other factor, likely a burst
+    if (timeDiff <= 60000 && factorsChecked >= 2) {
+      similarityScore = Math.max(similarityScore, 0.95);
+    }
+
     return Math.min(similarityScore, 1.0);
+  }
+
+  /**
+   * Get common prefix between two strings
+   */
+  private getCommonPrefix(str1: string, str2: string): string {
+    let i = 0;
+    while (i < str1.length && i < str2.length && str1[i] === str2[i]) {
+      i++;
+    }
+    return str1.substring(0, i);
   }
 
   /**
