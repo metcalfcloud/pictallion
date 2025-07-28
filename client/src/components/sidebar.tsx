@@ -12,7 +12,8 @@ import {
   Users,
   Copy,
   Zap,
-  Sparkles
+  Sparkles,
+  EyeOff
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
@@ -29,6 +30,7 @@ const navigationItems = [
   { path: "/burst-selection", label: "Burst Photos", icon: Zap },
   { path: "/duplicates", label: "Duplicates", icon: Copy },
   { path: "/settings", label: "Settings", icon: Settings },
+  { path: "/ignored-faces", label: "Ignored Faces", icon: EyeOff },
 ];
 
 export default function Sidebar() {
@@ -99,7 +101,7 @@ export default function Sidebar() {
             <p className="text-xs text-muted-foreground dark:text-gray-400">2.1 GB of 3.0 GB used</p>
           </CardContent>
         </Card>
-        
+
         <div className="flex justify-center">
           <ThemeToggle />
         </div>

@@ -410,7 +410,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUnassignedFaces(): Promise<Face[]> {
-    return await db.select().from(faces).where(sql`${faces.personId} IS NULL`);
+    return await db.select().from(faces).where(sql`${faces.personId} IS NULL AND ${faces.ignored} = false`);
   }
 
   async updatePersonFaceCount(personId: string, faceCount: number): Promise<void> {
@@ -418,6 +418,24 @@ export class DatabaseStorage implements IStorage {
       .update(people)
       .set({ faceCount })
       .where(eq(people.id, personId));
+  }
+
+  async ignoreFace(faceId: string): Promise<void> {
+    await db
+      .update(faces)
+      .set({ ignored: true })
+      .where(eq(faces.id, faceId));
+  }
+
+  async unignoreFace(faceId: string): Promise<void> {
+    await db
+      .update(faces)
+      .set({ ignored: false })
+      .where(eq(faces.id, faceId));
+  }
+
+  async getIgnoredFaces(): Promise<Face[]> {
+    return await db.select().from(faces).where(eq(faces.ignored, true));
   }
 
   async updatePersonRepresentativeFace(personId: string, filePath: string): Promise<void> {

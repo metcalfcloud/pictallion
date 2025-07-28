@@ -90,6 +90,7 @@ export const faces = pgTable("faces", {
   boundingBox: jsonb("bounding_box").notNull(),
   confidence: integer("confidence").notNull(), // 0-100
   embedding: jsonb("embedding"),
+  ignored: boolean("ignored").default(false).notNull(), // Mark face as ignored
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

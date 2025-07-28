@@ -8,11 +8,12 @@ import Dashboard from "./pages/dashboard";
 import Gallery from "@/pages/gallery";
 import Upload from "@/pages/upload";
 import Search from "@/pages/search";
-import Collections from "@/pages/collections";
-import SilverReview from "@/pages/silver-review";
+import { Collections } from "./pages/collections";
+import { SilverReview } from "./pages/silver-review";
+import { BurstSelection } from "./pages/burst-selection";
+import { IgnoredFaces } from "./pages/ignored-faces";
 import People from "@/pages/people";
 import Duplicates from "@/pages/duplicates";
-import BurstSelection from "@/pages/burst-selection";
 import Settings from "@/pages/settings";
 import NotFound from "@/pages/not-found";
 import Sidebar from "@/components/sidebar";
@@ -30,10 +31,8 @@ function Router() {
           <Route path="/search" component={Search} />
           <Route path="/collections" component={Collections} />
           <Route path="/silver-review" component={SilverReview} />
-          <Route path="/people" component={People} />
-          <Route path="/duplicates" component={Duplicates} />
           <Route path="/burst-selection" component={BurstSelection} />
-          <Route path="/settings" component={Settings} />
+          <Route path="/ignored-faces" component={IgnoredFaces} />
           <Route component={NotFound} />
         </Switch>
       </main>

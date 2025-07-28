@@ -21,7 +21,8 @@ import {
   AlertCircle,
   CheckCircle2,
   User,
-  Search
+  Search,
+  EyeOff
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -140,6 +141,21 @@ export function FaceSuggestions() {
     },
     onError: () => {
       toast({ title: "Failed to create person", variant: "destructive" });
+    }
+  });
+
+  // Ignore face mutation
+  const ignoreFaceMutation = useMutation({
+    mutationFn: async (faceId: string) => {
+      return await apiRequest('POST', `/api/faces/${faceId}/ignore`);
+    },
+    onSuccess: () => {
+      refetchSuggestions();
+      queryClient.invalidateQueries({ queryKey: ["/api/faces/unassigned"] });
+      toast({ title: "Face ignored successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to ignore face", variant: "destructive" });
     }
   });
 
@@ -490,15 +506,27 @@ export function FaceSuggestions() {
                     <p className="text-sm text-muted-foreground">
                       Not the right person?
                     </p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleCreateNewPerson(item.faceId)}
-                      className="flex items-center gap-2"
-                    >
-                      <UserPlus className="h-3 w-3" />
-                      Create New Person
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleCreateNewPerson(item.faceId)}
+                        className="flex items-center gap-2"
+                      >
+                        <UserPlus className="h-3 w-3" />
+                        Create New Person
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => ignoreFaceMutation.mutate(item.faceId)}
+                        disabled={ignoreFaceMutation.isPending}
+                        className="flex items-center gap-2 text-muted-foreground hover:text-destructive"
+                      >
+                        <EyeOff className="h-3 w-3" />
+                        Ignore Face
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </CardContent>

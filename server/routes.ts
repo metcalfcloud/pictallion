@@ -1002,6 +1002,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Ignore a face
+  app.post("/api/faces/:id/ignore", async (req, res) => {
+    try {
+      await storage.ignoreFace(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error ignoring face:", error);
+      res.status(500).json({ message: "Failed to ignore face" });
+    }
+  });
+
+  // Unignore a face
+  app.post("/api/faces/:id/unignore", async (req, res) => {
+    try {
+      await storage.unignoreFace(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error unignoring face:", error);
+      res.status(500).json({ message: "Failed to unignore face" });
+    }
+  });
+
+  // Get ignored faces
+  app.get("/api/faces/ignored", async (req, res) => {
+    try {
+      const ignoredFaces = await storage.getIgnoredFaces();
+      // Add photo information and face crop URL to each face
+      const facesWithPhotos = await Promise.all(
+        ignoredFaces.map(async (face) => {
+          const photo = await storage.getFileVersion(face.photoId);
+          if (photo) {
+            const asset = await storage.getMediaAsset(photo.mediaAssetId);
+            // Generate face crop URL
+            let faceCropUrl: string;
+            try {
+              faceCropUrl = await faceDetectionService.generateFaceCrop(photo.filePath, face.boundingBox as [number, number, number, number]);
+            } catch (error) {
+              console.error('Failed to generate face crop:', error);
+              faceCropUrl = photo.filePath; // Fallback to full image
+            }
+
+            return {
+              ...face,
+              faceCropUrl,
+              photo: {
+                ...photo,
+                mediaAsset: asset
+              }
+            };
+          }
+          return face;
+        })
+      );
+
+      res.json(facesWithPhotos);
+    } catch (error) {
+      console.error("Error fetching ignored faces:", error);
+      res.status(500).json({ message: "Failed to fetch ignored faces" });
+    }
+  });
+
   // Get unassigned faces
   app.get("/api/faces/unassigned", async (req, res) => {
     try {
