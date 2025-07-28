@@ -281,7 +281,7 @@ export default function BurstSelectionPage() {
                         <span>{group.groupReason}</span>
                         <Badge variant="outline">
                           <Clock className="w-3 h-3 mr-1" />
-                          {formatTimeSpan(group.timeSpan)}
+                          {formatTimeSpan(group.timeSpan)} apart
                         </Badge>
                         <Badge variant="outline">
                           {Math.round(group.averageSimilarity * 100)}% similar
