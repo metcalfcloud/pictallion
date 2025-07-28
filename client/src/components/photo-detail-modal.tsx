@@ -94,8 +94,11 @@ export default function PhotoDetailModal({
     queryKey: ['/api/events/detect', photoDate],
     queryFn: async () => {
       if (!photoDate) return [];
+      console.log('Fetching events for photo date:', photoDate);
       const response = await apiRequest('POST', '/api/events/detect', { photoDate });
-      return await response.json();
+      const events = await response.json();
+      console.log('Detected events:', events);
+      return events;
     },
     enabled: !!photoDate,
   });
@@ -501,6 +504,13 @@ export default function PhotoDetailModal({
                             </div>
                             <Badge variant="secondary" className="text-xs">Saved</Badge>
                           </div>
+                        </div>
+                      )}
+                      
+                      {/* Debug Info */}
+                      {photoDate && (
+                        <div className="text-xs text-muted-foreground mb-2">
+                          Photo date: {photoDate} | Detected events: {detectedEvents.length}
                         </div>
                       )}
                       
