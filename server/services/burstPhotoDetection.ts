@@ -124,7 +124,7 @@ export class BurstPhotoDetectionService {
 
         // If we found similar photos, create a burst group
         if (candidatePhotos.length > 1) {
-          const group = this.createBurstGroup(candidatePhotos);
+          const group = await this.createBurstGroup(candidatePhotos);
           burstGroups.push(group);
           candidatePhotos.forEach(photo => processedPhotos.add(photo.id));
         } else {
@@ -320,12 +320,26 @@ export class BurstPhotoDetectionService {
   /**
    * Create a burst group from similar photos
    */
-  private createBurstGroup(photos: any[]): BurstGroup {
+  private async createBurstGroup(photos: any[]): Promise<BurstGroup> {
     const groupId = crypto.randomUUID();
     
     // Calculate time span
     const times = photos.map(p => new Date(p.createdAt).getTime());
     const timeSpan = Math.max(...times) - Math.min(...times);
+    
+    // Calculate actual average similarity between all pairs
+    let totalSimilarity = 0;
+    let pairCount = 0;
+    
+    for (let i = 0; i < photos.length; i++) {
+      for (let j = i + 1; j < photos.length; j++) {
+        const similarity = await this.calculatePhotoSimilarity(photos[i], photos[j]);
+        totalSimilarity += similarity;
+        pairCount++;
+      }
+    }
+    
+    const averageSimilarity = pairCount > 0 ? totalSimilarity / pairCount : 0;
     
     // Find the best photo (largest file size usually indicates best quality)
     const suggestedBest = photos.reduce((best, current) => {
@@ -356,7 +370,7 @@ export class BurstPhotoDetectionService {
         fileHash: p.fileHash
       })),
       suggestedBest: suggestedBest.id,
-      averageSimilarity: 0.95, // Since we only group photos with 95%+ similarity
+      averageSimilarity,
       timeSpan,
       groupReason
     };
