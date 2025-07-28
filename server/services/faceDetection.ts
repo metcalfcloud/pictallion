@@ -574,7 +574,7 @@ class FaceDetectionService {
     for (const faceId of unassignedFaceIds) {
       const face = await storage.getFaceById(faceId);
       if (!face || !Array.isArray(face.embedding)) continue;
-      const similarFaces = await this.findSimilarFaces(face.embedding, 0.7);
+      const similarFaces = await this.findSimilarFaces(face.embedding, 0.85);
       
       if (similarFaces.length > 0) {
         // Find the most likely person match
