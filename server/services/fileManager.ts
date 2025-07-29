@@ -32,10 +32,41 @@ class FileManager {
   async moveToBronze(tempPath: string, originalFilename: string): Promise<string> {
     console.log(`Moving file to Bronze: ${originalFilename} from ${tempPath}`);
     
-    // Create batch folder based on current date
+    // Extract basic metadata to determine camera/device
+    let cameraInfo = null;
+    try {
+      if (path.extname(originalFilename).toLowerCase().match(/\.(jpg|jpeg|tiff)$/)) {
+        const exifData = await this.extractExifData(tempPath);
+        cameraInfo = exifData.camera;
+      }
+    } catch (error) {
+      console.log(`Could not extract EXIF data for ${originalFilename}`);
+    }
+
+    // Create hierarchical directory structure
     const date = new Date();
-    const batchName = `batch_${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-    const batchDir = path.join(this.mediaDir, 'bronze', batchName);
+    const year = date.getFullYear();
+    const monthNum = date.getMonth() + 1;
+    const monthName = date.toLocaleString('en-US', { month: 'long' });
+    const monthFolder = `${String(monthNum).padStart(2, '0')}-${monthName}`;
+    
+    let deviceFolder = 'unknown_device';
+    if (cameraInfo) {
+      // Clean camera name for filesystem
+      deviceFolder = cameraInfo.replace(/[^a-zA-Z0-9\s-]/g, '').replace(/\s+/g, '_');
+    }
+    
+    const batchName = `batch_${year}-${String(monthNum).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    
+    // Create directory structure: bronze/YYYY/MM-Month/device/batch_YYYY-MM-DD/
+    const batchDir = path.join(
+      this.mediaDir, 
+      'bronze', 
+      String(year), 
+      monthFolder, 
+      deviceFolder, 
+      batchName
+    );
     
     console.log(`Target batch directory: ${batchDir}`);
 
