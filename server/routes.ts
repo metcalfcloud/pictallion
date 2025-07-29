@@ -1804,8 +1804,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }
             }
 
+            // Refresh EXIF metadata to ensure we have all date fields
+            const refreshedMetadata = await fileManager.extractMetadata(photo.filePath);
+            
             const combinedMetadata = {
               ...(photo.metadata || {}),
+              ...refreshedMetadata,
               ai: enhancedMetadata,
             };
 
@@ -2176,10 +2180,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           }
 
-          // Combine existing metadata with enhanced AI metadata
+          // Refresh EXIF metadata to ensure we have all date fields, then combine with AI metadata
+          const refreshedMetadata = await fileManager.extractMetadata(photo.filePath);
           const existingMetadata = photo.metadata || {};
           const combinedMetadata = {
             ...existingMetadata,
+            ...refreshedMetadata,
             ai: enhancedMetadata,
           };
 

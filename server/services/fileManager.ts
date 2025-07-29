@@ -195,10 +195,16 @@ class FileManager {
           }
 
           if (exifData.exif) {
-            // Prioritize DateTimeOriginal (when photo was actually taken) over other date fields
+            // Store all available date/time fields - prioritize DateTimeOriginal as main dateTime
             metadata.dateTime = exifData.exif.DateTimeOriginal || 
                                exifData.exif.CreateDate || 
                                exifData.image?.DateTime;
+            
+            // Store all date fields for complete information
+            metadata.dateTimeOriginal = exifData.exif.DateTimeOriginal;
+            metadata.createDate = exifData.exif.CreateDate;
+            metadata.modifyDate = exifData.image?.ModifyDate;
+            
             metadata.aperture = exifData.exif.FNumber ? `f/${exifData.exif.FNumber}` : undefined;
             metadata.shutter = exifData.exif.ExposureTime ? `1/${Math.round(1/exifData.exif.ExposureTime)}s` : undefined;
             metadata.iso = exifData.exif.ISO ? String(exifData.exif.ISO) : undefined;

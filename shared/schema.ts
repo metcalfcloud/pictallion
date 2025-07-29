@@ -282,6 +282,10 @@ export interface ExifMetadata {
   focalLength?: string;
   dateTime?: string;
   dateTaken?: string;
+  // All available date/time fields from EXIF
+  dateTimeOriginal?: string;  // When photo was actually taken (most important)
+  createDate?: string;        // When photo was created
+  modifyDate?: string;        // When photo was last modified
   gpsLatitude?: number;
   gpsLongitude?: number;
   // Enhanced metadata fields
