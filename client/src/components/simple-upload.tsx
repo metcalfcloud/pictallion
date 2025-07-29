@@ -372,8 +372,13 @@ export function SimpleUpload({ open, onOpenChange, preloadedFiles, onConflictRes
                                   <p>Camera: {conflict.existingPhoto.metadata.exif.camera || 'Unknown'}</p>
                                   <p>Lens: {conflict.existingPhoto.metadata.exif.lens || 'Unknown'}</p>
                                   <p>Settings: {conflict.existingPhoto.metadata.exif.aperture} • {conflict.existingPhoto.metadata.exif.shutter} • ISO {conflict.existingPhoto.metadata.exif.iso}</p>
-                                  {conflict.existingPhoto.metadata.exif.dateTaken && (
-                                    <p>Date Taken: {new Date(conflict.existingPhoto.metadata.exif.dateTaken).toLocaleString()}</p>
+                                  {(conflict.existingPhoto.metadata.exif.dateTaken || conflict.existingPhoto.metadata.exif.dateTime) && (
+                                    <p>Date Taken: {(() => {
+                                      const dateStr = conflict.existingPhoto.metadata.exif.dateTaken || conflict.existingPhoto.metadata.exif.dateTime;
+                                      // Handle EXIF date format "YYYY:MM:DD HH:MM:SS"
+                                      const normalizedDate = dateStr.replace(/:/g, '-').replace(/-/g, '/', 2);
+                                      return new Date(normalizedDate).toLocaleString();
+                                    })()}</p>
                                   )}
                                   {conflict.existingPhoto.metadata.exif.gpsLatitude && (
                                     <p>GPS: {conflict.existingPhoto.metadata.exif.gpsLatitude.toFixed(4)}, {conflict.existingPhoto.metadata.exif.gpsLongitude.toFixed(4)}</p>
@@ -417,8 +422,13 @@ export function SimpleUpload({ open, onOpenChange, preloadedFiles, onConflictRes
                                   <p>Camera: {conflict.newFile.metadata.exif.camera || 'Unknown'}</p>
                                   <p>Lens: {conflict.newFile.metadata.exif.lens || 'Unknown'}</p>
                                   <p>Settings: {conflict.newFile.metadata.exif.aperture} • {conflict.newFile.metadata.exif.shutter} • ISO {conflict.newFile.metadata.exif.iso}</p>
-                                  {conflict.newFile.metadata.exif.dateTaken && (
-                                    <p>Date Taken: {new Date(conflict.newFile.metadata.exif.dateTaken).toLocaleString()}</p>
+                                  {(conflict.newFile.metadata.exif.dateTaken || conflict.newFile.metadata.exif.dateTime) && (
+                                    <p>Date Taken: {(() => {
+                                      const dateStr = conflict.newFile.metadata.exif.dateTaken || conflict.newFile.metadata.exif.dateTime;
+                                      // Handle EXIF date format "YYYY:MM:DD HH:MM:SS"
+                                      const normalizedDate = dateStr.replace(/:/g, '-').replace(/-/g, '/', 2);
+                                      return new Date(normalizedDate).toLocaleString();
+                                    })()}</p>
                                   )}
                                   {conflict.newFile.metadata.exif.gpsLatitude && (
                                     <p>GPS: {conflict.newFile.metadata.exif.gpsLatitude.toFixed(4)}, {conflict.newFile.metadata.exif.gpsLongitude.toFixed(4)}</p>
