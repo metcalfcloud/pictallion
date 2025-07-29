@@ -95,11 +95,15 @@ export class EnhancedDuplicateDetectionService {
    */
   async extractFileMetadata(filePath: string): Promise<any> {
     try {
+      console.log(`Extract metadata called with filePath: ${filePath}`);
+      
       // For temp files, extract metadata directly since they're not in the data directory structure
       if (filePath.includes('uploads/temp/')) {
+        console.log(`Processing as temp file: ${filePath}`);
         return await this.extractDirectMetadata(filePath);
       }
       
+      console.log(`Processing as data directory file: ${filePath}`);
       // Import the shared fileManager instance for files in data directory
       const { fileManager } = await import("./fileManager");
       const metadata = await fileManager.extractMetadata(filePath);
@@ -121,11 +125,23 @@ export class EnhancedDuplicateDetectionService {
    */
   private async extractDirectMetadata(filePath: string): Promise<any> {
     try {
+      console.log(`Starting direct metadata extraction for: ${filePath}`);
       const fs = await import('fs/promises');
       const path = await import('path');
       const ExifImage = (await import('exif')).default;
       
+      // Check if file exists
+      try {
+        await fs.access(filePath);
+        console.log(`File exists: ${filePath}`);
+      } catch (accessError) {
+        console.error(`File does not exist: ${filePath}`);
+        return { exif: { dateTime: new Date().toISOString() } };
+      }
+      
       const stats = await fs.stat(filePath);
+      console.log(`File stats for ${filePath}:`, { size: stats.size, mtime: stats.mtime });
+      
       const metadata: any = {
         exif: {
           dateTime: stats.mtime.toISOString(),
