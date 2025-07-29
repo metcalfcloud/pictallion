@@ -108,6 +108,8 @@ export class EnhancedDuplicateDetectionService {
       if (exactDuplicate) {
         const asset = await storage.getMediaAsset(exactDuplicate.mediaAssetId);
         if (asset) {
+          // For exact MD5 duplicates, always create conflict - don't skip for burst photos
+          // since same hash means truly identical files
           const conflict: DuplicateConflict = {
             id: crypto.randomUUID(),
             existingPhoto: {
@@ -132,9 +134,12 @@ export class EnhancedDuplicateDetectionService {
             conflictType: 'identical_md5',
             similarity: 100,
             suggestedAction: 'keep_existing',
-            reasoning: 'Files are byte-for-byte identical'
+            reasoning: 'Files are byte-for-byte identical - exact duplicate found'
           };
           conflicts.push(conflict);
+          console.log(`Exact MD5 duplicate found for ${originalFilename} vs ${asset.originalFilename}`);
+          // Return early for exact duplicates - no need to check perceptual similarity
+          return conflicts;
         }
       }
 
@@ -180,18 +185,21 @@ export class EnhancedDuplicateDetectionService {
               const photoAsset = await storage.getMediaAsset(photo.mediaAssetId);
               if (!photoAsset) continue;
 
-              // Check if this might be a burst photo first
-              const isBurstPhoto = await this.isBurstPhoto(originalFilename, photoAsset.originalFilename, photo.createdAt);
-              
-              // If it's likely a burst photo, skip conflict detection
-              if (isBurstPhoto) {
-                console.log(`Skipping conflict detection for likely burst photo: ${originalFilename} vs ${photoAsset.originalFilename}`);
-                continue;
-              }
-
-              // Consider photos with 99.8%+ visual similarity as potential duplicates
-              // Only flag truly identical photos with different metadata
-              if (similarity >= 99.8) {
+              // For perceptual duplicates, we need higher similarity threshold since different MD5 
+              // means some bytes are different (metadata, compression, etc.)
+              // Only flag near-perfect visual matches that aren't burst photos
+              if (similarity >= 99.5) {
+                // Check if this might be a burst photo - but be more lenient for high similarity
+                const isBurstPhoto = await this.isBurstPhoto(originalFilename, photoAsset.originalFilename, photo.createdAt);
+                
+                // For very high similarity (99.8%+), create conflict even if it might be burst
+                // User should decide on truly identical-looking images
+                if (similarity >= 99.8) {
+                  console.log(`High similarity conflict detected: ${originalFilename} vs ${photoAsset.originalFilename} (${similarity}%)`);
+                } else if (isBurstPhoto) {
+                  console.log(`Skipping moderate similarity burst photo: ${originalFilename} vs ${photoAsset.originalFilename} (${similarity}%)`);
+                  continue;
+                }
                 const reasoning = this.analyzeMetadataDifferences(
                   photo.metadata,
                   originalFilename,
@@ -419,8 +427,9 @@ export class EnhancedDuplicateDetectionService {
         
         if (newTime && existingTime) {
           const timeDiff = Math.abs(newTime.getTime() - existingTime.getTime());
-          // If within 2 minutes, consider it a burst sequence
-          if (timeDiff <= 120000) {
+          // If within 30 seconds and similar filename pattern, consider it a burst sequence
+          // This is more conservative to avoid masking real duplicates
+          if (timeDiff <= 30000) {
             return true;
           }
         }
@@ -436,8 +445,8 @@ export class EnhancedDuplicateDetectionService {
         const existingNum = parseInt(existingSeqMatch[2]);
         const numDiff = Math.abs(newNum - existingNum);
         
-        // Sequential numbers within 10 of each other suggest burst
-        if (numDiff <= 10) {
+        // Sequential numbers within 3 of each other suggest burst (more conservative)
+        if (numDiff <= 3) {
           return true;
         }
       }

@@ -88,6 +88,15 @@ The application uses a relational database with four main tables:
 
 ## Recent Changes
 
+### Upload Queue and Duplicate Detection Improvements (January 29, 2025)
+- **Fixed Upload Queue Management**: Resolved issue where adding new files would re-upload all existing files
+- **Enhanced Queue Controls**: Added "Clear Completed" button to remove processed files from upload queue
+- **Improved Duplicate Detection**: Adjusted burst photo detection to be less aggressive (30 seconds vs 2 minutes)
+- **Better Conflict Resolution**: Exact MD5 duplicates now always trigger conflicts regardless of burst photo patterns
+- **Enhanced Perceptual Matching**: Improved visual similarity thresholds for better duplicate vs burst photo distinction
+
+## Previous Changes
+
 ### Dark Mode Enhancement Completion (July 28, 2025)
 - **Comprehensive CSS Color System**: Enhanced with CSS variables for proper dark mode adaptation
 - **Fixed Hardcoded Colors**: Updated 30+ instances across all components (text-gray-400 → text-muted-foreground, bg-gray-200 → bg-muted, etc.)
