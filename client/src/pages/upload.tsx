@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Upload, FolderOpen, Settings } from "lucide-react";
+import { Upload as UploadIcon, FolderOpen, Settings } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useDropzone } from "react-dropzone";
 
@@ -121,7 +121,7 @@ function UnifiedUpload({ mode = 'fullscreen' }: UnifiedUploadProps) {
         }`}
       >
         <input {...getInputProps()} />
-        <Upload className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+        <UploadIcon className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
         <h4 className="text-lg font-medium mb-2">
           {isDragActive ? 'Drop photos here' : 'Drag and drop your photos here'}
         </h4>

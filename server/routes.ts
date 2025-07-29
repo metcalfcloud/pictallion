@@ -1723,7 +1723,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           if (group) {
             for (const groupPhoto of group.photos) {
-              if (!selectedPhotoIds.includes(groupPhoto.id) && groupPhoto.tier === 'bronze') {
+              // Get the actual file version to check tier
+              const fileVersion = await storage.getFileVersion(groupPhoto.id);
+              if (!selectedPhotoIds.includes(groupPhoto.id) && fileVersion?.tier === 'bronze') {
                 await storage.updateFileVersion(groupPhoto.id, {
                   processingState: 'processed'
                 });
@@ -2312,19 +2314,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.createAssetHistory({
         mediaAssetId: photo.mediaAssetId,
         action: 'DEMOTED',
-        details: `Demoted from ${photo.tier} tier back to ${targetVersion.tier} tier`,
+        details: `Demoted from ${photo.tier} tier back to ${targetVersion!.tier} tier`,
       });
 
       // Return the target version info
-      const asset = await storage.getMediaAsset(targetVersion.mediaAssetId);
+      const asset = await storage.getMediaAsset(targetVersion!.mediaAssetId);
       const enhancedAsset = {
         ...asset,
-        displayFilename: path.basename(targetVersion.filePath)
+        displayFilename: path.basename(targetVersion!.filePath)
       };
 
       res.json({ 
         success: true, 
-        message: `Photo demoted from ${photo.tier} to ${targetVersion.tier}`,
+        message: `Photo demoted from ${photo.tier} to ${targetVersion!.tier}`,
         activeVersion: { ...targetVersion, mediaAsset: enhancedAsset }
       });
     } catch (error) {
