@@ -80,9 +80,11 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
       return response.json();
     },
     onSuccess: (data) => {
+      console.log('Upload response:', data);
       setUploadFiles(current => 
         current.map(uploadFile => {
           const result = data.results.find((r: any) => r.filename === uploadFile.file.name);
+          console.log(`Processing result for ${uploadFile.file.name}:`, result);
           if (result) {
             return {
               ...uploadFile,

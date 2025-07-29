@@ -450,6 +450,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      console.log(`Upload complete. Results:`, JSON.stringify(results, null, 2));
       res.json({ 
         results,
         hasConflicts: conflicts.length > 0,
