@@ -351,10 +351,17 @@ export class EnhancedDuplicateDetectionService {
                     perceptualHash: newPerceptualHash,
                     fileSize: (await fs.stat(tempFilePath)).size,
                     metadata: await (async () => {
-                      console.log(`ABOUT TO EXTRACT METADATA FOR: ${tempFilePath}`);
-                      const result = await this.extractFileMetadata(tempFilePath);
-                      console.log(`METADATA EXTRACTION RESULT:`, JSON.stringify(result, null, 2));
-                      return result;
+                      console.log(`=== EXTRACTING METADATA FOR NEW FILE: ${tempFilePath} ===`);
+                      try {
+                        const result = await this.extractFileMetadata(tempFilePath);
+                        console.log(`=== METADATA EXTRACTION RESULT ===`);
+                        console.log(JSON.stringify(result, null, 2));
+                        console.log(`=== END METADATA EXTRACTION ===`);
+                        return result;
+                      } catch (error) {
+                        console.error(`=== METADATA EXTRACTION ERROR ===`, error);
+                        return { exif: { dateTime: new Date().toISOString() } };
+                      }
                     })()
                   },
                   conflictType: 'visually_identical',
