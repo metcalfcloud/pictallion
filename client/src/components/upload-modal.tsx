@@ -174,7 +174,7 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
     maxSize: 50 * 1024 * 1024, // 50MB
   });
 
-  const handleUpload = () => {
+  const handleUpload = async () => {
     const pendingFiles = uploadFiles.filter(f => f.status === 'pending');
     if (pendingFiles.length === 0) return;
 
@@ -187,24 +187,69 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
       )
     );
 
-    // Start progress animation
-    const progressInterval = setInterval(() => {
+    try {
+      // Manual API call instead of using mutation
+      const formData = new FormData();
+      pendingFiles.forEach(file => {
+        formData.append('files', file.file);
+      });
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+
+      const data = await response.json();
+
+      // Manually update file statuses
+      setUploadFiles(current => 
+        current.map(uploadFile => {
+          const result = data.results.find((r: any) => r.filename === uploadFile.file.name);
+          if (result) {
+            return {
+              ...uploadFile,
+              status: result.status as UploadFile['status'],
+              message: result.message,
+              progress: 100,
+              conflicts: result.conflicts || [],
+            };
+          }
+          return uploadFile;
+        })
+      );
+
+      // Show conflicts if any
+      const conflictCount = data.results.filter((r: any) => r.status === 'conflict').length;
+      if (conflictCount > 0) {
+        setShowConflicts(true);
+        toast({
+          title: "Duplicate Conflicts Found",
+          description: `${conflictCount} files have potential duplicates. Please review.`,
+        });
+      }
+
+      // Refresh data
+      queryClient.invalidateQueries({ queryKey: ["/api/photos"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+
+    } catch (error) {
       setUploadFiles(current => 
         current.map(file => 
-          file.status === 'uploading' 
-            ? { ...file, progress: Math.min(file.progress + Math.random() * 30, 90) }
+          file.status === 'uploading'
+            ? { ...file, status: 'error', message: 'Upload failed', progress: 0 }
             : file
         )
       );
-    }, 500);
-
-    // Call mutation
-    uploadMutation.mutate(pendingFiles.map(f => f.file));
-
-    // Clear progress interval after 10 seconds
-    setTimeout(() => {
-      clearInterval(progressInterval);
-    }, 10000);
+      toast({
+        title: "Upload Failed",
+        description: error instanceof Error ? error.message : 'Unknown error occurred',
+        variant: "destructive"
+      });
+    }
   };
 
   const removeFile = (id: string) => {
