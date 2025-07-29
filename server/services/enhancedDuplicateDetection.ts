@@ -127,7 +127,8 @@ export class EnhancedDuplicateDetectionService {
     try {
       const fs = await import('fs/promises');
       const path = await import('path');
-      const { ExifImage } = await import('exif');
+      const ExifModule = await import('exif');
+      const ExifImage = ExifModule.ExifImage || ExifModule.default?.ExifImage || ExifModule.default;
       
       // Log to file to bypass console truncation
       const logFile = 'debug-metadata.log';
@@ -181,6 +182,7 @@ export class EnhancedDuplicateDetectionService {
           
           const exifData = await new Promise((resolve, reject) => {
             try {
+              log(`ExifImage constructor type: ${typeof ExifImage}`);
               new ExifImage({ image: fileBuffer }, (error: any, data: any) => {
                 if (error) {
                   log(`EXIF extraction failed: ${error.message}`);
