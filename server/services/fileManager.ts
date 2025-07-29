@@ -93,9 +93,11 @@ class FileManager {
     return relativePath;
   }
 
-  async copyToSilver(bronzePath: string, newFilename?: string): Promise<string> {
+  async copyToSilver(bronzePath: string, newFilename?: string, photoDate?: Date): Promise<string> {
     const fullBronzePath = path.join(this.dataDir, bronzePath);
-    const date = new Date();
+    
+    // Use photo's actual date if provided, otherwise fall back to current date
+    const date = photoDate || new Date();
     const yearMonth = `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}`;
     const silverDir = path.join(this.mediaDir, 'silver', yearMonth);
 
@@ -113,9 +115,11 @@ class FileManager {
     return path.relative(this.dataDir, silverPath);
   }
 
-  async copyToGold(silverPath: string): Promise<string> {
+  async copyToGold(silverPath: string, photoDate?: Date): Promise<string> {
     const fullSilverPath = path.join(this.dataDir, silverPath);
-    const date = new Date();
+    
+    // Use photo's actual date if provided, otherwise fall back to current date
+    const date = photoDate || new Date();
     const yearMonth = `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}`;
     const goldDir = path.join(this.mediaDir, 'gold', yearMonth);
 

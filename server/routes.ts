@@ -539,7 +539,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Copy file to Silver tier with new filename
-      const silverPath = await fileManager.copyToSilver(photo.filePath, newFilename);
+      let asset = await storage.getMediaAsset(photo.mediaAssetId);
+      if (!asset) asset = await storage.getMediaAsset(photo.mediaAssetId);
+      const photoWithAsset = { ...photo, mediaAsset: asset };
+      const photoDate = extractPhotoDate(photoWithAsset);
+      const silverPath = await fileManager.copyToSilver(photo.filePath, newFilename, photoDate);
 
       // Detect faces in the image
       const detectedFaces = await faceDetectionService.detectFaces(photo.filePath);
@@ -547,9 +551,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Detect events based on photo date
       let eventType: string | undefined;
       let eventName: string | undefined;
-      const asset = await storage.getMediaAsset(photo.mediaAssetId);
-      const photoWithAsset = { ...photo, mediaAsset: asset };
-      const photoDate = extractPhotoDate(photoWithAsset);
       if (photoDate) {
         try {
           const detectedEvents = await eventDetectionService.detectEvents(photoDate);
@@ -1629,7 +1630,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
 
             // Copy to silver tier
-            const silverPath = await fileManager.copyToSilver(photo.filePath, newFilename);
+            const photoWithAsset = { ...photo, mediaAsset: mediaAsset };
+            const photoDate = extractPhotoDate(photoWithAsset);
+            const silverPath = await fileManager.copyToSilver(photo.filePath, newFilename, photoDate);
 
             // Detect faces
             const detectedFaces = await faceDetectionService.detectFaces(photo.filePath);
@@ -1637,8 +1640,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Detect events based on photo date
             let eventType: string | undefined;
             let eventName: string | undefined;
-            const photoWithAsset = { ...photo, mediaAsset };
-            const photoDate = extractPhotoDate(photoWithAsset);
             if (photoDate) {
               try {
                 const detectedEvents = await eventDetectionService.detectEvents(photoDate);
@@ -1777,14 +1778,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
               newFilename = await generateSilverFilename(namingContext, finalPattern);
             }
 
-            const silverPath = await fileManager.copyToSilver(photo.filePath, newFilename);
+            const photoWithAsset = { ...photo, mediaAsset: mediaAsset };
+            const photoDate = extractPhotoDate(photoWithAsset);
+            const silverPath = await fileManager.copyToSilver(photo.filePath, newFilename, photoDate);
             const detectedFaces = await faceDetectionService.detectFaces(photo.filePath);
 
             // Detect events based on photo date
             let eventType: string | undefined;
             let eventName: string | undefined;
-            const photoWithAsset = { ...photo, mediaAsset };
-            const photoDate = extractPhotoDate(photoWithAsset);
             if (photoDate) {
               try {
                 const detectedEvents = await eventDetectionService.detectEvents(photoDate);
@@ -2053,7 +2054,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Copy file to Gold tier
-      const goldPath = await fileManager.copyToGold(photo.filePath);
+      const asset = await storage.getMediaAsset(photo.mediaAssetId);
+      const photoWithAsset = { ...photo, mediaAsset: asset };
+      const photoDate = extractPhotoDate(photoWithAsset);
+      const goldPath = await fileManager.copyToGold(photo.filePath, photoDate);
 
       // Create Gold file version with embedded metadata
       const goldVersion = await storage.createFileVersion({
@@ -2122,10 +2126,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const namingPattern = namingPatternSetting?.value || 'datetime';
           const customPattern = customPatternSetting?.value || '';
 
+          // Get asset for both filename generation and photo date extraction
+          const asset = await storage.getMediaAsset(photo.mediaAssetId);
+          
           // Generate new filename for Silver tier
           let newFilename: string | undefined;
           if (namingPattern !== 'original') {
-            const asset = await storage.getMediaAsset(photo.mediaAssetId);
             const namingContext = {
               aiMetadata: {
                 shortDescription: enhancedMetadata.shortDescription,
@@ -2143,7 +2149,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
 
           // Copy file to Silver tier with new filename
-          const silverPath = await fileManager.copyToSilver(photo.filePath, newFilename);
+          const photoWithAsset = { ...photo, mediaAsset: asset };
+          const photoDate = extractPhotoDate(photoWithAsset);
+          const silverPath = await fileManager.copyToSilver(photo.filePath, newFilename, photoDate);
 
           // Detect faces in the image
           const detectedFaces = await faceDetectionService.detectFaces(photo.filePath);
@@ -2151,9 +2159,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Detect events based on photo date
           let eventType: string | undefined;
           let eventName: string | undefined;
-          const asset = await storage.getMediaAsset(photo.mediaAssetId);
-          const photoWithAsset = { ...photo, mediaAsset: asset };
-          const photoDate = extractPhotoDate(photoWithAsset);
           if (photoDate) {
             try {
               const detectedEvents = await eventDetectionService.detectEvents(photoDate);
@@ -2244,7 +2249,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
 
           // Copy file to Gold tier
-          const goldPath = await fileManager.copyToGold(photo.filePath);
+          const asset = await storage.getMediaAsset(photo.mediaAssetId);
+          const photoWithAsset = { ...photo, mediaAsset: asset };
+          const photoDate = extractPhotoDate(photoWithAsset);
+          const goldPath = await fileManager.copyToGold(photo.filePath, photoDate);
 
           // Create Gold file version
           await storage.createFileVersion({

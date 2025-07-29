@@ -88,6 +88,15 @@ The application uses a relational database with four main tables:
 
 ## Recent Changes
 
+### July 29, 2025 - Fixed Photo Organization by Date Taken
+- **Fixed "Process All Bronze" button error** - resolved compilation issues and variable scoping problems
+- **Fixed file organization system** - photos are now organized by their actual date taken instead of current date
+- **Updated fileManager.ts** - copyToSilver() and copyToGold() functions now accept photoDate parameter
+- **Updated batch processing** - all photo processing operations now extract and use the photo's actual date
+- **Verified fix working** - new photos are correctly placed in 2024/12/ folder based on EXIF/filename date extraction
+
+## Recent Changes
+
 ### Code Hygiene Improvements (July 29, 2025)
 - Added proper logging utility to replace console.* statements in production
 - Fixed TypeScript errors in advanced search service 
