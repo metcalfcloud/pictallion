@@ -71,16 +71,39 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
         formData.append('files', file);
       });
 
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
+      // Set uploading status immediately
+      setUploadFiles(current => 
+        current.map(file => ({ ...file, status: 'uploading' as const, progress: 0 }))
+      );
 
-      if (!response.ok) {
-        throw new Error('Upload failed');
+      // Start progress simulation
+      const progressInterval = setInterval(() => {
+        setUploadFiles(current => 
+          current.map(file => 
+            file.status === 'uploading' 
+              ? { ...file, progress: Math.min(file.progress + Math.random() * 20, 85) }
+              : file
+          )
+        );
+      }, 300);
+
+      try {
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        clearInterval(progressInterval);
+
+        if (!response.ok) {
+          throw new Error('Upload failed');
+        }
+
+        return response.json();
+      } catch (error) {
+        clearInterval(progressInterval);
+        throw error;
       }
-
-      return response.json();
     },
     onSuccess: (data) => {
       // Update upload files with results
@@ -178,60 +201,7 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
     const pendingFiles = uploadFiles.filter(f => f.status === 'pending');
     if (pendingFiles.length === 0) return;
 
-    // Immediately show we detected duplicates without waiting for server
-    setUploadFiles(current => 
-      current.map(file => ({
-        ...file,
-        status: 'conflict' as const,
-        message: '1 potential duplicate(s) found',
-        progress: 100,
-        conflicts: [{
-          id: 'test-conflict',
-          existingPhoto: {
-            id: '82917468-5f43-4024-934f-cc12e651e132',
-            filePath: 'media/bronze/batch_2025-07-29/20241201_190711_08E94557_1753752726362.jpg',
-            tier: 'bronze',
-            fileHash: 'a3abe12d1621f4c3ce52e6be480d8f9d',
-            perceptualHash: '0011111111111111111111111100001110001111100011111000001011000000',
-            metadata: {
-              exif: {
-                iso: '218',
-                lens: 'Pixel 7 Pro back camera 6.81mm f/1.85',
-                camera: 'Google Pixel 7 Pro',
-                shutter: '1/30s',
-                aperture: 'f/1.85',
-                focalLength: '6.81mm',
-                gpsLatitude: 43.065061111111106,
-                gpsLongitude: -88.91590000000001
-              }
-            },
-            mediaAsset: {
-              originalFilename: '20241201_190711_08E94557.jpg'
-            },
-            createdAt: '2025-07-29T01:32:06.384Z',
-            fileSize: 5426038
-          },
-          newFile: {
-            tempPath: 'uploads/temp/test',
-            originalFilename: file.file.name,
-            fileHash: 'a3abe12d1621f4c3ce52e6be480d8f9d',
-            fileSize: file.file.size
-          },
-          conflictType: 'identical_md5',
-          similarity: 100,
-          suggestedAction: 'keep_existing',
-          reasoning: 'Files are byte-for-byte identical - exact duplicate found'
-        }]
-      }))
-    );
-
-    // Show conflicts dialog
-    setShowConflicts(true);
-    
-    toast({
-      title: "Duplicate Conflicts Found",
-      description: "1 file has potential duplicates. Please review.",
-    });
+    uploadMutation.mutate(pendingFiles.map(f => f.file));
   };
 
   const removeFile = (id: string) => {
@@ -387,9 +357,14 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
                         {uploadFile.file.name}
                       </p>
                       {uploadFile.status === 'uploading' && (
-                        <Progress value={uploadFile.progress} className="h-2 mt-1" />
+                        <div className="mt-1">
+                          <Progress value={uploadFile.progress} className="h-2" />
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Uploading... {Math.round(uploadFile.progress)}%
+                          </p>
+                        </div>
                       )}
-                      {uploadFile.message && (
+                      {uploadFile.message && uploadFile.status !== 'uploading' && (
                         <p className="text-xs text-muted-foreground mt-1">{uploadFile.message}</p>
                       )}
                     </div>
