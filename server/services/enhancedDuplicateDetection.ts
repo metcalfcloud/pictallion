@@ -176,55 +176,56 @@ export class EnhancedDuplicateDetectionService {
             if (existingPerceptualHash) {
               const similarity = this.calculatePerceptualSimilarity(newPerceptualHash, existingPerceptualHash);
 
+              // Get the asset for this photo to check burst patterns
+              const photoAsset = await storage.getMediaAsset(photo.mediaAssetId);
+              if (!photoAsset) continue;
+
               // Check if this might be a burst photo first
-              const isBurstPhoto = await this.isBurstPhoto(originalFilename, asset.originalFilename, photo.createdAt);
+              const isBurstPhoto = await this.isBurstPhoto(originalFilename, photoAsset.originalFilename, photo.createdAt);
               
               // If it's likely a burst photo, skip conflict detection
               if (isBurstPhoto) {
-                console.log(`Skipping conflict detection for likely burst photo: ${originalFilename} vs ${asset.originalFilename}`);
+                console.log(`Skipping conflict detection for likely burst photo: ${originalFilename} vs ${photoAsset.originalFilename}`);
                 continue;
               }
 
               // Consider photos with 99.8%+ visual similarity as potential duplicates
               // Only flag truly identical photos with different metadata
               if (similarity >= 99.8) {
-                const asset = await storage.getMediaAsset(photo.mediaAssetId);
-                if (asset) {
-                  const reasoning = this.analyzeMetadataDifferences(
-                    photo.metadata,
-                    originalFilename,
-                    asset.originalFilename
-                  );
+                const reasoning = this.analyzeMetadataDifferences(
+                  photo.metadata,
+                  originalFilename,
+                  photoAsset.originalFilename
+                );
 
-                  const conflict: DuplicateConflict = {
-                    id: crypto.randomUUID(),
-                    existingPhoto: {
-                      id: photo.id,
-                      filePath: photo.filePath,
-                      tier: photo.tier,
-                      fileHash: photo.fileHash,
-                      perceptualHash: existingPerceptualHash,
-                      metadata: photo.metadata,
-                      mediaAsset: {
-                        originalFilename: asset.originalFilename
-                      },
-                      createdAt: photo.createdAt.toISOString(),
-                      fileSize: photo.fileSize || 0
+                const conflict: DuplicateConflict = {
+                  id: crypto.randomUUID(),
+                  existingPhoto: {
+                    id: photo.id,
+                    filePath: photo.filePath,
+                    tier: photo.tier,
+                    fileHash: photo.fileHash,
+                    perceptualHash: existingPerceptualHash,
+                    metadata: photo.metadata,
+                    mediaAsset: {
+                      originalFilename: photoAsset.originalFilename
                     },
-                    newFile: {
-                      tempPath: tempFilePath,
-                      originalFilename,
-                      fileHash,
-                      perceptualHash: newPerceptualHash,
-                      fileSize: (await fs.stat(tempFilePath)).size
-                    },
-                    conflictType: 'visually_identical',
-                    similarity,
-                    suggestedAction: this.suggestAction(reasoning, originalFilename, asset.originalFilename),
-                    reasoning
-                  };
-                  conflicts.push(conflict);
-                }
+                    createdAt: photo.createdAt.toISOString(),
+                    fileSize: photo.fileSize || 0
+                  },
+                  newFile: {
+                    tempPath: tempFilePath,
+                    originalFilename,
+                    fileHash,
+                    perceptualHash: newPerceptualHash,
+                    fileSize: (await fs.stat(tempFilePath)).size
+                  },
+                  conflictType: 'visually_identical',
+                  similarity,
+                  suggestedAction: this.suggestAction(reasoning, originalFilename, photoAsset.originalFilename),
+                  reasoning
+                };
+                conflicts.push(conflict);
               }
             }
           }
