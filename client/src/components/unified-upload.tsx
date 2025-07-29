@@ -72,26 +72,28 @@ export function UnifiedUpload({
 
   // Prevent default drag behaviors on the document
   React.useEffect(() => {
-    const preventDefault = (e: DragEvent) => {
-      e.preventDefault();
-    };
-
     const preventDefaults = (e: DragEvent) => {
       e.preventDefault();
       e.stopPropagation();
     };
 
-    // Prevent default drag behaviors
-    document.addEventListener('dragenter', preventDefaults, false);
-    document.addEventListener('dragleave', preventDefaults, false);
-    document.addEventListener('dragover', preventDefaults, false);
-    document.addEventListener('drop', preventDefaults, false);
+    const handleDrop = (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log('Global drop prevented');
+    };
+
+    // Prevent default drag behaviors globally
+    window.addEventListener('dragenter', preventDefaults, false);
+    window.addEventListener('dragleave', preventDefaults, false);
+    window.addEventListener('dragover', preventDefaults, false);
+    window.addEventListener('drop', handleDrop, false);
 
     return () => {
-      document.removeEventListener('dragenter', preventDefaults, false);
-      document.removeEventListener('dragleave', preventDefaults, false);
-      document.removeEventListener('dragover', preventDefaults, false);
-      document.removeEventListener('drop', preventDefaults, false);
+      window.removeEventListener('dragenter', preventDefaults, false);
+      window.removeEventListener('dragleave', preventDefaults, false);
+      window.removeEventListener('dragover', preventDefaults, false);
+      window.removeEventListener('drop', handleDrop, false);
     };
   }, []);
 
@@ -109,7 +111,7 @@ export function UnifiedUpload({
     setUploadFiles(current => [...current, ...newFiles]);
   }, []);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+  const { getRootProps, getInputProps, isDragActive, isDragAccept, isDragReject } = useDropzone({
     onDrop,
     accept: {
       'image/*': ['.jpeg', '.jpg', '.png', '.tiff'],
@@ -127,9 +129,19 @@ export function UnifiedUpload({
     onError: (error) => {
       console.error('Dropzone error:', error);
     },
+    onDragEnter: () => {
+      console.log('Drag enter detected');
+    },
+    onDragLeave: () => {
+      console.log('Drag leave detected');
+    },
+    onDragOver: () => {
+      console.log('Drag over detected');
+    },
     noClick: false,
     noKeyboard: false,
-    preventDropOnDocument: true
+    preventDropOnDocument: true,
+    multiple: true
   });
 
   // File management functions
@@ -337,7 +349,11 @@ const resolveMutation = {
       <div
         {...getRootProps()}
         className={`border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors ${
-          isDragActive 
+          isDragAccept 
+            ? 'border-green-500 bg-green-50 dark:bg-green-900/20' 
+            : isDragReject
+            ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
+            : isDragActive 
             ? 'border-primary bg-primary/5' 
             : 'border-border hover:border-primary hover:bg-primary/5'
         }`}
