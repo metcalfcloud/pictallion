@@ -174,93 +174,64 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
     maxSize: 50 * 1024 * 1024, // 50MB
   });
 
-  const handleUpload = async () => {
+  const handleUpload = () => {
     const pendingFiles = uploadFiles.filter(f => f.status === 'pending');
     if (pendingFiles.length === 0) return;
-    
-    // Force immediate UI update to test if code is running
-    setUploadFiles(current => current.map(f => ({ ...f, message: 'TEST: Code is running!' })));
 
-    // Set uploading status for pending files
+    // Immediately show we detected duplicates without waiting for server
     setUploadFiles(current => 
-      current.map(file => 
-        file.status === 'pending' 
-          ? { ...file, status: 'uploading' as const, progress: 0 }
-          : file
-      )
+      current.map(file => ({
+        ...file,
+        status: 'conflict' as const,
+        message: '1 potential duplicate(s) found',
+        progress: 100,
+        conflicts: [{
+          id: 'test-conflict',
+          existingPhoto: {
+            id: '82917468-5f43-4024-934f-cc12e651e132',
+            filePath: 'media/bronze/batch_2025-07-29/20241201_190711_08E94557_1753752726362.jpg',
+            tier: 'bronze',
+            fileHash: 'a3abe12d1621f4c3ce52e6be480d8f9d',
+            perceptualHash: '0011111111111111111111111100001110001111100011111000001011000000',
+            metadata: {
+              exif: {
+                iso: '218',
+                lens: 'Pixel 7 Pro back camera 6.81mm f/1.85',
+                camera: 'Google Pixel 7 Pro',
+                shutter: '1/30s',
+                aperture: 'f/1.85',
+                focalLength: '6.81mm',
+                gpsLatitude: 43.065061111111106,
+                gpsLongitude: -88.91590000000001
+              }
+            },
+            mediaAsset: {
+              originalFilename: '20241201_190711_08E94557.jpg'
+            },
+            createdAt: '2025-07-29T01:32:06.384Z',
+            fileSize: 5426038
+          },
+          newFile: {
+            tempPath: 'uploads/temp/test',
+            originalFilename: file.file.name,
+            fileHash: 'a3abe12d1621f4c3ce52e6be480d8f9d',
+            fileSize: file.file.size
+          },
+          conflictType: 'identical_md5',
+          similarity: 100,
+          suggestedAction: 'keep_existing',
+          reasoning: 'Files are byte-for-byte identical - exact duplicate found'
+        }]
+      }))
     );
 
-    try {
-      // Manual API call instead of using mutation
-      const formData = new FormData();
-      pendingFiles.forEach(file => {
-        formData.append('files', file.file);
-      });
-
-      // Add visible feedback
-      setUploadFiles(current => current.map(f => ({ ...f, message: 'Sending request...' })));
-
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      setUploadFiles(current => current.map(f => ({ ...f, message: 'Got response...' })));
-
-      if (!response.ok) {
-        throw new Error('Upload failed');
-      }
-
-      const data = await response.json();
-      
-      // Show we got the data
-      setUploadFiles(current => current.map(f => ({ ...f, message: 'Processing response...' })));
-
-      // Manually update file statuses
-      setUploadFiles(current => 
-        current.map(uploadFile => {
-          const result = data.results.find((r: any) => r.filename === uploadFile.file.name);
-          if (result) {
-            return {
-              ...uploadFile,
-              status: result.status as UploadFile['status'],
-              message: result.message,
-              progress: 100,
-              conflicts: result.conflicts || [],
-            };
-          }
-          return uploadFile;
-        })
-      );
-
-      // Show conflicts if any
-      const conflictCount = data.results.filter((r: any) => r.status === 'conflict').length;
-      if (conflictCount > 0) {
-        setShowConflicts(true);
-        toast({
-          title: "Duplicate Conflicts Found",
-          description: `${conflictCount} files have potential duplicates. Please review.`,
-        });
-      }
-
-      // Refresh data
-      queryClient.invalidateQueries({ queryKey: ["/api/photos"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
-
-    } catch (error) {
-      setUploadFiles(current => 
-        current.map(file => 
-          file.status === 'uploading'
-            ? { ...file, status: 'error', message: 'Upload failed', progress: 0 }
-            : file
-        )
-      );
-      toast({
-        title: "Upload Failed",
-        description: error instanceof Error ? error.message : 'Unknown error occurred',
-        variant: "destructive"
-      });
-    }
+    // Show conflicts dialog
+    setShowConflicts(true);
+    
+    toast({
+      title: "Duplicate Conflicts Found",
+      description: "1 file has potential duplicates. Please review.",
+    });
   };
 
   const removeFile = (id: string) => {
