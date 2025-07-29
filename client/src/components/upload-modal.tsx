@@ -123,7 +123,7 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
 
   const resolveMutation = useMutation({
     mutationFn: async (resolutions: Array<{ conflictId: string; action: string; conflict: DuplicateConflict }>) => {
-      const response = await fetch('/api/duplicates/conflicts/batch-resolve', {
+      const response = await fetch('/api/upload/resolve-conflicts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ resolutions }),
