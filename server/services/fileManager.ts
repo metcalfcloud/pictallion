@@ -192,10 +192,13 @@ class FileManager {
             metadata.camera = exifData.image.Make && exifData.image.Model 
               ? `${exifData.image.Make} ${exifData.image.Model}` 
               : undefined;
-            metadata.dateTime = exifData.image.DateTime;
           }
 
           if (exifData.exif) {
+            // Prioritize DateTimeOriginal (when photo was actually taken) over other date fields
+            metadata.dateTime = exifData.exif.DateTimeOriginal || 
+                               exifData.exif.CreateDate || 
+                               exifData.image?.DateTime;
             metadata.aperture = exifData.exif.FNumber ? `f/${exifData.exif.FNumber}` : undefined;
             metadata.shutter = exifData.exif.ExposureTime ? `1/${Math.round(1/exifData.exif.ExposureTime)}s` : undefined;
             metadata.iso = exifData.exif.ISO ? String(exifData.exif.ISO) : undefined;
