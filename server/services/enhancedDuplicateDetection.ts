@@ -379,7 +379,18 @@ export class EnhancedDuplicateDetectionService {
                     tier: photo.tier,
                     fileHash: photo.fileHash,
                     perceptualHash: existingPerceptualHash,
-                    metadata: photo.metadata,
+                    metadata: await (async () => {
+                      // Enhance existing photo metadata to include dateTaken if missing
+                      const existingMetadata = photo.metadata || {};
+                      if (existingMetadata.exif && !existingMetadata.exif.dateTaken && existingMetadata.exif.dateTime) {
+                        existingMetadata.exif.dateTaken = existingMetadata.exif.dateTime;
+                      }
+                      // Add fallback for missing dateTime in exif
+                      if (existingMetadata.exif && !existingMetadata.exif.dateTime && existingMetadata.dateTime) {
+                        existingMetadata.exif.dateTime = existingMetadata.dateTime;
+                      }
+                      return existingMetadata;
+                    })(),
                     mediaAsset: {
                       originalFilename: photoAsset.originalFilename
                     },
