@@ -176,7 +176,7 @@ export class EnhancedDuplicateDetectionService {
             exif.camera = data.image.Make && data.image.Model 
               ? `${data.image.Make} ${data.image.Model}` 
               : undefined;
-            exif.dateTime = data.image.DateTime;
+            exif.dateTime = data.image.DateTime || data.exif?.DateTimeOriginal || data.exif?.CreateDate;
           }
 
           if (data.exif) {
@@ -184,7 +184,12 @@ export class EnhancedDuplicateDetectionService {
             exif.shutter = data.exif.ExposureTime ? `1/${Math.round(1/data.exif.ExposureTime)}s` : undefined;
             exif.iso = data.exif.ISO ? String(data.exif.ISO) : undefined;
             exif.focalLength = data.exif.FocalLength ? `${data.exif.FocalLength}mm` : undefined;
-            exif.lens = data.exif.LensModel;
+            exif.lens = data.exif.LensModel || data.exif.LensMake;
+            
+            // Ensure we have a dateTime from EXIF if not from image
+            if (!exif.dateTime) {
+              exif.dateTime = data.exif.DateTimeOriginal || data.exif.CreateDate;
+            }
           }
 
           if (data.gps) {
@@ -193,7 +198,8 @@ export class EnhancedDuplicateDetectionService {
           }
 
           console.log(`Processed EXIF data for ${filePath}:`, exif);
-          metadata.exif = { ...metadata.exif, ...exif };
+          // Replace the basic metadata with rich EXIF data
+          metadata.exif = exif;
         } catch (exifError) {
           console.log(`No EXIF data available for temp file ${filePath}:`, exifError);
         }
