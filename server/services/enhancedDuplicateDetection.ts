@@ -135,10 +135,16 @@ export class EnhancedDuplicateDetectionService {
       // Try to extract EXIF data for images
       if (path.extname(filePath).toLowerCase().match(/\.(jpg|jpeg|tiff)$/)) {
         try {
+          console.log(`Attempting EXIF extraction for temp file: ${filePath}`);
           const exifData = await new Promise((resolve, reject) => {
             new ExifImage({ image: filePath }, (error: any, data: any) => {
-              if (error) reject(error);
-              else resolve(data);
+              if (error) {
+                console.log(`EXIF extraction failed for ${filePath}:`, error.message);
+                reject(error);
+              } else {
+                console.log(`EXIF extraction successful for ${filePath}:`, JSON.stringify(data, null, 2));
+                resolve(data);
+              }
             });
           });
 
@@ -165,9 +171,10 @@ export class EnhancedDuplicateDetectionService {
             exif.gpsLongitude = data.gps.GPSLongitude ? this.convertDMSToDD(data.gps.GPSLongitude, data.gps.GPSLongitudeRef) : undefined;
           }
 
+          console.log(`Processed EXIF data for ${filePath}:`, exif);
           metadata.exif = { ...metadata.exif, ...exif };
         } catch (exifError) {
-          console.log(`No EXIF data available for temp file ${filePath}`);
+          console.log(`No EXIF data available for temp file ${filePath}:`, exifError);
         }
       }
 
