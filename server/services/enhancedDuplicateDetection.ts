@@ -232,9 +232,12 @@ export class EnhancedDuplicateDetectionService {
       if (exactDuplicate) {
         const asset = await storage.getMediaAsset(exactDuplicate.mediaAssetId);
         if (asset) {
-          // For exact MD5 duplicates, always create conflict - don't skip for burst photos
-          // since same hash means truly identical files
-          const conflict: DuplicateConflict = {
+          console.log(`Found exact MD5 duplicate, auto-skipping file: ${originalFilename}`);
+          console.log(`Auto-skipping MD5 identical file: ${originalFilename}`);
+          // Return empty conflicts array to indicate auto-skip
+          return [];
+        }
+      }
             id: crypto.randomUUID(),
             existingPhoto: {
               id: exactDuplicate.id,
