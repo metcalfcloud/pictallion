@@ -189,10 +189,16 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
   });
 
   const handleUpload = () => {
-    if (uploadFiles.length === 0) return;
+    const pendingFiles = uploadFiles.filter(f => f.status === 'pending');
+    if (pendingFiles.length === 0) return;
 
+    // Only set uploading status for pending files
     setUploadFiles(current => 
-      current.map(file => ({ ...file, status: 'uploading' as const, progress: 0 }))
+      current.map(file => 
+        file.status === 'pending' 
+          ? { ...file, status: 'uploading' as const, progress: 0 }
+          : file
+      )
     );
 
     const progressInterval = setInterval(() => {
@@ -205,7 +211,8 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
       );
     }, 500);
 
-    uploadMutation.mutate(uploadFiles.map(f => f.file));
+    // Only upload pending files
+    uploadMutation.mutate(pendingFiles.map(f => f.file));
 
     setTimeout(() => {
       clearInterval(progressInterval);
@@ -221,6 +228,12 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
     setShowConflicts(false);
     setConflictResolutions(new Map());
     onOpenChange(false);
+  };
+
+  const clearCompletedFiles = () => {
+    setUploadFiles(current => 
+      current.filter(file => file.status === 'pending' || file.status === 'uploading')
+    );
   };
 
   const updateConflictResolution = (conflictId: string, action: string, conflict: DuplicateConflict) => {
@@ -338,9 +351,16 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <h4 className="font-medium">Upload Queue ({uploadFiles.length} files)</h4>
-                <Button variant="outline" size="sm" onClick={() => setUploadFiles([])}>
-                  Clear All
-                </Button>
+                <div className="flex space-x-2">
+                  {uploadFiles.some(f => f.status === 'success' || f.status === 'error' || f.status === 'conflict') && (
+                    <Button variant="outline" size="sm" onClick={clearCompletedFiles}>
+                      Clear Completed
+                    </Button>
+                  )}
+                  <Button variant="outline" size="sm" onClick={() => setUploadFiles([])}>
+                    Clear All
+                  </Button>
+                </div>
               </div>
 
               <div className="space-y-2 max-h-48 overflow-y-auto">

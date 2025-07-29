@@ -106,11 +106,16 @@ export default function Upload() {
   });
 
   const handleUpload = () => {
-    if (uploadFiles.length === 0) return;
+    const pendingFiles = uploadFiles.filter(f => f.status === 'pending');
+    if (pendingFiles.length === 0) return;
 
-    // Set all files to uploading status with simulated progress
+    // Only set uploading status for pending files
     setUploadFiles(current => 
-      current.map(file => ({ ...file, status: 'uploading' as const, progress: 0 }))
+      current.map(file => 
+        file.status === 'pending' 
+          ? { ...file, status: 'uploading' as const, progress: 0 }
+          : file
+      )
     );
 
     // Simulate upload progress
@@ -124,8 +129,8 @@ export default function Upload() {
       );
     }, 500);
 
-    // Start actual upload
-    uploadMutation.mutate(uploadFiles.map(f => f.file));
+    // Start actual upload - only upload pending files
+    uploadMutation.mutate(pendingFiles.map(f => f.file));
 
     // Clear progress simulation after upload completes
     setTimeout(() => {
@@ -139,6 +144,12 @@ export default function Upload() {
 
   const clearAll = () => {
     setUploadFiles([]);
+  };
+
+  const clearCompletedFiles = () => {
+    setUploadFiles(current => 
+      current.filter(file => file.status === 'pending' || file.status === 'uploading')
+    );
   };
 
   const getStatusIcon = (status: UploadFile['status']) => {
@@ -226,6 +237,11 @@ export default function Upload() {
                         disabled={uploadMutation.isPending}
                       >
                         {uploadMutation.isPending ? 'Uploading...' : 'Start Upload'}
+                      </Button>
+                    )}
+                    {uploadFiles.some(f => f.status === 'success' || f.status === 'error' || f.status === 'duplicate') && (
+                      <Button variant="outline" onClick={clearCompletedFiles}>
+                        Clear Completed
                       </Button>
                     )}
                     <Button variant="outline" onClick={clearAll}>
