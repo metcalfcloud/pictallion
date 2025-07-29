@@ -70,6 +70,31 @@ export function UnifiedUpload({
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Prevent default drag behaviors on the document
+  React.useEffect(() => {
+    const preventDefault = (e: DragEvent) => {
+      e.preventDefault();
+    };
+
+    const preventDefaults = (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+    };
+
+    // Prevent default drag behaviors
+    document.addEventListener('dragenter', preventDefaults, false);
+    document.addEventListener('dragleave', preventDefaults, false);
+    document.addEventListener('dragover', preventDefaults, false);
+    document.addEventListener('drop', preventDefaults, false);
+
+    return () => {
+      document.removeEventListener('dragenter', preventDefaults, false);
+      document.removeEventListener('dragleave', preventDefaults, false);
+      document.removeEventListener('dragover', preventDefaults, false);
+      document.removeEventListener('drop', preventDefaults, false);
+    };
+  }, []);
+
   // Drag and drop functionality  
   const onDrop = useCallback((acceptedFiles: File[]) => {
     console.log('onDrop called with files:', acceptedFiles);
@@ -93,10 +118,18 @@ export function UnifiedUpload({
     maxSize: 50 * 1024 * 1024, // 50MB
     onDropRejected: (fileRejections) => {
       console.log('Files rejected:', fileRejections);
+      toast({
+        title: "Files Rejected",
+        description: `${fileRejections.length} files were rejected. Check file type and size limits.`,
+        variant: "destructive"
+      });
     },
     onError: (error) => {
       console.error('Dropzone error:', error);
-    }
+    },
+    noClick: false,
+    noKeyboard: false,
+    preventDropOnDocument: true
   });
 
   // File management functions
