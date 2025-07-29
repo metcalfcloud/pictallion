@@ -158,24 +158,32 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
     }, 500);
 
     try {
+      console.log('About to call mutateAsync...');
       const data = await uploadMutation.mutateAsync(pendingFiles.map(f => f.file));
+      console.log('Got response from server:', data);
       
       // Update file statuses based on server response
-      setUploadFiles(current => 
-        current.map(uploadFile => {
+      setUploadFiles(current => {
+        console.log('Current files before update:', current.map(f => ({ name: f.file.name, status: f.status })));
+        const updated = current.map(uploadFile => {
           const result = data.results.find((r: any) => r.filename === uploadFile.file.name);
+          console.log(`Looking for result for ${uploadFile.file.name}:`, result);
           if (result) {
-            return {
+            const updatedFile = {
               ...uploadFile,
               status: result.status as UploadFile['status'],
               message: result.message,
               progress: 100,
               conflicts: result.conflicts || [],
             };
+            console.log(`Updated file:`, updatedFile);
+            return updatedFile;
           }
           return uploadFile;
-        })
-      );
+        });
+        console.log('Files after update:', updated.map(f => ({ name: f.file.name, status: f.status })));
+        return updated;
+      });
 
       // Invalidate queries
       queryClient.invalidateQueries({ queryKey: ["/api/photos"] });
