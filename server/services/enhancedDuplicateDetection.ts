@@ -238,38 +238,6 @@ export class EnhancedDuplicateDetectionService {
           return [];
         }
       }
-            id: crypto.randomUUID(),
-            existingPhoto: {
-              id: exactDuplicate.id,
-              filePath: exactDuplicate.filePath,
-              tier: exactDuplicate.tier,
-              fileHash: exactDuplicate.fileHash,
-              perceptualHash: exactDuplicate.perceptualHash || undefined,
-              metadata: exactDuplicate.metadata,
-              mediaAsset: {
-                originalFilename: asset.originalFilename
-              },
-              createdAt: exactDuplicate.createdAt.toISOString(),
-              fileSize: exactDuplicate.fileSize || 0
-            },
-            newFile: {
-              tempPath: tempFilePath,
-              originalFilename,
-              fileHash,
-              fileSize: (await fs.stat(tempFilePath)).size,
-              metadata: await this.extractFileMetadata(tempFilePath)
-            },
-            conflictType: 'identical_md5',
-            similarity: 100,
-            suggestedAction: 'keep_existing',
-            reasoning: 'Files are byte-for-byte identical - exact duplicate found'
-          };
-          conflicts.push(conflict);
-          console.log(`Exact MD5 duplicate found for ${originalFilename} vs ${asset.originalFilename}`);
-          // Return early for exact duplicates - no need to check perceptual similarity
-          return conflicts;
-        }
-      }
 
       // Check for perceptual duplicates (only for images)
       const ext = path.extname(originalFilename).toLowerCase();
