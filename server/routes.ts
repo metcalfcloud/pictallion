@@ -2084,11 +2084,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Batch process photos from Bronze to Silver
   app.post("/api/photos/batch-process", async (req, res) => {
     try {
-      console.log('Batch process request body:', req.body);
       const { photoIds } = req.body;
 
       if (!Array.isArray(photoIds) || photoIds.length === 0) {
-        console.log('Invalid photoIds:', photoIds);
         return res.status(400).json({ message: "photoIds array is required" });
       }
 

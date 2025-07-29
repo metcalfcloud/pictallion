@@ -152,6 +152,8 @@ export default function Gallery() {
   };
 
   const handleBulkProcessBronze = () => {
+    // For "unprocessed" filter, get only bronze photos
+    // For "bronze" filter, get all photos (which should all be bronze)
     const bronzePhotos = filteredPhotos.filter(photo => photo.tier === 'bronze');
     if (bronzePhotos.length === 0) {
       toast({
@@ -162,7 +164,7 @@ export default function Gallery() {
       return;
     }
     const photoIds = bronzePhotos.map(p => p.id);
-    console.log('Processing bronze photos:', photoIds.length, 'photos');
+    console.log(`Processing ${photoIds.length} bronze photos...`);
     bulkProcessMutation.mutate(photoIds);
   };
 
