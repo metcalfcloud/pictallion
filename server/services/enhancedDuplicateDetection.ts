@@ -382,13 +382,35 @@ export class EnhancedDuplicateDetectionService {
                     metadata: await (async () => {
                       // Enhance existing photo metadata to include dateTaken if missing
                       const existingMetadata = photo.metadata || {};
-                      if (existingMetadata.exif && !existingMetadata.exif.dateTaken && existingMetadata.exif.dateTime) {
-                        existingMetadata.exif.dateTaken = existingMetadata.exif.dateTime;
+                      
+                      // Ensure exif object exists
+                      if (!existingMetadata.exif) {
+                        existingMetadata.exif = {};
                       }
-                      // Add fallback for missing dateTime in exif
-                      if (existingMetadata.exif && !existingMetadata.exif.dateTime && existingMetadata.dateTime) {
-                        existingMetadata.exif.dateTime = existingMetadata.dateTime;
+                      
+                      // Try to extract metadata from the actual file if missing critical fields
+                      if (!existingMetadata.exif.dateTaken && !existingMetadata.exif.dateTime) {
+                        try {
+                          console.log(`Extracting fresh metadata for existing file: ${photo.filePath}`);
+                          const freshMetadata = await this.extractFileMetadata(photo.filePath);
+                          if (freshMetadata && freshMetadata.exif) {
+                            // Merge fresh EXIF data into existing metadata
+                            existingMetadata.exif = { ...existingMetadata.exif, ...freshMetadata.exif };
+                            console.log(`Enhanced existing metadata with fresh EXIF data:`, existingMetadata.exif);
+                          }
+                        } catch (error) {
+                          console.log(`Could not extract fresh metadata for ${photo.filePath}:`, error);
+                        }
                       }
+                      
+                      // Fallback chain for dateTaken
+                      if (!existingMetadata.exif.dateTaken) {
+                        existingMetadata.exif.dateTaken = 
+                          existingMetadata.exif.dateTime || 
+                          existingMetadata.dateTime || 
+                          photo.createdAt?.toISOString();
+                      }
+                      
                       return existingMetadata;
                     })(),
                     mediaAsset: {
