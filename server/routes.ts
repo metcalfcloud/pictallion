@@ -26,7 +26,7 @@ function extractPhotoDate(photo: any): Date | null {
     if (photo.metadata?.exif?.dateTimeOriginal) {
       return new Date(photo.metadata.exif.dateTimeOriginal);
     }
-    
+
     // Try to extract from filename if it has timestamp format (YYYYMMDD_HHMMSS)
     const filename = photo.mediaAsset?.originalFilename || '';
     const timestampMatch = filename.match(/^(\d{8})_(\d{6})/);
@@ -39,18 +39,18 @@ function extractPhotoDate(photo: any): Date | null {
       const hour = parseInt(timeStr.substring(0, 2));
       const minute = parseInt(timeStr.substring(2, 4));
       const second = parseInt(timeStr.substring(4, 6));
-      
+
       const extractedDate = new Date(year, month, day, hour, minute, second);
       if (!isNaN(extractedDate.getTime())) {
         return extractedDate;
       }
     }
-    
+
     // Fall back to file creation time
     if (photo.createdAt) {
       return new Date(photo.createdAt);
     }
-    
+
     return null;
   } catch (error) {
     console.error('Error extracting photo date:', error);
@@ -307,7 +307,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         for (const asset of allAssets) {
           const versions = await storage.getFileVersionsByAsset(asset.id);
-          
+
           // Find highest tier version (Gold > Silver > Bronze)
           const goldVersion = versions.find(v => v.tier === 'gold');
           const silverVersion = versions.find(v => v.tier === 'silver');
@@ -325,7 +325,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Sort by creation date, most recent first
         highestTierPhotos.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        
+
         res.json(highestTierPhotos.slice(0, 100)); // Limit to 100 for performance
       }
     } catch (error) {
@@ -367,7 +367,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const results = [];
       const conflicts = [];
 
+      console.log(`Processing ${files.length} uploaded files...`);
+
       for (const file of files) {
+        console.log(`Starting processing for file: ${file.originalname}, size: ${file.size} bytes`);
+
         try {
           // Calculate file hash for duplicate detection
           const fileBuffer = await fs.readFile(file.path);
@@ -426,6 +430,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             action: 'INGESTED',
             details: `File uploaded to Bronze tier: ${file.originalname}`,
           });
+
+          console.log(`Successfully processed ${file.originalname} to Bronze tier with asset ID: ${mediaAsset.id}`);
 
           results.push({
             filename: file.originalname,
@@ -2375,7 +2381,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!photoDate) {
         return res.status(400).json({ message: "Photo date is required" });
       }
-      
+
       const { eventDetectionService } = await import("./services/eventDetection");
       const events = await eventDetectionService.detectEvents(new Date(photoDate));
       res.json(events);
@@ -2399,7 +2405,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { eventDetectionService } = await import("./services/eventDetection");
       const age = eventDetectionService.calculateAgeInPhoto(new Date(person.birthdate), new Date(photoDate));
-      
+
       res.json({ age, personName: person.name });
     } catch (error) {
       console.error("Error calculating age:", error);

@@ -30,10 +30,14 @@ class FileManager {
   }
 
   async moveToBronze(tempPath: string, originalFilename: string): Promise<string> {
+    console.log(`Moving file to Bronze: ${originalFilename} from ${tempPath}`);
+    
     // Create batch folder based on current date
     const date = new Date();
     const batchName = `batch_${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     const batchDir = path.join(this.mediaDir, 'bronze', batchName);
+    
+    console.log(`Target batch directory: ${batchDir}`);
 
     try {
       await fs.access(batchDir);
@@ -48,10 +52,14 @@ class FileManager {
     const newFilename = `${name}_${timestamp}${ext}`;
     const bronzePath = path.join(batchDir, newFilename);
 
+    console.log(`Moving ${tempPath} to ${bronzePath}`);
     await fs.rename(tempPath, bronzePath);
     
+    const relativePath = path.relative(this.dataDir, bronzePath);
+    console.log(`File moved successfully to Bronze: ${relativePath}`);
+    
     // Return relative path from data directory
-    return path.relative(this.dataDir, bronzePath);
+    return relativePath;
   }
 
   async copyToSilver(bronzePath: string, newFilename?: string): Promise<string> {
