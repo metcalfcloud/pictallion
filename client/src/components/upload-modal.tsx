@@ -81,6 +81,43 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
       }
 
       return response.json();
+    },
+    onSuccess: (data) => {
+      // Update upload files with results
+      setUploadFiles(current => 
+        current.map(uploadFile => {
+          const result = data.results.find((r: any) => r.filename === uploadFile.file.name);
+          if (result) {
+            return {
+              ...uploadFile,
+              status: result.status as UploadFile['status'],
+              message: result.message,
+              progress: 100,
+              conflicts: result.conflicts || [],
+            };
+          }
+          return uploadFile;
+        })
+      );
+
+      // Show conflicts if any
+      const conflictCount = data.results.filter((r: any) => r.status === 'conflict').length;
+      if (conflictCount > 0) {
+        setShowConflicts(true);
+      }
+
+      // Refresh data
+      queryClient.invalidateQueries({ queryKey: ["/api/photos"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+    },
+    onError: () => {
+      setUploadFiles(current => 
+        current.map(file => 
+          file.status === 'uploading'
+            ? { ...file, status: 'error', message: 'Upload failed', progress: 0 }
+            : file
+        )
+      );
     }
   });
 
@@ -137,7 +174,7 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
     maxSize: 50 * 1024 * 1024, // 50MB
   });
 
-  const handleUpload = async () => {
+  const handleUpload = () => {
     const pendingFiles = uploadFiles.filter(f => f.status === 'pending');
     if (pendingFiles.length === 0) return;
 
@@ -150,6 +187,7 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
       )
     );
 
+    // Start progress animation
     const progressInterval = setInterval(() => {
       setUploadFiles(current => 
         current.map(file => 
@@ -160,72 +198,13 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
       );
     }, 500);
 
-    try {
-      alert('Starting upload mutation...');
-      const data = await uploadMutation.mutateAsync(pendingFiles.map(f => f.file));
-      alert('Got response: ' + JSON.stringify(data).substring(0, 100) + '...');
-      
-      // Update file statuses based on server response
-      setUploadFiles(current => {
-        console.log('Current files before update:', current.map(f => ({ name: f.file.name, status: f.status })));
-        const updated = current.map(uploadFile => {
-          const result = data.results.find((r: any) => r.filename === uploadFile.file.name);
-          console.log(`Looking for result for ${uploadFile.file.name}:`, result);
-          if (result) {
-            const updatedFile = {
-              ...uploadFile,
-              status: result.status as UploadFile['status'],
-              message: result.message,
-              progress: 100,
-              conflicts: result.conflicts || [],
-            };
-            console.log(`Updated file:`, updatedFile);
-            return updatedFile;
-          }
-          return uploadFile;
-        });
-        console.log('Files after update:', updated.map(f => ({ name: f.file.name, status: f.status })));
-        return updated;
-      });
+    // Call mutation
+    uploadMutation.mutate(pendingFiles.map(f => f.file));
 
-      // Invalidate queries
-      queryClient.invalidateQueries({ queryKey: ["/api/photos"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
-
-      // Show toast notifications
-      const successCount = data.results.filter((r: any) => r.status === 'success').length;
-      const conflictCount = data.results.filter((r: any) => r.status === 'conflict').length;
-
-      if (successCount > 0) {
-        toast({
-          title: "Upload Complete",
-          description: `${successCount} photos uploaded successfully`,
-        });
-      }
-
-      if (conflictCount > 0) {
-        setShowConflicts(true);
-        toast({
-          title: "Duplicate Conflicts Found",
-          description: `${conflictCount} files have potential duplicates. Please review.`,
-        });
-      }
-    } catch (error) {
-      setUploadFiles(current => 
-        current.map(file => 
-          file.status === 'uploading'
-            ? { ...file, status: 'error', message: 'Upload failed', progress: 0 }
-            : file
-        )
-      );
-      toast({
-        title: "Upload Failed",
-        description: error instanceof Error ? error.message : 'Unknown error occurred',
-        variant: "destructive"
-      });
-    } finally {
+    // Clear progress interval after 10 seconds
+    setTimeout(() => {
       clearInterval(progressInterval);
-    }
+    }, 10000);
   };
 
   const removeFile = (id: string) => {
