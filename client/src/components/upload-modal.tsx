@@ -61,6 +61,9 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  // Debug log on component mount
+  console.log('UploadModal mounted');
+
   const uploadMutation = useMutation({
     mutationFn: async (files: File[]) => {
       const formData = new FormData();
@@ -158,9 +161,9 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
     }, 500);
 
     try {
-      console.log('About to call mutateAsync...');
+      alert('Starting upload mutation...');
       const data = await uploadMutation.mutateAsync(pendingFiles.map(f => f.file));
-      console.log('Got response from server:', data);
+      alert('Got response: ' + JSON.stringify(data).substring(0, 100) + '...');
       
       // Update file statuses based on server response
       setUploadFiles(current => {
