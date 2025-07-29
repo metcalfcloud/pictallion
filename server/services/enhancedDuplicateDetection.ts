@@ -248,10 +248,14 @@ export class EnhancedDuplicateDetectionService {
         if (newPerceptualHash) {
           // Get all existing photos to compare perceptual hashes
           const allPhotos = await storage.getAllFileVersions();
+          console.log(`Found ${allPhotos.length} existing photos to compare against`);
 
           for (const photo of allPhotos) {
             // Skip if this is already an exact duplicate
-            if (photo.fileHash === fileHash) continue;
+            if (photo.fileHash === fileHash) {
+              console.log(`Skipping exact duplicate comparison: ${photo.fileHash} === ${fileHash}`);
+              continue;
+            }
 
             // Only compare with images
             if (!photo.mimeType?.startsWith('image/')) continue;
@@ -284,6 +288,7 @@ export class EnhancedDuplicateDetectionService {
               // For perceptual duplicates, we need higher similarity threshold since different MD5 
               // means some bytes are different (metadata, compression, etc.)
               // Only flag near-perfect visual matches that aren't burst photos
+              console.log(`Similarity check: ${similarity}% between ${originalFilename} and ${photoAsset.originalFilename}`);
               if (similarity >= 99.5) {
                 // Check if this might be a burst photo - but be more lenient for high similarity
                 const isBurstPhoto = await this.isBurstPhoto(originalFilename, photoAsset.originalFilename, photo.createdAt.toISOString());
@@ -296,6 +301,8 @@ export class EnhancedDuplicateDetectionService {
                   console.log(`Skipping moderate similarity burst photo: ${originalFilename} vs ${photoAsset.originalFilename} (${similarity}%)`);
                   continue;
                 }
+                console.log(`Creating conflict for ${originalFilename} vs ${photoAsset.originalFilename}`);
+                console.log(`ABOUT TO EXTRACT METADATA FOR NEW FILE: ${tempFilePath}`);
                 const reasoning = this.analyzeMetadataDifferences(
                   photo.metadata,
                   originalFilename,
