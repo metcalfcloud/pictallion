@@ -201,7 +201,12 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
 
   const handleUpload = () => {
     const pendingFiles = uploadFiles.filter(f => f.status === 'pending');
-    if (pendingFiles.length === 0) return;
+    console.log('handleUpload called with pending files:', pendingFiles.map(f => ({ name: f.file.name, status: f.status })));
+    
+    if (pendingFiles.length === 0) {
+      console.log('No pending files to upload');
+      return;
+    }
 
     // Only set uploading status for pending files
     setUploadFiles(current => 
@@ -223,6 +228,7 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
     }, 500);
 
     // Only upload pending files
+    console.log('Starting upload mutation for files:', pendingFiles.map(f => f.file.name));
     uploadMutation.mutate(pendingFiles.map(f => f.file));
 
     setTimeout(() => {
