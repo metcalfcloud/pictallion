@@ -128,7 +128,7 @@ export class EnhancedDuplicateDetectionService {
       console.log(`Starting direct metadata extraction for: ${filePath}`);
       const fs = await import('fs/promises');
       const path = await import('path');
-      const ExifImage = (await import('exif')).default;
+      const { ExifImage } = await import('exif');
       
       // Check if file exists
       try {
@@ -158,15 +158,24 @@ export class EnhancedDuplicateDetectionService {
           console.log(`Read file buffer: ${fileBuffer.length} bytes`);
           
           const exifData = await new Promise((resolve, reject) => {
-            new ExifImage({ image: fileBuffer }, (error: any, data: any) => {
-              if (error) {
-                console.log(`EXIF extraction failed for ${filePath}:`, error.message);
-                reject(error);
-              } else {
-                console.log(`EXIF extraction successful for ${filePath}:`, JSON.stringify(data, null, 2));
-                resolve(data);
-              }
-            });
+            try {
+              new ExifImage({ image: fileBuffer }, (error: any, data: any) => {
+                if (error) {
+                  console.log(`EXIF extraction failed for ${filePath}:`, error.message);
+                  reject(error);
+                } else {
+                  console.log(`EXIF extraction successful for ${filePath}`);
+                  console.log(`Raw EXIF data keys:`, Object.keys(data));
+                  if (data.image) console.log(`Image data:`, JSON.stringify(data.image, null, 2));
+                  if (data.exif) console.log(`EXIF data:`, JSON.stringify(data.exif, null, 2));
+                  if (data.gps) console.log(`GPS data:`, JSON.stringify(data.gps, null, 2));
+                  resolve(data);
+                }
+              });
+            } catch (syncError) {
+              console.error(`Synchronous EXIF error:`, syncError);
+              reject(syncError);
+            }
           });
 
           const exif: any = {};
