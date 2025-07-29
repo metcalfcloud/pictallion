@@ -356,7 +356,8 @@ export class EnhancedDuplicateDetectionService {
                     metadata: await (async () => {
                       console.log(`=== EXTRACTING METADATA FOR NEW FILE: ${tempFilePath} ===`);
                       try {
-                        const result = await this.extractFileMetadata(tempFilePath);
+                        // Use extractDirectMetadata for temp files to get full EXIF data
+                        const result = await this.extractDirectMetadata(tempFilePath);
                         console.log(`=== METADATA EXTRACTION RESULT ===`);
                         console.log(JSON.stringify(result, null, 2));
                         console.log(`=== END METADATA EXTRACTION ===`);
