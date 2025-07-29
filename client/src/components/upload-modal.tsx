@@ -63,6 +63,7 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
 
   const uploadMutation = useMutation({
     mutationFn: async (files: File[]) => {
+      console.log('Starting upload mutation with files:', files.map(f => f.name));
       const formData = new FormData();
       files.forEach(file => {
         formData.append('files', file);
@@ -73,11 +74,14 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
         body: formData,
       });
 
+      console.log('Upload response status:', response.status);
       if (!response.ok) {
         throw new Error('Upload failed');
       }
 
-      return response.json();
+      const result = await response.json();
+      console.log('Upload response JSON:', result);
+      return result;
     },
     onSuccess: (data) => {
       console.log('Upload response:', data);
@@ -125,6 +129,7 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
       }
     },
     onError: (error) => {
+      console.log('Upload error:', error);
       setUploadFiles(current => 
         current.map(file => ({
           ...file,
