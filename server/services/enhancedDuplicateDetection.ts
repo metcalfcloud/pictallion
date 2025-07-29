@@ -159,9 +159,21 @@ export class EnhancedDuplicateDetectionService {
       // Try to extract EXIF data for images
       const ext = path.extname(filePath).toLowerCase();
       log(`File extension: ${ext}`);
-      if (ext.match(/\.(jpg|jpeg|tiff)$/)) {
+      
+      // For temp files without extensions, check if it's an image by reading file header
+      let isImage = ext.match(/\.(jpg|jpeg|tiff)$/);
+      if (!isImage && !ext) {
+        // Check file header for JPEG signature
+        const buffer = await fs.readFile(filePath);
+        const header = buffer.subarray(0, 4);
+        isImage = (header[0] === 0xFF && header[1] === 0xD8 && header[2] === 0xFF);
+        log(`No extension, checking file header: ${Array.from(header).map(b => '0x' + b.toString(16).padStart(2, '0')).join(' ')}`);
+        log(`Is JPEG by header: ${isImage}`);
+      }
+      
+      if (isImage) {
         try {
-          log(`Attempting EXIF extraction for temp file: ${filePath}`);
+          log(`Attempting EXIF extraction for image file: ${filePath}`);
           
           // Read file as buffer for EXIF extraction
           const fileBuffer = await fs.readFile(filePath);
