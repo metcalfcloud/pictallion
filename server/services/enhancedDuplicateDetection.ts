@@ -210,6 +210,7 @@ export class EnhancedDuplicateDetectionService {
               ? `${data.image.Make} ${data.image.Model}` 
               : undefined;
             exif.dateTime = data.image.DateTime || data.exif?.DateTimeOriginal || data.exif?.CreateDate;
+            exif.dateTaken = data.image.DateTime || data.exif?.DateTimeOriginal || data.exif?.CreateDate;
           }
 
           if (data.exif) {
@@ -222,6 +223,10 @@ export class EnhancedDuplicateDetectionService {
             // Ensure we have a dateTime from EXIF if not from image
             if (!exif.dateTime) {
               exif.dateTime = data.exif.DateTimeOriginal || data.exif.CreateDate;
+            }
+            // Ensure we have a dateTaken from EXIF if not from image
+            if (!exif.dateTaken) {
+              exif.dateTaken = data.exif.DateTimeOriginal || data.exif.CreateDate;
             }
           }
 
