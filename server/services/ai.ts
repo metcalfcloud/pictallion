@@ -2,6 +2,7 @@ import fs from "fs/promises";
 import path from "path";
 import sharp from "sharp";
 import type { AIMetadata } from "@shared/schema";
+import { logger } from "../utils/logger.js";
 
 // AI Provider configuration
 export type AIProvider = "ollama" | "openai" | "both";
@@ -49,34 +50,34 @@ class AIService {
     try {
       // Try OpenAI first if it's the preferred provider or available
       if ((provider === "openai" || provider === "both") && this.config.openai.apiKey) {
-        console.log("Using OpenAI for image analysis with API key:", this.config.openai.apiKey ? "present" : "missing");
+        logger.debug("Using OpenAI for image analysis", { hasApiKey: !!this.config.openai.apiKey });
         try {
           return await this.analyzeWithOpenAI(imagePath);
         } catch (openaiError) {
-          console.error("OpenAI analysis failed:", openaiError);
+          logger.error("OpenAI analysis failed", openaiError);
           // Continue to try Ollama if OpenAI fails
         }
       } else {
-        console.log("OpenAI not available - provider:", provider, "apiKey:", this.config.openai.apiKey ? "present" : "missing");
+        logger.debug("OpenAI not available", { provider, hasApiKey: !!this.config.openai.apiKey });
       }
 
       // Try Ollama if OpenAI failed or if it's the preferred provider
       if (provider === "ollama" || provider === "both") {
         const isOllamaAvailable = await this.checkOllamaAvailability();
         if (isOllamaAvailable) {
-          console.log("Using Ollama for image analysis");
+          logger.debug("Using Ollama for image analysis");
           return await this.analyzeWithOllama(imagePath);
         } else if (provider === "ollama") {
-          console.log("Ollama not available, falling back to basic metadata");
+          logger.debug("Ollama not available, falling back to basic metadata");
           return this.generateBasicMetadata(imagePath);
         }
       }
 
       // Fallback to basic metadata
-      console.log("No AI providers available, returning basic metadata");
+      logger.debug("No AI providers available, returning basic metadata");
       return this.generateBasicMetadata(imagePath);
     } catch (error) {
-      console.error("AI analysis failed:", error);
+      logger.error("AI analysis failed", error);
       return this.generateBasicMetadata(imagePath);
     }
   }

@@ -30,7 +30,14 @@ export interface SortOptions {
 }
 
 export interface SearchResult {
-  photos: any[];
+  photos: Array<{
+    id: string;
+    filePath: string;
+    tier: string;
+    metadata?: any;
+    mediaAsset: { originalFilename: string };
+    createdAt: string;
+  }>;
   totalCount: number;
   facets: {
     tiers: Record<string, number>;
@@ -172,7 +179,14 @@ class AdvancedSearchService {
     const facets = this.generateSimpleFacets(allPhotos);
 
     return {
-      photos: paginatedPhotos,
+      photos: paginatedPhotos.map((photo: any) => ({
+        id: photo.id,
+        filePath: photo.filePath,
+        tier: photo.tier,
+        metadata: photo.metadata,
+        mediaAsset: { originalFilename: photo.mediaAsset?.originalFilename || 'Unknown' },
+        createdAt: photo.createdAt.toISOString()
+      })),
       totalCount,
       facets
     };
@@ -185,7 +199,7 @@ class AdvancedSearchService {
     photoId: string, 
     threshold: number = 85,
     limit: number = 20
-  ): Promise<any[]> {
+  ): Promise<Array<{ id: string; similarity: number; [key: string]: any }>> {
     // Get the perceptual hash of the source photo
     const sourcePhoto = await db
       .select({ perceptualHash: fileVersions.perceptualHash })

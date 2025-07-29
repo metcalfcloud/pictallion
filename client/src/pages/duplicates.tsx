@@ -76,7 +76,10 @@ export default function DuplicatesPage() {
       setSelectedActions(defaultActions);
 
     } catch (error) {
-      console.error('Failed to scan for duplicates:', error);
+      // Log error in development only
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Failed to scan for duplicates:', error);
+      }
       // Set empty analysis on error
       setAnalysis({
         groups: [],
@@ -113,14 +116,20 @@ export default function DuplicatesPage() {
       const result = await response.json();
 
       if (result.errors?.length > 0) {
-        console.error('Processing errors:', result.errors);
+        // Log errors in development only
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Processing errors:', result.errors);
+        }
       }
 
       // Refresh the analysis
       await scanForDuplicates();
 
     } catch (error) {
-      console.error('Failed to process duplicates:', error);
+      // Log error in development only
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Failed to process duplicates:', error);
+      }
     } finally {
       setProcessing(false);
     }
