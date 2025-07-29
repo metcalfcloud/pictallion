@@ -74,7 +74,9 @@ export function UnifiedUpload({
 
   // Drag and drop functionality  
   const onDrop = useCallback((acceptedFiles: File[]) => {
-    console.log('Main upload - onDrop called with files:', acceptedFiles);
+    console.log('MAIN UPLOAD - onDrop called with files:', acceptedFiles);
+    console.log('MAIN UPLOAD - File details:', acceptedFiles.map(f => ({ name: f.name, size: f.size, type: f.type })));
+    
     const newFiles: UploadFile[] = acceptedFiles.map(file => ({
       id: Math.random().toString(36).substr(2, 9),
       file,
@@ -82,19 +84,27 @@ export function UnifiedUpload({
       status: 'pending',
     }));
 
-    console.log('Main upload - Adding new files:', newFiles);
-    setUploadFiles(current => [...current, ...newFiles]);
+    console.log('MAIN UPLOAD - Adding new files to state:', newFiles);
+    setUploadFiles(current => {
+      console.log('MAIN UPLOAD - Current files:', current);
+      const updated = [...current, ...newFiles];
+      console.log('MAIN UPLOAD - Updated files:', updated);
+      return updated;
+    });
   }, []);
 
   const { getRootProps, getInputProps, isDragActive, isDragAccept, isDragReject } = useDropzone({
-    onDrop,
+    onDrop: (acceptedFiles, fileRejections, event) => {
+      console.log('MAIN UPLOAD - Drop event fired!', { acceptedFiles, fileRejections, event });
+      onDrop(acceptedFiles);
+    },
     accept: {
       'image/*': [],
       'video/*': []
     },
     maxSize: 50 * 1024 * 1024, // 50MB
     onDropRejected: (fileRejections) => {
-      console.log('Main upload - Files rejected:', fileRejections);
+      console.log('MAIN UPLOAD - Files rejected:', fileRejections);
       toast({
         title: "Files Rejected",
         description: `${fileRejections.length} files were rejected. Check file type and size limits.`,
@@ -102,18 +112,19 @@ export function UnifiedUpload({
       });
     },
     onError: (error) => {
-      console.error('Main upload - Dropzone error:', error);
+      console.error('MAIN UPLOAD - Dropzone error:', error);
     },
-    onDragEnter: () => {
-      console.log('Main upload - Drag enter detected');
+    onDragEnter: (event) => {
+      console.log('MAIN UPLOAD - Drag enter detected', event);
     },
-    onDragLeave: () => {
-      console.log('Main upload - Drag leave detected');
+    onDragLeave: (event) => {
+      console.log('MAIN UPLOAD - Drag leave detected', event);
     },
-    onDragOver: () => {
-      console.log('Main upload - Drag over detected');
+    onDragOver: (event) => {
+      console.log('MAIN UPLOAD - Drag over detected', event);
     },
-    multiple: true
+    multiple: true,
+    preventDropOnDocument: false
   });
 
   // File management functions

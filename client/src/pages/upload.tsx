@@ -3,7 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FolderOpen, Settings } from "lucide-react";
 import { UnifiedUpload } from "@/components/unified-upload";
-import { TestDropzone } from "@/components/test-dropzone";
 
 export default function Upload() {
   return (
@@ -27,8 +26,6 @@ export default function Upload() {
         </div>
       </div>
 
-      <TestDropzone />
-      
       <Card>
         <CardHeader>
           <CardTitle>Upload Photos & Videos</CardTitle>
