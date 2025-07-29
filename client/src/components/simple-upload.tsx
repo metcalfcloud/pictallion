@@ -349,19 +349,43 @@ export function SimpleUpload({ open, onOpenChange, preloadedFiles, onConflictRes
                             <HardDrive className="w-4 h-4" />
                             Existing File
                           </h4>
-                          <div className="bg-background p-3 rounded-lg space-y-2">
-                            <p className="font-medium text-sm">{conflict.existingPhoto.mediaAsset.originalFilename}</p>
-                            <div className="text-xs text-muted-foreground space-y-1">
-                              <p>Size: {(conflict.existingPhoto.fileSize / (1024*1024)).toFixed(1)} MB</p>
-                              <p>Tier: {conflict.existingPhoto.tier.toUpperCase()}</p>
-                              <p className="flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
-                                {new Date(conflict.existingPhoto.createdAt).toLocaleDateString()}
-                              </p>
-                              {conflict.existingPhoto.metadata?.dateTime && (
-                                <p>Photo taken: {new Date(conflict.existingPhoto.metadata.dateTime).toLocaleDateString()}</p>
+                          <div className="bg-background p-4 rounded-lg space-y-3">
+                            <div>
+                              <p className="font-medium text-sm">{conflict.existingPhoto.mediaAsset.originalFilename}</p>
+                              <p className="text-xs text-muted-foreground">File Hash: {conflict.existingPhoto.fileHash}</p>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-3 text-xs">
+                              <div>
+                                <p className="font-medium text-muted-foreground mb-1">File Info</p>
+                                <p>Size: {(conflict.existingPhoto.fileSize / (1024*1024)).toFixed(1)} MB</p>
+                                <p>Tier: {conflict.existingPhoto.tier.toUpperCase()}</p>
+                                <p className="flex items-center gap-1">
+                                  <Clock className="w-3 h-3" />
+                                  Uploaded: {new Date(conflict.existingPhoto.createdAt).toLocaleDateString()}
+                                </p>
+                              </div>
+                              
+                              {conflict.existingPhoto.metadata?.exif && (
+                                <div>
+                                  <p className="font-medium text-muted-foreground mb-1">Camera Info</p>
+                                  <p>Camera: {conflict.existingPhoto.metadata.exif.camera || 'Unknown'}</p>
+                                  <p>Lens: {conflict.existingPhoto.metadata.exif.lens || 'Unknown'}</p>
+                                  <p>Settings: {conflict.existingPhoto.metadata.exif.aperture} • {conflict.existingPhoto.metadata.exif.shutter} • ISO {conflict.existingPhoto.metadata.exif.iso}</p>
+                                  {conflict.existingPhoto.metadata.exif.gpsLatitude && (
+                                    <p>GPS: {conflict.existingPhoto.metadata.exif.gpsLatitude.toFixed(4)}, {conflict.existingPhoto.metadata.exif.gpsLongitude.toFixed(4)}</p>
+                                  )}
+                                </div>
                               )}
                             </div>
+                            
+                            {conflict.existingPhoto.metadata?.dateTime && (
+                              <div className="pt-2 border-t border-border">
+                                <p className="text-xs text-muted-foreground">
+                                  Photo taken: {new Date(conflict.existingPhoto.metadata.dateTime).toLocaleString()}
+                                </p>
+                              </div>
+                            )}
                           </div>
                         </div>
 
@@ -371,10 +395,25 @@ export function SimpleUpload({ open, onOpenChange, preloadedFiles, onConflictRes
                             <Upload className="w-4 h-4" />
                             New File
                           </h4>
-                          <div className="bg-background p-3 rounded-lg space-y-2">
-                            <p className="font-medium text-sm">{conflict.newFile.originalFilename}</p>
-                            <div className="text-xs text-muted-foreground space-y-1">
+                          <div className="bg-background p-4 rounded-lg space-y-3">
+                            <div>
+                              <p className="font-medium text-sm">{conflict.newFile.originalFilename}</p>
+                              <p className="text-xs text-muted-foreground">File Hash: {conflict.newFile.fileHash}</p>
+                            </div>
+                            
+                            <div className="text-xs">
+                              <p className="font-medium text-muted-foreground mb-1">File Info</p>
                               <p>Size: {(conflict.newFile.fileSize / (1024*1024)).toFixed(1)} MB</p>
+                              <p>Status: Ready to upload</p>
+                            </div>
+                            
+                            <div className="pt-2 border-t border-border">
+                              <p className="text-xs text-muted-foreground">
+                                {conflict.conflictType === 'identical_md5' ? 
+                                  'This file is byte-for-byte identical to the existing file' :
+                                  `This file is ${Math.round(conflict.similarity * 100)}% similar to the existing file`
+                                }
+                              </p>
                             </div>
                           </div>
                         </div>
