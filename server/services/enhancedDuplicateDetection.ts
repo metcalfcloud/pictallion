@@ -95,16 +95,19 @@ export class EnhancedDuplicateDetectionService {
    */
   async extractFileMetadata(filePath: string): Promise<any> {
     try {
-      // Import the file manager service
-      const serverModule = await import("../index");
-      const fileManager = (serverModule as any).fileManager;
-      if (fileManager && fileManager.extractMetadata) {
-        return await fileManager.extractMetadata(filePath);
-      }
-      return null;
+      // Import the shared fileManager instance
+      const { fileManager } = await import("./fileManager");
+      const metadata = await fileManager.extractMetadata(filePath);
+      console.log(`Extracted metadata for duplicate detection - ${filePath}:`, metadata);
+      return metadata;
     } catch (error) {
-      console.error('Error extracting metadata:', error);
-      return null;
+      console.error('Error extracting metadata for duplicate detection:', error);
+      // Return empty metadata structure instead of null
+      return {
+        exif: null,
+        dateTime: null,
+        location: null
+      };
     }
   }
 
