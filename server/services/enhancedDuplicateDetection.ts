@@ -381,34 +381,28 @@ export class EnhancedDuplicateDetectionService {
                     perceptualHash: existingPerceptualHash,
                     metadata: await (async () => {
                       // Enhance existing photo metadata to include dateTaken if missing
-                      const existingMetadata = photo.metadata || {};
+                      const existingMetadata = photo.metadata || { exif: {} };
                       
                       // Ensure exif object exists
                       if (!existingMetadata.exif) {
                         existingMetadata.exif = {};
                       }
                       
-                      // Try to extract metadata from the actual file if missing critical fields
-                      if (!existingMetadata.exif.dateTaken && !existingMetadata.exif.dateTime) {
+                      // If dateTaken is missing, try to extract fresh EXIF data from the actual file
+                      if (!existingMetadata.exif.dateTaken) {
                         try {
-                          console.log(`Extracting fresh metadata for existing file: ${photo.filePath}`);
+                          console.log(`Extracting fresh EXIF data for existing file: ${photo.filePath}`);
                           const freshMetadata = await this.extractFileMetadata(photo.filePath);
-                          if (freshMetadata && freshMetadata.exif) {
-                            // Merge fresh EXIF data into existing metadata
-                            existingMetadata.exif = { ...existingMetadata.exif, ...freshMetadata.exif };
-                            console.log(`Enhanced existing metadata with fresh EXIF data:`, existingMetadata.exif);
+                          if (freshMetadata && freshMetadata.exif && freshMetadata.exif.dateTaken) {
+                            existingMetadata.exif.dateTaken = freshMetadata.exif.dateTaken;
+                            console.log(`Added dateTaken from fresh EXIF: ${existingMetadata.exif.dateTaken}`);
+                          } else if (freshMetadata && freshMetadata.exif && freshMetadata.exif.dateTime) {
+                            existingMetadata.exif.dateTaken = freshMetadata.exif.dateTime;
+                            console.log(`Added dateTaken from fresh dateTime: ${existingMetadata.exif.dateTaken}`);
                           }
                         } catch (error) {
-                          console.log(`Could not extract fresh metadata for ${photo.filePath}:`, error);
+                          console.log(`Could not extract fresh EXIF for ${photo.filePath}:`, error);
                         }
-                      }
-                      
-                      // Fallback chain for dateTaken
-                      if (!existingMetadata.exif.dateTaken) {
-                        existingMetadata.exif.dateTaken = 
-                          existingMetadata.exif.dateTime || 
-                          existingMetadata.dateTime || 
-                          photo.createdAt?.toISOString();
                       }
                       
                       return existingMetadata;
