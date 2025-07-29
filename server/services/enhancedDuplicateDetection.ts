@@ -152,8 +152,13 @@ export class EnhancedDuplicateDetectionService {
       if (path.extname(filePath).toLowerCase().match(/\.(jpg|jpeg|tiff)$/)) {
         try {
           console.log(`Attempting EXIF extraction for temp file: ${filePath}`);
+          
+          // Read file as buffer for EXIF extraction
+          const fileBuffer = await fs.readFile(filePath);
+          console.log(`Read file buffer: ${fileBuffer.length} bytes`);
+          
           const exifData = await new Promise((resolve, reject) => {
-            new ExifImage({ image: filePath }, (error: any, data: any) => {
+            new ExifImage({ image: fileBuffer }, (error: any, data: any) => {
               if (error) {
                 console.log(`EXIF extraction failed for ${filePath}:`, error.message);
                 reject(error);
@@ -249,6 +254,9 @@ export class EnhancedDuplicateDetectionService {
           // Get all existing photos to compare perceptual hashes
           const allPhotos = await storage.getAllFileVersions();
           console.log(`Found ${allPhotos.length} existing photos to compare against`);
+          
+          // Track which photos we've already created conflicts for (to avoid duplicates)
+          const conflictedAssets = new Set<string>();
 
           for (const photo of allPhotos) {
             // Skip if this is already an exact duplicate
@@ -284,6 +292,12 @@ export class EnhancedDuplicateDetectionService {
               // Get the asset for this photo to check burst patterns
               const photoAsset = await storage.getMediaAsset(photo.mediaAssetId);
               if (!photoAsset) continue;
+
+              // Skip if we've already created a conflict for this asset (avoid multiple conflicts for same image)
+              if (conflictedAssets.has(photoAsset.id)) {
+                console.log(`Skipping duplicate conflict for asset ${photoAsset.originalFilename} - already conflicted`);
+                continue;
+              }
 
               // For perceptual duplicates, we need higher similarity threshold since different MD5 
               // means some bytes are different (metadata, compression, etc.)
@@ -343,6 +357,7 @@ export class EnhancedDuplicateDetectionService {
                   reasoning
                 };
                 conflicts.push(conflict);
+                conflictedAssets.add(photoAsset.id);
               }
             }
           }
