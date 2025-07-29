@@ -70,13 +70,8 @@ export function UnifiedUpload({
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // No need for global event prevention since test dropzone works
-
-  // Drag and drop functionality  
+  // Drag and drop functionality
   const onDrop = useCallback((acceptedFiles: File[]) => {
-    console.log('MAIN UPLOAD - onDrop called with files:', acceptedFiles);
-    console.log('MAIN UPLOAD - File details:', acceptedFiles.map(f => ({ name: f.name, size: f.size, type: f.type })));
-    
     const newFiles: UploadFile[] = acceptedFiles.map(file => ({
       id: Math.random().toString(36).substr(2, 9),
       file,
@@ -84,47 +79,17 @@ export function UnifiedUpload({
       status: 'pending',
     }));
 
-    console.log('MAIN UPLOAD - Adding new files to state:', newFiles);
-    setUploadFiles(current => {
-      console.log('MAIN UPLOAD - Current files:', current);
-      const updated = [...current, ...newFiles];
-      console.log('MAIN UPLOAD - Updated files:', updated);
-      return updated;
-    });
+    setUploadFiles(current => [...current, ...newFiles]);
   }, []);
 
-  const { getRootProps, getInputProps, isDragActive, isDragAccept, isDragReject } = useDropzone({
-    onDrop: (acceptedFiles, fileRejections, event) => {
-      console.log('MAIN UPLOAD - Drop event fired!', { acceptedFiles, fileRejections, event });
-      onDrop(acceptedFiles);
-    },
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
     accept: {
-      'image/*': [],
-      'video/*': []
+      'image/*': ['.jpeg', '.jpg', '.png', '.tiff'],
+      'video/*': ['.mp4', '.mov', '.avi']
     },
     maxSize: 50 * 1024 * 1024, // 50MB
-    onDropRejected: (fileRejections) => {
-      console.log('MAIN UPLOAD - Files rejected:', fileRejections);
-      toast({
-        title: "Files Rejected",
-        description: `${fileRejections.length} files were rejected. Check file type and size limits.`,
-        variant: "destructive"
-      });
-    },
-    onError: (error) => {
-      console.error('MAIN UPLOAD - Dropzone error:', error);
-    },
-    onDragEnter: (event) => {
-      console.log('MAIN UPLOAD - Drag enter detected', event);
-    },
-    onDragLeave: (event) => {
-      console.log('MAIN UPLOAD - Drag leave detected', event);
-    },
-    onDragOver: (event) => {
-      console.log('MAIN UPLOAD - Drag over detected', event);
-    },
-    multiple: true,
-    preventDropOnDocument: false
+    multiple: true
   });
 
   // File management functions
@@ -332,11 +297,7 @@ const resolveMutation = {
       <div
         {...getRootProps()}
         className={`border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors ${
-          isDragAccept 
-            ? 'border-green-500 bg-green-50 dark:bg-green-900/20' 
-            : isDragReject
-            ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
-            : isDragActive 
+          isDragActive 
             ? 'border-primary bg-primary/5' 
             : 'border-border hover:border-primary hover:bg-primary/5'
         }`}
