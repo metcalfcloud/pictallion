@@ -197,16 +197,24 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
         formData.append('files', file.file);
       });
 
+      // Add visible feedback
+      setUploadFiles(current => current.map(f => ({ ...f, message: 'Sending request...' })));
+
       const response = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
       });
+
+      setUploadFiles(current => current.map(f => ({ ...f, message: 'Got response...' })));
 
       if (!response.ok) {
         throw new Error('Upload failed');
       }
 
       const data = await response.json();
+      
+      // Show we got the data
+      setUploadFiles(current => current.map(f => ({ ...f, message: 'Processing response...' })));
 
       // Manually update file statuses
       setUploadFiles(current => 
