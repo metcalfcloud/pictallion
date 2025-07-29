@@ -91,6 +91,24 @@ export class EnhancedDuplicateDetectionService {
   }
 
   /**
+   * Extract metadata from a file for comparison purposes
+   */
+  async extractFileMetadata(filePath: string): Promise<any> {
+    try {
+      // Import the file manager service
+      const serverModule = await import("../index");
+      const fileManager = (serverModule as any).fileManager;
+      if (fileManager && fileManager.extractMetadata) {
+        return await fileManager.extractMetadata(filePath);
+      }
+      return null;
+    } catch (error) {
+      console.error('Error extracting metadata:', error);
+      return null;
+    }
+  }
+
+  /**
    * Check for duplicates during upload process
    * Returns conflicts that need user resolution
    */
@@ -129,7 +147,8 @@ export class EnhancedDuplicateDetectionService {
               tempPath: tempFilePath,
               originalFilename,
               fileHash,
-              fileSize: (await fs.stat(tempFilePath)).size
+              fileSize: (await fs.stat(tempFilePath)).size,
+              metadata: await this.extractFileMetadata(tempFilePath)
             },
             conflictType: 'identical_md5',
             similarity: 100,
@@ -190,7 +209,7 @@ export class EnhancedDuplicateDetectionService {
               // Only flag near-perfect visual matches that aren't burst photos
               if (similarity >= 99.5) {
                 // Check if this might be a burst photo - but be more lenient for high similarity
-                const isBurstPhoto = await this.isBurstPhoto(originalFilename, photoAsset.originalFilename, photo.createdAt);
+                const isBurstPhoto = await this.isBurstPhoto(originalFilename, photoAsset.originalFilename, photo.createdAt.toISOString());
                 
                 // For very high similarity (99.8%+), create conflict even if it might be burst
                 // User should decide on truly identical-looking images
@@ -226,7 +245,8 @@ export class EnhancedDuplicateDetectionService {
                     originalFilename,
                     fileHash,
                     perceptualHash: newPerceptualHash,
-                    fileSize: (await fs.stat(tempFilePath)).size
+                    fileSize: (await fs.stat(tempFilePath)).size,
+                    metadata: await this.extractFileMetadata(tempFilePath)
                   },
                   conflictType: 'visually_identical',
                   similarity,

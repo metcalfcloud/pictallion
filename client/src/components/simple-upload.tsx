@@ -401,17 +401,39 @@ export function SimpleUpload({ open, onOpenChange, preloadedFiles, onConflictRes
                               <p className="text-xs text-muted-foreground">File Hash: {conflict.newFile.fileHash}</p>
                             </div>
                             
-                            <div className="text-xs">
-                              <p className="font-medium text-muted-foreground mb-1">File Info</p>
-                              <p>Size: {(conflict.newFile.fileSize / (1024*1024)).toFixed(1)} MB</p>
-                              <p>Status: Ready to upload</p>
+                            <div className="grid grid-cols-2 gap-3 text-xs">
+                              <div>
+                                <p className="font-medium text-muted-foreground mb-1">File Info</p>
+                                <p>Size: {(conflict.newFile.fileSize / (1024*1024)).toFixed(1)} MB</p>
+                                <p>Status: Ready to upload</p>
+                              </div>
+                              
+                              {conflict.newFile.metadata?.exif && (
+                                <div>
+                                  <p className="font-medium text-muted-foreground mb-1">Camera Info</p>
+                                  <p>Camera: {conflict.newFile.metadata.exif.camera || 'Unknown'}</p>
+                                  <p>Lens: {conflict.newFile.metadata.exif.lens || 'Unknown'}</p>
+                                  <p>Settings: {conflict.newFile.metadata.exif.aperture} • {conflict.newFile.metadata.exif.shutter} • ISO {conflict.newFile.metadata.exif.iso}</p>
+                                  {conflict.newFile.metadata.exif.gpsLatitude && (
+                                    <p>GPS: {conflict.newFile.metadata.exif.gpsLatitude.toFixed(4)}, {conflict.newFile.metadata.exif.gpsLongitude.toFixed(4)}</p>
+                                  )}
+                                </div>
+                              )}
                             </div>
+                            
+                            {conflict.newFile.metadata?.dateTime && (
+                              <div className="pt-2 border-t border-border">
+                                <p className="text-xs text-muted-foreground">
+                                  Photo taken: {new Date(conflict.newFile.metadata.dateTime).toLocaleString()}
+                                </p>
+                              </div>
+                            )}
                             
                             <div className="pt-2 border-t border-border">
                               <p className="text-xs text-muted-foreground">
                                 {conflict.conflictType === 'identical_md5' ? 
                                   'This file is byte-for-byte identical to the existing file' :
-                                  `This file is ${Math.round(conflict.similarity * 100)}% similar to the existing file`
+                                  `This file is ${Math.round(conflict.similarity * 100)}% visually similar to the existing file`
                                 }
                               </p>
                             </div>

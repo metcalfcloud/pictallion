@@ -12,7 +12,7 @@ interface UploadFile {
   id: string;
   file: File;
   progress: number;
-  status: 'pending' | 'uploading' | 'success' | 'error' | 'conflict';
+  status: 'pending' | 'uploading' | 'success' | 'error' | 'conflict' | 'skipped';
   message?: string;
   conflicts?: any[];
 }
@@ -143,6 +143,8 @@ export default function Upload() {
         return <AlertCircle className="w-4 h-4 text-red-600" />;
       case 'conflict':
         return <AlertCircle className="w-4 h-4 text-orange-600" />;
+      case 'skipped':
+        return <CheckCircle className="w-4 h-4 text-blue-600" />;
       case 'uploading':
         return <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />;
       default:
@@ -158,6 +160,8 @@ export default function Upload() {
         return file.message || 'Upload failed';
       case 'conflict':
         return file.message || 'Duplicate detected';
+      case 'skipped':
+        return file.message || 'Skipped - identical file exists';
       case 'uploading':
         return `${Math.round(file.progress)}%`;
       default:
@@ -241,7 +245,7 @@ export default function Upload() {
                         Resolve Conflicts ({uploadFiles.filter(f => f.status === 'conflict').length})
                       </Button>
                     )}
-                    {uploadFiles.some(f => f.status === 'success' || f.status === 'error' || f.status === 'conflict') && (
+                    {uploadFiles.some(f => f.status === 'success' || f.status === 'error' || f.status === 'conflict' || f.status === 'skipped') && (
                       <Button variant="outline" onClick={clearCompletedFiles}>
                         Clear Completed
                       </Button>
