@@ -223,7 +223,7 @@ export class EnhancedDuplicateDetectionService {
     originalFilename: string, 
     fileHash: string
   ): Promise<DuplicateConflict[]> {
-    console.log(`Checking for duplicates: ${originalFilename} with hash ${fileHash}`);
+    console.log(`=== DUPLICATE CHECK START: ${originalFilename} with hash ${fileHash} ===`);
     const conflicts: DuplicateConflict[] = [];
 
     try {
@@ -349,7 +349,7 @@ export class EnhancedDuplicateDetectionService {
         }
       }
 
-      console.log(`Duplicate check completed for ${originalFilename}: ${conflicts.length} conflicts found`);
+      console.log(`=== DUPLICATE CHECK COMPLETE: ${originalFilename} - ${conflicts.length} conflicts found ===`);
       return conflicts;
     } catch (error) {
       console.error('Error checking for duplicates:', error);
