@@ -329,7 +329,7 @@ export function SimpleUpload({ open, onOpenChange, preloadedFiles, onConflictRes
                            conflict.conflictType === 'visually_identical' ? 'Visually Identical' : 
                            'Similar Files'}
                           <Badge variant="outline" className="ml-2">
-                            {Math.round(conflict.similarity * 100)}% match
+                            {conflict.similarity}% match
                           </Badge>
                         </CardTitle>
                         <Badge variant="secondary">
