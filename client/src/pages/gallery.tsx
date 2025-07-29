@@ -161,7 +161,9 @@ export default function Gallery() {
       });
       return;
     }
-    bulkProcessMutation.mutate(bronzePhotos.map(p => p.id));
+    const photoIds = bronzePhotos.map(p => p.id);
+    console.log('Processing bronze photos:', photoIds.length, 'photos');
+    bulkProcessMutation.mutate(photoIds);
   };
 
   const handleBulkPromoteToGold = () => {
@@ -250,14 +252,14 @@ export default function Gallery() {
           </div>
 
           <div className="flex items-center space-x-2">
-            {tierFilter === 'bronze' && (
+            {(tierFilter === 'bronze' || tierFilter === 'unprocessed') && (
               <Button
                 size="sm"
                 onClick={() => handleBulkProcessBronze()}
-                disabled={processPhotoMutation.isPending}
+                disabled={processPhotoMutation.isPending || bulkProcessMutation.isPending}
               >
                 <Bot className="w-4 h-4 mr-2" />
-                Process All Bronze
+                {bulkProcessMutation.isPending ? 'Processing...' : 'Process All Bronze'}
               </Button>
             )}
 
