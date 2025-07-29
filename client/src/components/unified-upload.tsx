@@ -70,6 +70,24 @@ export function UnifiedUpload({
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Prevent browser default drag/drop behavior
+  React.useEffect(() => {
+    const preventDefaults = (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+    };
+
+    document.addEventListener('dragenter', preventDefaults);
+    document.addEventListener('dragover', preventDefaults);
+    document.addEventListener('drop', preventDefaults);
+
+    return () => {
+      document.removeEventListener('dragenter', preventDefaults);
+      document.removeEventListener('dragover', preventDefaults);
+      document.removeEventListener('drop', preventDefaults);
+    };
+  }, []);
+
   // Drag and drop functionality
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const newFiles: UploadFile[] = acceptedFiles.map(file => ({
@@ -89,7 +107,9 @@ export function UnifiedUpload({
       'video/*': ['.mp4', '.mov', '.avi']
     },
     maxSize: 50 * 1024 * 1024, // 50MB
-    multiple: true
+    multiple: true,
+    preventDropOnDocument: true,
+    noClick: false
   });
 
   // File management functions
