@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, DragEvent, ChangeEvent } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,8 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
-import { X, CheckCircle, AlertCircle, File, Clock, HardDrive } from "lucide-react";
-import { SimpleDropzone } from './simple-dropzone';
+import { Upload, X, CheckCircle, AlertCircle, File, Clock, HardDrive } from "lucide-react";
 
 interface DuplicateConflict {
   id: string;
@@ -67,14 +66,14 @@ export function UnifiedUpload({
   const [uploadFiles, setUploadFiles] = useState<UploadFile[]>(preloadedFiles || []);
   const [conflictResolutions, setConflictResolutions] = useState<Map<string, { action: string; conflict: DuplicateConflict }>>(new Map());
   const [showConflicts, setShowConflicts] = useState(!!preloadedFiles?.length);
+  const [isDragActive, setIsDragActive] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-
-
-  // Drag and drop functionality
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    const newFiles: UploadFile[] = acceptedFiles.map(file => ({
+  // File handling
+  const handleFilesSelected = useCallback((files: File[]) => {
+    const newFiles: UploadFile[] = files.map(file => ({
       id: Math.random().toString(36).substr(2, 9),
       file,
       progress: 0,
@@ -84,17 +83,49 @@ export function UnifiedUpload({
     setUploadFiles(current => [...current, ...newFiles]);
   }, []);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    accept: {
-      'image/*': ['.jpeg', '.jpg', '.png', '.tiff'],
-      'video/*': ['.mp4', '.mov', '.avi']
-    },
-    maxSize: 50 * 1024 * 1024, // 50MB
-    multiple: true,
-    preventDropOnDocument: true,
-    noClick: false
-  });
+  // Drag and drop handlers
+  const handleDragEnter = (e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragActive(true);
+  };
+
+  const handleDragLeave = (e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragActive(false);
+  };
+
+  const handleDragOver = (e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragActive(false);
+
+    const files = Array.from(e.dataTransfer.files);
+    const validFiles = files.filter(file => 
+      file.type.startsWith('image/') || file.type.startsWith('video/')
+    );
+    
+    if (validFiles.length > 0) {
+      handleFilesSelected(validFiles);
+    }
+  };
+
+  const handleFileInput = (e: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) {
+      handleFilesSelected(files);
+    }
+  };
+
+  const handleClick = () => {
+    fileInputRef.current?.click();
+  };
 
   // File management functions
   const handleUpload = async () => {
@@ -299,27 +330,25 @@ const resolveMutation = {
     <div className="space-y-6">
       {/* Drag and Drop Area */}
       <div
-        {...getRootProps({
-          className: `border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors ${
-            isDragActive 
-              ? 'border-primary bg-primary/5' 
-              : 'border-border hover:border-primary hover:bg-primary/5'
-          }`,
-          onDrop: (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-          },
-          onDragOver: (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-          },
-          onDragEnter: (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-          }
-        })}
+        className={`border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors ${
+          isDragActive 
+            ? 'border-primary bg-primary/5' 
+            : 'border-border hover:border-primary hover:bg-primary/5'
+        }`}
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+        onClick={handleClick}
       >
-        <input {...getInputProps()} />
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          accept="image/*,video/*"
+          onChange={handleFileInput}
+          style={{ display: 'none' }}
+        />
         <Upload className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
         <h4 className="text-lg font-medium text-card-foreground mb-2">
           {isDragActive ? 'Drop photos here' : 'Drag and drop your photos here'}
