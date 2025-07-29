@@ -4,7 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
 import { Upload, X, CheckCircle, AlertCircle, File, Clock, HardDrive } from "lucide-react";
 
 interface UploadFile {
@@ -24,7 +26,9 @@ interface SimpleUploadProps {
 export function SimpleUpload({ open, onOpenChange }: SimpleUploadProps) {
   const [uploadFiles, setUploadFiles] = useState<UploadFile[]>([]);
   const [showConflicts, setShowConflicts] = useState(false);
+  const [conflictResolutions, setConflictResolutions] = useState(new Map<string, { action: string, conflict: any }>());
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
@@ -38,27 +42,82 @@ export function SimpleUpload({ open, onOpenChange }: SimpleUploadProps) {
     setUploadFiles(prev => [...prev, ...newUploadFiles]);
   };
 
-  const handleUpload = () => {
-    console.log("Upload button clicked!");
-    
-    // Test 1: Simple state update
+  const handleUpload = async () => {
+    const pendingFiles = uploadFiles.filter(f => f.status === 'pending');
+    if (pendingFiles.length === 0) return;
+
+    // Set uploading status
     setUploadFiles(current => 
-      current.map(file => ({
-        ...file,
-        status: 'conflict' as const,
-        message: 'WORKING! Found duplicate',
-        progress: 100,
-      }))
+      current.map(file => 
+        file.status === 'pending' 
+          ? { ...file, status: 'uploading' as const, progress: 0 }
+          : file
+      )
     );
 
-    // Test 2: Show conflicts dialog
-    setShowConflicts(true);
-    
-    // Test 3: Show toast
-    toast({
-      title: "SUCCESS!",
-      description: "The upload button is working correctly now!",
-    });
+    try {
+      const formData = new FormData();
+      pendingFiles.forEach(file => {
+        formData.append('files', file.file);
+      });
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+
+      const data = await response.json();
+
+      // Update file statuses based on server response
+      setUploadFiles(current => 
+        current.map(uploadFile => {
+          const result = data.results.find((r: any) => r.filename === uploadFile.file.name);
+          if (result) {
+            return {
+              ...uploadFile,
+              status: result.status as UploadFile['status'],
+              message: result.message,
+              progress: 100,
+              conflicts: result.conflicts || [],
+            };
+          }
+          return uploadFile;
+        })
+      );
+
+      // Show conflicts if any
+      const conflictCount = data.results.filter((r: any) => r.status === 'conflict').length;
+      if (conflictCount > 0) {
+        setShowConflicts(true);
+        toast({
+          title: "Duplicate Conflicts Found",
+          description: `${conflictCount} files have potential duplicates. Please review.`,
+        });
+      }
+
+      // Refresh data queries
+      queryClient.invalidateQueries({ queryKey: ["/api/photos"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/activity"] });
+
+    } catch (error) {
+      setUploadFiles(current => 
+        current.map(file => 
+          file.status === 'uploading'
+            ? { ...file, status: 'error', message: 'Upload failed', progress: 0 }
+            : file
+        )
+      );
+      toast({
+        title: "Upload Failed",
+        description: error instanceof Error ? error.message : 'Unknown error occurred',
+        variant: "destructive"
+      });
+    }
   };
 
   const clearFiles = () => {
@@ -67,6 +126,72 @@ export function SimpleUpload({ open, onOpenChange }: SimpleUploadProps) {
 
   const removeFile = (id: string) => {
     setUploadFiles(current => current.filter(f => f.id !== id));
+  };
+
+  const updateConflictResolution = (conflictId: string, action: string, conflict: any) => {
+    setConflictResolutions(current => {
+      const updated = new Map(current);
+      updated.set(conflictId, { action, conflict });
+      return updated;
+    });
+  };
+
+  const handleResolveConflicts = async () => {
+    const resolutions = Array.from(conflictResolutions.entries()).map(([conflictId, { action, conflict }]) => ({
+      conflictId,
+      action,
+      conflict
+    }));
+
+    if (resolutions.length === 0) {
+      toast({
+        title: "No Resolutions Selected",
+        description: "Please select actions for the conflicts before proceeding.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/upload/resolve-conflicts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resolutions }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to resolve conflicts');
+      }
+
+      // Update resolved files to success status
+      setUploadFiles(current => 
+        current.map(file => 
+          file.status === 'conflict' 
+            ? { ...file, status: 'success', message: 'Conflict resolved', conflicts: [] }
+            : file
+        )
+      );
+
+      setShowConflicts(false);
+      setConflictResolutions(new Map());
+
+      // Refresh data queries
+      queryClient.invalidateQueries({ queryKey: ["/api/photos"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/activity"] });
+
+      toast({
+        title: "Conflicts Resolved",
+        description: "All duplicate conflicts have been processed successfully.",
+      });
+
+    } catch (error) {
+      toast({
+        title: "Resolution Failed",
+        description: error instanceof Error ? error.message : 'Unknown error occurred',
+        variant: "destructive"
+      });
+    }
   };
 
   const getStatusIcon = (status: UploadFile['status']) => {
@@ -165,8 +290,11 @@ export function SimpleUpload({ open, onOpenChange }: SimpleUploadProps) {
               </Button>
             )}
             {uploadFiles.length > 0 && uploadFiles.some(f => f.status === 'pending') && (
-              <Button onClick={handleUpload}>
-                Test Upload
+              <Button 
+                onClick={handleUpload}
+                disabled={uploadFiles.some(f => f.status === 'uploading')}
+              >
+                {uploadFiles.some(f => f.status === 'uploading') ? 'Uploading...' : 'Start Upload'}
               </Button>
             )}
           </div>
@@ -181,52 +309,100 @@ export function SimpleUpload({ open, onOpenChange }: SimpleUploadProps) {
           </DialogHeader>
           
           <div className="space-y-4">
-            <Card className="border-orange-200">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <AlertCircle className="w-5 h-5 text-orange-600" />
-                  Identical File Detected
-                  <Badge variant="outline">100% match</Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <h4 className="font-medium flex items-center gap-2">
-                      <HardDrive className="w-4 h-4" />
-                      Existing File
-                    </h4>
-                    <div className="bg-background p-3 rounded-lg">
-                      <p className="font-medium text-sm">20241201_190711_08E94557.jpg</p>
-                      <p className="text-xs text-muted-foreground">Size: 5.2 MB</p>
-                      <p className="text-xs text-muted-foreground">Tier: BRONZE</p>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <h4 className="font-medium flex items-center gap-2">
-                      <Upload className="w-4 h-4" />
-                      New File
-                    </h4>
-                    <div className="bg-background p-3 rounded-lg">
-                      <p className="font-medium text-sm">20241201_190711_08E9455sd7.jpg</p>
-                      <p className="text-xs text-muted-foreground">Size: 5.2 MB</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-4 space-x-2">
-                  <Button variant="outline">Keep Existing</Button>
-                  <Button variant="outline">Replace</Button>
-                  <Button variant="outline">Keep Both</Button>
-                </div>
-              </CardContent>
-            </Card>
+            {uploadFiles
+              .filter(f => f.status === 'conflict' && f.conflicts)
+              .flatMap(uploadFile => 
+                uploadFile.conflicts!.map(conflict => (
+                  <Card key={conflict.id} className="border-orange-200">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          <AlertCircle className="w-5 h-5 text-orange-600" />
+                          {conflict.conflictType === 'identical_md5' ? 'Identical File' : 
+                           conflict.conflictType === 'visually_identical' ? 'Visually Identical' : 
+                           'Similar Files'}
+                          <Badge variant="outline" className="ml-2">
+                            {Math.round(conflict.similarity * 100)}% match
+                          </Badge>
+                        </CardTitle>
+                        <Badge variant="secondary">
+                          {conflict.suggestedAction === 'keep_existing' ? 'Recommended: Keep Existing' :
+                           conflict.suggestedAction === 'replace_with_new' ? 'Recommended: Replace' :
+                           'Recommended: Keep Both'}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground">{conflict.reasoning}</p>
+                    </CardHeader>
+
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-2 gap-6">
+                        {/* Existing File */}
+                        <div className="space-y-2">
+                          <h4 className="font-medium text-card-foreground flex items-center gap-2">
+                            <HardDrive className="w-4 h-4" />
+                            Existing File
+                          </h4>
+                          <div className="bg-background p-3 rounded-lg space-y-2">
+                            <p className="font-medium text-sm">{conflict.existingPhoto.mediaAsset.originalFilename}</p>
+                            <div className="text-xs text-muted-foreground space-y-1">
+                              <p>Size: {(conflict.existingPhoto.fileSize / (1024*1024)).toFixed(1)} MB</p>
+                              <p>Tier: {conflict.existingPhoto.tier.toUpperCase()}</p>
+                              <p className="flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                {new Date(conflict.existingPhoto.createdAt).toLocaleDateString()}
+                              </p>
+                              {conflict.existingPhoto.metadata?.dateTime && (
+                                <p>Photo taken: {new Date(conflict.existingPhoto.metadata.dateTime).toLocaleDateString()}</p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* New File */}
+                        <div className="space-y-2">
+                          <h4 className="font-medium text-card-foreground flex items-center gap-2">
+                            <Upload className="w-4 h-4" />
+                            New File
+                          </h4>
+                          <div className="bg-background p-3 rounded-lg space-y-2">
+                            <p className="font-medium text-sm">{conflict.newFile.originalFilename}</p>
+                            <div className="text-xs text-muted-foreground space-y-1">
+                              <p>Size: {(conflict.newFile.fileSize / (1024*1024)).toFixed(1)} MB</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Resolution Actions */}
+                      <div className="space-y-2">
+                        <h4 className="font-medium text-sm">Choose Action:</h4>
+                        <Select
+                          onValueChange={(value) => updateConflictResolution(conflict.id, value, conflict)}
+                          defaultValue={conflict.suggestedAction}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select action..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="keep_existing">Keep Existing File</SelectItem>
+                            <SelectItem value="replace_with_new">Replace with New File</SelectItem>
+                            <SelectItem value="keep_both">Keep Both Files</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
           </div>
 
           <div className="flex justify-end space-x-3 pt-4 border-t">
             <Button variant="outline" onClick={() => setShowConflicts(false)}>
               Close
             </Button>
-            <Button>Apply Resolutions</Button>
+            <Button onClick={handleResolveConflicts}>
+              Apply Resolutions
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
