@@ -280,8 +280,21 @@ export interface ExifMetadata {
   iso?: string;
   focalLength?: string;
   dateTime?: string;
+  dateTaken?: string;
   gpsLatitude?: number;
   gpsLongitude?: number;
+  // Enhanced metadata fields
+  software?: string;
+  flash?: string;
+  whiteBalance?: string;
+  exposureMode?: string;
+  meteringMode?: string;
+  sceneType?: string;
+  colorSpace?: string;
+  orientation?: string;
+  xResolution?: string;
+  yResolution?: string;
+  resolutionUnit?: string;
 }
 
 export interface CombinedMetadata {

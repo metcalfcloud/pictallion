@@ -390,6 +390,9 @@ export function SimpleUpload({ open, onOpenChange, preloadedFiles, onConflictRes
                                   {conflict.existingPhoto.metadata.exif.gpsLatitude && (
                                     <p>GPS: {conflict.existingPhoto.metadata.exif.gpsLatitude.toFixed(4)}, {conflict.existingPhoto.metadata.exif.gpsLongitude.toFixed(4)}</p>
                                   )}
+                                  {conflict.existingPhoto.metadata.exif.software && (
+                                    <p className="text-xs text-muted-foreground">Software: {conflict.existingPhoto.metadata.exif.software}</p>
+                                  )}
                                 </div>
                               )}
                             </div>
@@ -446,6 +449,9 @@ export function SimpleUpload({ open, onOpenChange, preloadedFiles, onConflictRes
                                   )}
                                   {conflict.newFile.metadata.exif.gpsLatitude && (
                                     <p>GPS: {conflict.newFile.metadata.exif.gpsLatitude.toFixed(4)}, {conflict.newFile.metadata.exif.gpsLongitude.toFixed(4)}</p>
+                                  )}
+                                  {conflict.newFile.metadata.exif.software && (
+                                    <p className="text-xs text-muted-foreground">Software: {conflict.newFile.metadata.exif.software}</p>
                                   )}
                                 </div>
                               )}

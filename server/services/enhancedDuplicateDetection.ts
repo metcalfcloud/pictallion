@@ -211,6 +211,12 @@ export class EnhancedDuplicateDetectionService {
               : undefined;
             exif.dateTime = data.image.DateTime || data.exif?.DateTimeOriginal || data.exif?.CreateDate;
             exif.dateTaken = data.image.DateTime || data.exif?.DateTimeOriginal || data.exif?.CreateDate;
+            
+            // Additional image metadata
+            exif.orientation = data.image.Orientation !== undefined ? String(data.image.Orientation) : undefined;
+            exif.xResolution = data.image.XResolution ? String(data.image.XResolution) : undefined;
+            exif.yResolution = data.image.YResolution ? String(data.image.YResolution) : undefined;
+            exif.resolutionUnit = data.image.ResolutionUnit !== undefined ? String(data.image.ResolutionUnit) : undefined;
           }
 
           if (data.exif) {
@@ -219,6 +225,15 @@ export class EnhancedDuplicateDetectionService {
             exif.iso = data.exif.ISO ? String(data.exif.ISO) : undefined;
             exif.focalLength = data.exif.FocalLength ? `${data.exif.FocalLength}mm` : undefined;
             exif.lens = data.exif.LensModel || data.exif.LensMake;
+            
+            // Enhanced metadata fields
+            exif.software = data.exif.Software || data.image?.Software;
+            exif.flash = data.exif.Flash !== undefined ? String(data.exif.Flash) : undefined;
+            exif.whiteBalance = data.exif.WhiteBalance !== undefined ? String(data.exif.WhiteBalance) : undefined;
+            exif.exposureMode = data.exif.ExposureMode !== undefined ? String(data.exif.ExposureMode) : undefined;
+            exif.meteringMode = data.exif.MeteringMode !== undefined ? String(data.exif.MeteringMode) : undefined;
+            exif.sceneType = data.exif.SceneCaptureType !== undefined ? String(data.exif.SceneCaptureType) : undefined;
+            exif.colorSpace = data.exif.ColorSpace !== undefined ? String(data.exif.ColorSpace) : undefined;
             
             // Ensure we have a dateTime from EXIF if not from image
             if (!exif.dateTime) {
