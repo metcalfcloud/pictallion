@@ -69,7 +69,7 @@ The application uses a relational database with four main tables:
 ### User Interface
 - **Dashboard**: Overview with statistics and recent activity
 - **Gallery**: Grid/list view with filtering by tier and search capabilities
-- **Upload**: Drag-and-drop interface with progress tracking
+- **Upload**: Consolidated upload system with drag-and-drop interface, progress tracking, and advanced conflict resolution
 - **Burst Photos**: Intelligent grouping and selection interface for burst sequences
 - **People**: Face detection and person management
 - **Duplicates**: Gold tier duplicate detection and resolution
@@ -87,6 +87,15 @@ The application uses a relational database with four main tables:
 6. **Duplicate Detection**: Gold tier photos scanned for duplicates using perceptual hashing
 
 ## Recent Changes
+
+### Upload System Consolidation (July 29, 2025)
+- **Consolidated three separate upload components** (simple-upload.tsx, upload-modal.tsx, upload.tsx) into a single unified system
+- **Created UnifiedUpload component** with both modal and fullscreen modes for different use cases
+- **Enhanced conflict resolution** with detailed EXIF metadata display showing camera settings, GPS data, and file details
+- **Improved user experience** with consistent drag-and-drop functionality, progress tracking, and queue management
+- **Maintained all existing functionality** including duplicate detection, file validation, and error handling
+- **Updated dashboard and upload page** to use the new consolidated component
+- **Backed up old components** (simple-upload.tsx.backup, upload-modal.tsx.backup) for reference
 
 ### Complete Upload System Rebuild & EXIF Metadata Integration (January 29, 2025)
 - **Fixed Critical Upload Functionality**: Completely rebuilt broken upload system from scratch with working React state management
