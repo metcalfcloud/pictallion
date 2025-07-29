@@ -255,8 +255,8 @@ export class EnhancedDuplicateDetectionService {
           const allPhotos = await storage.getAllFileVersions();
           console.log(`Found ${allPhotos.length} existing photos to compare against`);
           
-          // Track which photos we've already created conflicts for (to avoid duplicates)
-          const conflictedAssets = new Set<string>();
+          // Track which perceptual hashes we've already created conflicts for (to avoid duplicates)
+          const conflictedHashes = new Set<string>();
 
           for (const photo of allPhotos) {
             // Skip if this is already an exact duplicate
@@ -293,9 +293,9 @@ export class EnhancedDuplicateDetectionService {
               const photoAsset = await storage.getMediaAsset(photo.mediaAssetId);
               if (!photoAsset) continue;
 
-              // Skip if we've already created a conflict for this asset (avoid multiple conflicts for same image)
-              if (conflictedAssets.has(photoAsset.id)) {
-                console.log(`Skipping duplicate conflict for asset ${photoAsset.originalFilename} - already conflicted`);
+              // Skip if we've already created a conflict for this perceptual hash (avoid multiple conflicts for same visual content)
+              if (conflictedHashes.has(existingPerceptualHash)) {
+                console.log(`Skipping duplicate conflict for hash ${existingPerceptualHash} - already conflicted`);
                 continue;
               }
 
@@ -357,7 +357,7 @@ export class EnhancedDuplicateDetectionService {
                   reasoning
                 };
                 conflicts.push(conflict);
-                conflictedAssets.add(photoAsset.id);
+                conflictedHashes.add(existingPerceptualHash);
               }
             }
           }
