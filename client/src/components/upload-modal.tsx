@@ -63,7 +63,6 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
 
   const uploadMutation = useMutation({
     mutationFn: async (files: File[]) => {
-      console.log('Starting upload mutation with files:', files.map(f => f.name));
       const formData = new FormData();
       files.forEach(file => {
         formData.append('files', file);
@@ -74,81 +73,11 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
         body: formData,
       });
 
-      console.log('Upload response status:', response.status);
       if (!response.ok) {
         throw new Error('Upload failed');
       }
 
-      const result = await response.json();
-      console.log('Upload response JSON:', result);
-      console.log('About to return from mutation function');
-      return result;
-    },
-    onSuccess: (data) => {
-      console.log('🟢 onSuccess callback triggered!');
-      console.log('Upload response:', data);
-      console.log('Current upload files before update:', uploadFiles.map(f => ({ name: f.file.name, status: f.status })));
-      setUploadFiles(current => 
-        current.map(uploadFile => {
-          const result = data.results.find((r: any) => r.filename === uploadFile.file.name);
-          console.log(`Processing result for ${uploadFile.file.name}:`, result);
-          if (result) {
-            const updatedFile = {
-              ...uploadFile,
-              status: result.status as UploadFile['status'],
-              message: result.message,
-              progress: 100,
-              conflicts: result.conflicts || [],
-            };
-            console.log(`Updated file ${uploadFile.file.name}:`, updatedFile);
-            return updatedFile;
-          }
-          console.log(`No result found for ${uploadFile.file.name}, keeping as:`, uploadFile);
-          return uploadFile;
-        })
-      );
-
-      queryClient.invalidateQueries({ queryKey: ["/api/photos"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
-
-      const successCount = data.results.filter((r: any) => r.status === 'success').length;
-      const conflictCount = data.results.filter((r: any) => r.status === 'conflict').length;
-
-      if (successCount > 0) {
-        toast({
-          title: "Upload Complete",
-          description: `${successCount} photos uploaded successfully`,
-        });
-      }
-
-      if (conflictCount > 0) {
-        setShowConflicts(true);
-        toast({
-          title: "Duplicate Conflicts Found",
-          description: `${conflictCount} files have potential duplicates. Please review.`,
-          variant: "default"
-        });
-      }
-    },
-    onError: (error) => {
-      console.log('🔴 onError callback triggered!');
-      console.log('Upload error:', error);
-      setUploadFiles(current => 
-        current.map(file => ({
-          ...file,
-          status: 'error',
-          message: 'Upload failed',
-          progress: 0,
-        }))
-      );
-      toast({
-        title: "Upload Failed",
-        description: error.message,
-        variant: "destructive"
-      });
-    },
-    onSettled: () => {
-      console.log('🔵 onSettled callback triggered!');
+      return response.json();
     }
   });
 
@@ -205,16 +134,11 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
     maxSize: 50 * 1024 * 1024, // 50MB
   });
 
-  const handleUpload = () => {
+  const handleUpload = async () => {
     const pendingFiles = uploadFiles.filter(f => f.status === 'pending');
-    console.log('handleUpload called with pending files:', pendingFiles.map(f => ({ name: f.file.name, status: f.status })));
-    
-    if (pendingFiles.length === 0) {
-      console.log('No pending files to upload');
-      return;
-    }
+    if (pendingFiles.length === 0) return;
 
-    // Only set uploading status for pending files
+    // Set uploading status for pending files
     setUploadFiles(current => 
       current.map(file => 
         file.status === 'pending' 
@@ -233,13 +157,64 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
       );
     }, 500);
 
-    // Only upload pending files
-    console.log('Starting upload mutation for files:', pendingFiles.map(f => f.file.name));
-    uploadMutation.mutate(pendingFiles.map(f => f.file));
+    try {
+      const data = await uploadMutation.mutateAsync(pendingFiles.map(f => f.file));
+      
+      // Update file statuses based on server response
+      setUploadFiles(current => 
+        current.map(uploadFile => {
+          const result = data.results.find((r: any) => r.filename === uploadFile.file.name);
+          if (result) {
+            return {
+              ...uploadFile,
+              status: result.status as UploadFile['status'],
+              message: result.message,
+              progress: 100,
+              conflicts: result.conflicts || [],
+            };
+          }
+          return uploadFile;
+        })
+      );
 
-    setTimeout(() => {
+      // Invalidate queries
+      queryClient.invalidateQueries({ queryKey: ["/api/photos"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+
+      // Show toast notifications
+      const successCount = data.results.filter((r: any) => r.status === 'success').length;
+      const conflictCount = data.results.filter((r: any) => r.status === 'conflict').length;
+
+      if (successCount > 0) {
+        toast({
+          title: "Upload Complete",
+          description: `${successCount} photos uploaded successfully`,
+        });
+      }
+
+      if (conflictCount > 0) {
+        setShowConflicts(true);
+        toast({
+          title: "Duplicate Conflicts Found",
+          description: `${conflictCount} files have potential duplicates. Please review.`,
+        });
+      }
+    } catch (error) {
+      setUploadFiles(current => 
+        current.map(file => 
+          file.status === 'uploading'
+            ? { ...file, status: 'error', message: 'Upload failed', progress: 0 }
+            : file
+        )
+      );
+      toast({
+        title: "Upload Failed",
+        description: error instanceof Error ? error.message : 'Unknown error occurred',
+        variant: "destructive"
+      });
+    } finally {
       clearInterval(progressInterval);
-    }, 3000);
+    }
   };
 
   const removeFile = (id: string) => {
