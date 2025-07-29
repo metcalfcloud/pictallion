@@ -81,19 +81,23 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
     },
     onSuccess: (data) => {
       console.log('Upload response:', data);
+      console.log('Current upload files before update:', uploadFiles.map(f => ({ name: f.file.name, status: f.status })));
       setUploadFiles(current => 
         current.map(uploadFile => {
           const result = data.results.find((r: any) => r.filename === uploadFile.file.name);
           console.log(`Processing result for ${uploadFile.file.name}:`, result);
           if (result) {
-            return {
+            const updatedFile = {
               ...uploadFile,
               status: result.status as UploadFile['status'],
               message: result.message,
               progress: 100,
               conflicts: result.conflicts || [],
             };
+            console.log(`Updated file ${uploadFile.file.name}:`, updatedFile);
+            return updatedFile;
           }
+          console.log(`No result found for ${uploadFile.file.name}, keeping as:`, uploadFile);
           return uploadFile;
         })
       );
