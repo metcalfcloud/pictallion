@@ -21,11 +21,13 @@ interface UploadFile {
 interface SimpleUploadProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  preloadedFiles?: UploadFile[];
+  onConflictResolved?: () => void;
 }
 
-export function SimpleUpload({ open, onOpenChange }: SimpleUploadProps) {
-  const [uploadFiles, setUploadFiles] = useState<UploadFile[]>([]);
-  const [showConflicts, setShowConflicts] = useState(false);
+export function SimpleUpload({ open, onOpenChange, preloadedFiles, onConflictResolved }: SimpleUploadProps) {
+  const [uploadFiles, setUploadFiles] = useState<UploadFile[]>(preloadedFiles || []);
+  const [showConflicts, setShowConflicts] = useState(!!preloadedFiles?.length);
   const [conflictResolutions, setConflictResolutions] = useState(new Map<string, { action: string, conflict: any }>());
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -185,6 +187,11 @@ export function SimpleUpload({ open, onOpenChange }: SimpleUploadProps) {
         description: "All duplicate conflicts have been processed successfully.",
       });
 
+      // Notify parent component if callback provided
+      if (onConflictResolved) {
+        onConflictResolved();
+      }
+
     } catch (error) {
       toast({
         title: "Resolution Failed",
@@ -214,7 +221,7 @@ export function SimpleUpload({ open, onOpenChange }: SimpleUploadProps) {
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Simple Upload Test</DialogTitle>
+            <DialogTitle>{preloadedFiles?.length ? 'Resolve Conflicts' : 'Upload Photos'}</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-6">
@@ -305,7 +312,7 @@ export function SimpleUpload({ open, onOpenChange }: SimpleUploadProps) {
       <Dialog open={showConflicts} onOpenChange={setShowConflicts}>
         <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle>Duplicate Conflicts Found!</DialogTitle>
+            <DialogTitle>Resolve Duplicate Conflicts</DialogTitle>
           </DialogHeader>
           
           <div className="space-y-4">
