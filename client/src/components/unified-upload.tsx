@@ -8,8 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
-import { useDropzone } from "react-dropzone";
-import { Upload, X, CheckCircle, AlertCircle, File, Clock, HardDrive } from "lucide-react";
+import { X, CheckCircle, AlertCircle, File, Clock, HardDrive } from "lucide-react";
+import { SimpleDropzone } from './simple-dropzone';
 
 interface DuplicateConflict {
   id: string;
@@ -70,23 +70,7 @@ export function UnifiedUpload({
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Prevent browser default drag/drop behavior
-  React.useEffect(() => {
-    const preventDefaults = (e: DragEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-    };
 
-    document.addEventListener('dragenter', preventDefaults);
-    document.addEventListener('dragover', preventDefaults);
-    document.addEventListener('drop', preventDefaults);
-
-    return () => {
-      document.removeEventListener('dragenter', preventDefaults);
-      document.removeEventListener('dragover', preventDefaults);
-      document.removeEventListener('drop', preventDefaults);
-    };
-  }, []);
 
   // Drag and drop functionality
   const onDrop = useCallback((acceptedFiles: File[]) => {
@@ -315,12 +299,25 @@ const resolveMutation = {
     <div className="space-y-6">
       {/* Drag and Drop Area */}
       <div
-        {...getRootProps()}
-        className={`border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors ${
-          isDragActive 
-            ? 'border-primary bg-primary/5' 
-            : 'border-border hover:border-primary hover:bg-primary/5'
-        }`}
+        {...getRootProps({
+          className: `border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors ${
+            isDragActive 
+              ? 'border-primary bg-primary/5' 
+              : 'border-border hover:border-primary hover:bg-primary/5'
+          }`,
+          onDrop: (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          },
+          onDragOver: (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          },
+          onDragEnter: (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+        })}
       >
         <input {...getInputProps()} />
         <Upload className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
