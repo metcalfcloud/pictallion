@@ -39,7 +39,7 @@ export interface PerceptualHashResult {
 }
 
 export class EnhancedDuplicateDetectionService {
-  
+
   /**
    * Generate perceptual hash for an image using a simple algorithm
    * This creates a hash based on the visual content rather than exact bytes
@@ -140,29 +140,29 @@ export class EnhancedDuplicateDetectionService {
       // Check for perceptual duplicates (only for images)
       const ext = path.extname(originalFilename).toLowerCase();
       const isImage = ['.jpg', '.jpeg', '.png', '.tiff'].includes(ext);
-      
+
       if (isImage) {
         const newPerceptualHash = await this.generatePerceptualHash(tempFilePath);
         if (newPerceptualHash) {
           // Get all existing photos to compare perceptual hashes
           const allPhotos = await storage.getAllFileVersions();
-          
+
           for (const photo of allPhotos) {
             // Skip if this is already an exact duplicate
             if (photo.fileHash === fileHash) continue;
-            
+
             // Only compare with images
             if (!photo.mimeType?.startsWith('image/')) continue;
-            
+
             let existingPerceptualHash = photo.perceptualHash;
-            
+
             // Generate perceptual hash for existing photo if not available
             if (!existingPerceptualHash) {
               const fullPath = path.join(process.cwd(), 'data', photo.filePath);
               try {
                 await fs.access(fullPath);
                 existingPerceptualHash = await this.generatePerceptualHash(fullPath);
-                
+
                 // Store the perceptual hash for future use
                 if (existingPerceptualHash) {
                   await storage.updateFileVersionPerceptualHash(photo.id, existingPerceptualHash);
@@ -171,12 +171,13 @@ export class EnhancedDuplicateDetectionService {
                 continue; // Skip if file doesn't exist
               }
             }
-            
+
             if (existingPerceptualHash) {
               const similarity = this.calculatePerceptualSimilarity(newPerceptualHash, existingPerceptualHash);
-              
-              // Consider photos with 95%+ visual similarity as potential duplicates
-              if (similarity >= 95) {
+
+              // Consider photos with 99.5%+ visual similarity as potential duplicates
+              // This should only catch truly identical photos with different metadata
+              if (similarity >= 99.5) {
                 const asset = await storage.getMediaAsset(photo.mediaAssetId);
                 if (asset) {
                   const reasoning = this.analyzeMetadataDifferences(
@@ -184,7 +185,7 @@ export class EnhancedDuplicateDetectionService {
                     originalFilename,
                     asset.originalFilename
                   );
-                  
+
                   const conflict: DuplicateConflict = {
                     id: crypto.randomUUID(),
                     existingPhoto: {
@@ -236,7 +237,7 @@ export class EnhancedDuplicateDetectionService {
     existingFilename: string
   ): string {
     const reasons = [];
-    
+
     // Check filename patterns that suggest editing
     const editingKeywords = ['edited', 'modified', 'copy', 'version', 'final', 'export'];
     const newHasEditingKeywords = editingKeywords.some(keyword => 
@@ -245,23 +246,23 @@ export class EnhancedDuplicateDetectionService {
     const existingHasEditingKeywords = editingKeywords.some(keyword => 
       existingFilename.toLowerCase().includes(keyword)
     );
-    
+
     if (newHasEditingKeywords && !existingHasEditingKeywords) {
       reasons.push('New file appears to be edited version (filename contains editing keywords)');
     } else if (!newHasEditingKeywords && existingHasEditingKeywords) {
       reasons.push('Existing file appears to be edited version (filename contains editing keywords)');
     }
-    
+
     // TODO: Add more sophisticated metadata analysis
     // - EXIF modification dates
     // - GPS coordinate changes
     // - Software used for editing
     // - File size differences
-    
+
     if (reasons.length === 0) {
       reasons.push('Files appear visually identical with different metadata - manual review recommended');
     }
-    
+
     return reasons.join('; ');
   }
 
@@ -325,7 +326,7 @@ export class EnhancedDuplicateDetectionService {
    */
   private async replaceExistingFile(conflict: DuplicateConflict): Promise<{ success: boolean; message: string; assetId: string }> {
     const { fileManager } = await import("./fileManager.js");
-    
+
     // Only allow replacement if existing file is in bronze tier
     if (conflict.existingPhoto.tier !== 'bronze') {
       throw new Error('Can only replace files in Bronze tier');
