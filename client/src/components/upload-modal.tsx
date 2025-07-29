@@ -177,6 +177,9 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
   const handleUpload = async () => {
     const pendingFiles = uploadFiles.filter(f => f.status === 'pending');
     if (pendingFiles.length === 0) return;
+    
+    // Force immediate UI update to test if code is running
+    setUploadFiles(current => current.map(f => ({ ...f, message: 'TEST: Code is running!' })));
 
     // Set uploading status for pending files
     setUploadFiles(current => 
