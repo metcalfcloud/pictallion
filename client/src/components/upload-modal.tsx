@@ -81,9 +81,11 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
 
       const result = await response.json();
       console.log('Upload response JSON:', result);
+      console.log('About to return from mutation function');
       return result;
     },
     onSuccess: (data) => {
+      console.log('🟢 onSuccess callback triggered!');
       console.log('Upload response:', data);
       console.log('Current upload files before update:', uploadFiles.map(f => ({ name: f.file.name, status: f.status })));
       setUploadFiles(current => 
@@ -129,6 +131,7 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
       }
     },
     onError: (error) => {
+      console.log('🔴 onError callback triggered!');
       console.log('Upload error:', error);
       setUploadFiles(current => 
         current.map(file => ({
@@ -144,6 +147,9 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
         variant: "destructive"
       });
     },
+    onSettled: () => {
+      console.log('🔵 onSettled callback triggered!');
+    }
   });
 
   const resolveMutation = useMutation({
