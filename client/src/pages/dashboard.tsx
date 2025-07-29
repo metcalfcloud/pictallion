@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { Link } from "wouter";
 import { useState } from "react";
-import { SimpleUpload } from "@/components/simple-upload";
+import { UnifiedUpload } from "@/components/unified-upload";
 import PhotoDetailModal from "@/components/photo-detail-modal";
 
 interface Stats {
@@ -427,7 +427,7 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      <SimpleUpload 
+      <UnifiedUpload 
         open={isUploadModalOpen} 
         onOpenChange={setIsUploadModalOpen} 
       />
