@@ -323,7 +323,12 @@ export class EnhancedDuplicateDetectionService {
                     fileHash,
                     perceptualHash: newPerceptualHash,
                     fileSize: (await fs.stat(tempFilePath)).size,
-                    metadata: await this.extractFileMetadata(tempFilePath)
+                    metadata: await (async () => {
+                      console.log(`ABOUT TO EXTRACT METADATA FOR: ${tempFilePath}`);
+                      const result = await this.extractFileMetadata(tempFilePath);
+                      console.log(`METADATA EXTRACTION RESULT:`, JSON.stringify(result, null, 2));
+                      return result;
+                    })()
                   },
                   conflictType: 'visually_identical',
                   similarity,
