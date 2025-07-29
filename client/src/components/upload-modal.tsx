@@ -459,9 +459,9 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
           {uploadFiles.length > 0 && uploadFiles.some(f => f.status === 'pending') && (
             <Button 
               onClick={handleUpload}
-              disabled={uploadMutation.isPending}
+              disabled={uploadFiles.some(f => f.status === 'uploading')}
             >
-              {uploadMutation.isPending ? 'Uploading...' : 'Start Upload'}
+              {uploadFiles.some(f => f.status === 'uploading') ? 'Uploading...' : 'Start Upload'}
             </Button>
           )}
         </div>
