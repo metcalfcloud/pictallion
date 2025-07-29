@@ -385,12 +385,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             fileHash
           );
 
-          if (duplicateConflicts.length > 0) {
-            // Check if all conflicts are MD5 identical - if so, skip automatically
-            const onlyMd5Conflicts = duplicateConflicts.every(c => c.conflictType === 'identical_md5');
-            
-            if (onlyMd5Conflicts) {
-              // Auto-skip MD5 identical files
+          // Handle auto-skip for MD5 duplicates (empty conflicts array means auto-skip)
+          if (duplicateConflicts.length === 0) {
+            // Check if this was an auto-skip (MD5 duplicate detected)
+            const exactDuplicate = await storage.getFileByHash(fileHash);
+            if (exactDuplicate) {
               console.log(`Auto-skipping MD5 identical file: ${file.originalname}`);
               results.push({
                 filename: file.originalname,
@@ -399,6 +398,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               });
               continue;
             }
+          }
+
+          if (duplicateConflicts.length > 0) {
 
             // Only prompt for visual matches or mixed conflicts
             conflicts.push(...duplicateConflicts.map(conflict => ({

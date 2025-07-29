@@ -238,13 +238,16 @@ export class EnhancedDuplicateDetectionService {
     const conflicts: DuplicateConflict[] = [];
 
     try {
-      // First check for exact MD5 duplicates
+      // First check for exact MD5 duplicates - these should be auto-skipped
       const exactDuplicate = await storage.getFileByHash(fileHash);
       if (exactDuplicate) {
         const asset = await storage.getMediaAsset(exactDuplicate.mediaAssetId);
         if (asset) {
-          console.log(`Found exact MD5 duplicate, auto-skipping file: ${originalFilename}`);
+          console.log(`=== FOUND EXACT MD5 DUPLICATE ===`);
+          console.log(`Existing file: ${asset.originalFilename} (hash: ${exactDuplicate.fileHash})`);
+          console.log(`New file: ${originalFilename} (hash: ${fileHash})`);
           console.log(`Auto-skipping MD5 identical file: ${originalFilename}`);
+          console.log(`=== AUTO-SKIP TRIGGERED ===`);
           // Return empty conflicts array to indicate auto-skip
           return [];
         }
