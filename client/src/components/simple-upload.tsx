@@ -372,12 +372,19 @@ export function SimpleUpload({ open, onOpenChange, preloadedFiles, onConflictRes
                                   <p>Camera: {conflict.existingPhoto.metadata.exif.camera || 'Unknown'}</p>
                                   <p>Lens: {conflict.existingPhoto.metadata.exif.lens || 'Unknown'}</p>
                                   <p>Settings: {conflict.existingPhoto.metadata.exif.aperture} • {conflict.existingPhoto.metadata.exif.shutter} • ISO {conflict.existingPhoto.metadata.exif.iso}</p>
-                                  {(conflict.existingPhoto.metadata.exif.dateTaken || conflict.existingPhoto.metadata.exif.dateTime) && (
+                                  {(conflict.existingPhoto.metadata.exif.dateTaken || conflict.existingPhoto.metadata.exif.dateTime || conflict.existingPhoto.metadata.dateTime) && (
                                     <p>Date Taken: {(() => {
-                                      const dateStr = conflict.existingPhoto.metadata.exif.dateTaken || conflict.existingPhoto.metadata.exif.dateTime;
-                                      // Handle EXIF date format "YYYY:MM:DD HH:MM:SS"
-                                      const normalizedDate = dateStr.replace(/:/g, '-').replace(/-/g, '/', 2);
-                                      return new Date(normalizedDate).toLocaleString();
+                                      const dateStr = conflict.existingPhoto.metadata.exif.dateTaken || conflict.existingPhoto.metadata.exif.dateTime || conflict.existingPhoto.metadata.dateTime;
+                                      try {
+                                        // Handle EXIF date format "YYYY:MM:DD HH:MM:SS"
+                                        if (typeof dateStr === 'string' && dateStr.includes(':')) {
+                                          const normalizedDate = dateStr.replace(/(\d{4}):(\d{2}):(\d{2})/, '$1/$2/$3');
+                                          return new Date(normalizedDate).toLocaleString();
+                                        }
+                                        return new Date(dateStr).toLocaleString();
+                                      } catch (e) {
+                                        return 'Unknown';
+                                      }
                                     })()}</p>
                                   )}
                                   {conflict.existingPhoto.metadata.exif.gpsLatitude && (
@@ -422,12 +429,19 @@ export function SimpleUpload({ open, onOpenChange, preloadedFiles, onConflictRes
                                   <p>Camera: {conflict.newFile.metadata.exif.camera || 'Unknown'}</p>
                                   <p>Lens: {conflict.newFile.metadata.exif.lens || 'Unknown'}</p>
                                   <p>Settings: {conflict.newFile.metadata.exif.aperture} • {conflict.newFile.metadata.exif.shutter} • ISO {conflict.newFile.metadata.exif.iso}</p>
-                                  {(conflict.newFile.metadata.exif.dateTaken || conflict.newFile.metadata.exif.dateTime) && (
+                                  {(conflict.newFile.metadata.exif.dateTaken || conflict.newFile.metadata.exif.dateTime || conflict.newFile.metadata.dateTime) && (
                                     <p>Date Taken: {(() => {
-                                      const dateStr = conflict.newFile.metadata.exif.dateTaken || conflict.newFile.metadata.exif.dateTime;
-                                      // Handle EXIF date format "YYYY:MM:DD HH:MM:SS"
-                                      const normalizedDate = dateStr.replace(/:/g, '-').replace(/-/g, '/', 2);
-                                      return new Date(normalizedDate).toLocaleString();
+                                      const dateStr = conflict.newFile.metadata.exif.dateTaken || conflict.newFile.metadata.exif.dateTime || conflict.newFile.metadata.dateTime;
+                                      try {
+                                        // Handle EXIF date format "YYYY:MM:DD HH:MM:SS"
+                                        if (typeof dateStr === 'string' && dateStr.includes(':')) {
+                                          const normalizedDate = dateStr.replace(/(\d{4}):(\d{2}):(\d{2})/, '$1/$2/$3');
+                                          return new Date(normalizedDate).toLocaleString();
+                                        }
+                                        return new Date(dateStr).toLocaleString();
+                                      } catch (e) {
+                                        return 'Unknown';
+                                      }
                                     })()}</p>
                                   )}
                                   {conflict.newFile.metadata.exif.gpsLatitude && (

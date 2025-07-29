@@ -216,10 +216,6 @@ export class DatabaseStorage implements IStorage {
     await db.delete(fileVersions).where(eq(fileVersions.id, id));
   }
 
-  async getAllFileVersions() {
-    return await db.select().from(fileVersions).orderBy(desc(fileVersions.createdAt));
-  }
-
   async deleteFacesByPhoto(photoId: string): Promise<void> {
     await db.delete(faces).where(eq(faces.photoId, photoId));
   }
