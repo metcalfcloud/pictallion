@@ -97,10 +97,18 @@ The application uses a relational database with four main tables:
 - **Queue Management**: Clear completed files, remove individual files, and proper status tracking
 - **Seamless Integration**: Dashboard and main upload page now use unified, working upload components
 
-### Upload Queue and Duplicate Detection Improvements (January 29, 2025)
+### Enhanced Duplicate Detection System (January 29, 2025)
+- **Intelligent Auto-Skip Logic**: MD5 identical files now automatically skip without user prompts
+- **Visual Match Conflicts**: Only files with 99.5%+ visual similarity (different metadata) trigger conflict dialogs
+- **Comprehensive EXIF Display**: Full metadata comparison showing camera settings, GPS coordinates, timestamps for both existing and new files
+- **Enhanced Conflict Interface**: Professional conflict resolution with detailed technical specifications
+- **Fixed Metadata Extraction**: Proper EXIF data extraction for temp files during duplicate detection
+- **Corrected Similarity Display**: Fixed percentage calculation showing proper similarity values (not 10000%)
+- **Improved User Experience**: "Skipped" status with proper icons and messaging for auto-skipped files
+
+### Upload Queue and Duplicate Detection Base Improvements (January 29, 2025)
 - **Fixed Upload Queue Management**: Resolved issue where adding new files would re-upload all existing files
 - **Enhanced Queue Controls**: Added "Clear Completed" button to remove processed files from upload queue
-- **Improved Duplicate Detection**: Adjusted burst photo detection to be less aggressive (30 seconds vs 2 minutes)
 - **Better Conflict Resolution**: Exact MD5 duplicates now always trigger conflicts regardless of burst photo patterns
 - **Enhanced Perceptual Matching**: Improved visual similarity thresholds for better duplicate vs burst photo distinction
 

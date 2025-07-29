@@ -85,7 +85,7 @@ export class EnhancedDuplicateDetectionService {
       }
     }
 
-    // Convert to similarity percentage
+    // Convert to similarity percentage (0-100)
     const similarity = ((hash1.length - differences) / hash1.length) * 100;
     return Math.round(similarity);
   }
@@ -95,7 +95,12 @@ export class EnhancedDuplicateDetectionService {
    */
   async extractFileMetadata(filePath: string): Promise<any> {
     try {
-      // Import the shared fileManager instance
+      // For temp files, extract metadata directly since they're not in the data directory structure
+      if (filePath.includes('uploads/temp/')) {
+        return await this.extractDirectMetadata(filePath);
+      }
+      
+      // Import the shared fileManager instance for files in data directory
       const { fileManager } = await import("./fileManager");
       const metadata = await fileManager.extractMetadata(filePath);
       console.log(`Extracted metadata for duplicate detection - ${filePath}:`, metadata);
@@ -109,6 +114,81 @@ export class EnhancedDuplicateDetectionService {
         location: null
       };
     }
+  }
+
+  /**
+   * Extract metadata directly from temp files
+   */
+  private async extractDirectMetadata(filePath: string): Promise<any> {
+    try {
+      const fs = await import('fs/promises');
+      const path = await import('path');
+      const ExifImage = (await import('exif')).default;
+      
+      const stats = await fs.stat(filePath);
+      const metadata: any = {
+        exif: {
+          dateTime: stats.mtime.toISOString(),
+        }
+      };
+
+      // Try to extract EXIF data for images
+      if (path.extname(filePath).toLowerCase().match(/\.(jpg|jpeg|tiff)$/)) {
+        try {
+          const exifData = await new Promise((resolve, reject) => {
+            new ExifImage({ image: filePath }, (error: any, data: any) => {
+              if (error) reject(error);
+              else resolve(data);
+            });
+          });
+
+          const exif: any = {};
+          const data = exifData as any;
+
+          if (data.image) {
+            exif.camera = data.image.Make && data.image.Model 
+              ? `${data.image.Make} ${data.image.Model}` 
+              : undefined;
+            exif.dateTime = data.image.DateTime;
+          }
+
+          if (data.exif) {
+            exif.aperture = data.exif.FNumber ? `f/${data.exif.FNumber}` : undefined;
+            exif.shutter = data.exif.ExposureTime ? `1/${Math.round(1/data.exif.ExposureTime)}s` : undefined;
+            exif.iso = data.exif.ISO ? String(data.exif.ISO) : undefined;
+            exif.focalLength = data.exif.FocalLength ? `${data.exif.FocalLength}mm` : undefined;
+            exif.lens = data.exif.LensModel;
+          }
+
+          if (data.gps) {
+            exif.gpsLatitude = data.gps.GPSLatitude ? this.convertDMSToDD(data.gps.GPSLatitude, data.gps.GPSLatitudeRef) : undefined;
+            exif.gpsLongitude = data.gps.GPSLongitude ? this.convertDMSToDD(data.gps.GPSLongitude, data.gps.GPSLongitudeRef) : undefined;
+          }
+
+          metadata.exif = { ...metadata.exif, ...exif };
+        } catch (exifError) {
+          console.log(`No EXIF data available for temp file ${filePath}`);
+        }
+      }
+
+      return metadata;
+    } catch (error) {
+      console.error(`Error extracting direct metadata for ${filePath}:`, error);
+      return {
+        exif: null,
+        dateTime: null,
+        location: null
+      };
+    }
+  }
+
+  /**
+   * Convert DMS coordinates to decimal degrees
+   */
+  private convertDMSToDD(dms: number[], ref: string): number {
+    let dd = dms[0] + dms[1]/60 + dms[2]/3600;
+    if (ref === "S" || ref === "W") dd = dd * -1;
+    return dd;
   }
 
   /**

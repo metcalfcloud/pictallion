@@ -433,7 +433,7 @@ export function SimpleUpload({ open, onOpenChange, preloadedFiles, onConflictRes
                               <p className="text-xs text-muted-foreground">
                                 {conflict.conflictType === 'identical_md5' ? 
                                   'This file is byte-for-byte identical to the existing file' :
-                                  `This file is ${Math.round(conflict.similarity * 100)}% visually similar to the existing file`
+                                  `This file is ${conflict.similarity}% visually similar to the existing file`
                                 }
                               </p>
                             </div>
