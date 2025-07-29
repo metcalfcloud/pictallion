@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Heart, Bot, Eye, Star, MoreVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ProcessingStateBadge, getProcessingState } from "@/components/ui/processing-state-badge";
 
 import type { Photo } from "@shared/types";
 
@@ -264,6 +265,15 @@ export default function PhotoGrid({
               {getTierIcon(photo.tier)}
               <span className="ml-1 capitalize">{photo.tier}</span>
             </Badge>
+          </div>
+
+          {/* Processing State Badge */}
+          <div className="absolute top-10 left-2">
+            <ProcessingStateBadge 
+              state={getProcessingState(photo)} 
+              tier={photo.tier} 
+              size="sm" 
+            />
           </div>
 
           {/* Review Badge */}

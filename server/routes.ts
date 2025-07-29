@@ -1542,11 +1542,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Burst Photo Detection routes
   app.get("/api/burst/analyze", async (req, res) => {
     try {
-      // Get all bronze photos for burst analysis
-      const bronzePhotos = await storage.getFileVersionsByTier('bronze');
+      // Get all photos from all tiers for cross-tier burst analysis
+      const allPhotos = await storage.getAllFileVersions();
       const photosWithAssets = [];
 
-      for (const photo of bronzePhotos) {
+      for (const photo of allPhotos) {
         const asset = await storage.getMediaAsset(photo.mediaAssetId);
         if (asset) {
           photosWithAssets.push({
@@ -1688,6 +1688,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
               });
             }
 
+            // Mark bronze photo as promoted
+            await storage.updateFileVersion(photo.id, {
+              processingState: 'promoted'
+            });
+
             // Log promotion
             await storage.createAssetHistory({
               mediaAssetId: photo.mediaAssetId,
@@ -1702,7 +1707,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         // Mark remaining photos in group as processed (but keep in bronze)
-        // This can be implemented later if needed
+        // Handle smart demotion logic here for mixed-tier groups
+        try {
+          // Find all photos in this burst group from the analysis to mark non-selected ones as processed
+          const allPhotos = await storage.getAllFileVersions();
+          const photosWithAssets = [];
+          for (const photo of allPhotos) {
+            const asset = await storage.getMediaAsset(photo.mediaAssetId);
+            if (asset) {
+              photosWithAssets.push({ ...photo, mediaAsset: asset });
+            }
+          }
+          const analysis = await burstPhotoService.analyzeBurstPhotos(photosWithAssets);
+          const group = analysis.groups.find(g => g.id === groupId);
+          
+          if (group) {
+            for (const groupPhoto of group.photos) {
+              if (!selectedPhotoIds.includes(groupPhoto.id) && groupPhoto.tier === 'bronze') {
+                await storage.updateFileVersion(groupPhoto.id, {
+                  processingState: 'processed'
+                });
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Failed to update group processing states:', error);
+        }
+        processed++;
       }
 
       // Process ungrouped photos automatically
@@ -1798,6 +1829,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 personId: face.personId || null,
               });
             }
+
+            // Mark bronze photo as promoted
+            await storage.updateFileVersion(photo.id, {
+              processingState: 'promoted'
+            });
 
             await storage.createAssetHistory({
               mediaAssetId: photo.mediaAssetId,

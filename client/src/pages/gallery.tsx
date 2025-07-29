@@ -11,6 +11,7 @@ import PhotoDetailModal from "@/components/photo-detail-modal";
 import { AdvancedSearch } from "@/components/advanced-search";
 import BatchOperations from "@/components/batch-operations";
 import SmartCollections from "@/components/smart-collections";
+import { ProcessingStateBadge, getProcessingState } from "@/components/ui/processing-state-badge";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 

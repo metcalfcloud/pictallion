@@ -33,6 +33,7 @@ export const fileVersions = pgTable("file_versions", {
   eventName: text("event_name"), // specific event name
   perceptualHash: text("perceptual_hash"), // for visual similarity detection
   aiShortDescription: text("ai_short_description"), // 2-3 word AI description in PascalCase
+  processingState: text("processing_state", { enum: ["unprocessed", "processed", "promoted", "rejected"] }).default("unprocessed"), // State management for bronze files
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

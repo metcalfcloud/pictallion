@@ -21,6 +21,7 @@ import { Link } from "wouter";
 import { useState } from "react";
 import { UnifiedUpload } from "@/components/unified-upload";
 import PhotoDetailModal from "@/components/photo-detail-modal";
+import { ProcessingStateBadge, getProcessingState } from "@/components/ui/processing-state-badge";
 
 interface Stats {
   totalPhotos: number;

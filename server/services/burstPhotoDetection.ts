@@ -39,17 +39,48 @@ export interface BurstAnalysis {
 export class BurstPhotoDetectionService {
   
   /**
-   * Analyze bronze photos for burst sequences
+   * Analyze photos from all tiers for burst sequences
    * Groups photos with 95%+ similarity taken within ±1 minute
+   * Handles cross-tier detection and mixed-tier groups
    */
-  async analyzeBurstPhotos(bronzePhotos: any[]): Promise<BurstAnalysis> {
+  async analyzeBurstPhotos(allPhotos: any[]): Promise<BurstAnalysis> {
     try {
-      if (bronzePhotos.length === 0) {
+      if (allPhotos.length === 0) {
         return this.generateEmptyAnalysis();
       }
 
+      // Group photos by mediaAssetId first to handle same original photo across tiers
+      const photosByAsset = new Map<string, any[]>();
+      for (const photo of allPhotos) {
+        if (!photosByAsset.has(photo.mediaAssetId)) {
+          photosByAsset.set(photo.mediaAssetId, []);
+        }
+        photosByAsset.get(photo.mediaAssetId)!.push(photo);
+      }
+
+      // For burst detection, use one representative photo per media asset
+      // Priority: unprocessed bronze > processed bronze > silver > gold
+      const representativePhotos = Array.from(photosByAsset.values()).map(versions => {
+        return versions.sort((a, b) => {
+          // Priority order for burst detection
+          const tierPriority: { [key: string]: number } = { bronze: 0, silver: 1, gold: 2 };
+          const statePriority: { [key: string]: number } = { unprocessed: 0, processed: 1, promoted: 2, rejected: 3 };
+          
+          if (tierPriority[a.tier] !== tierPriority[b.tier]) {
+            return tierPriority[a.tier] - tierPriority[b.tier];
+          }
+          
+          if (a.tier === 'bronze' && b.tier === 'bronze') {
+            return (statePriority[a.processingState || 'unprocessed'] || 0) - 
+                   (statePriority[b.processingState || 'unprocessed'] || 0);
+          }
+          
+          return 0;
+        })[0];
+      });
+
       // Sort photos by creation time for efficient processing
-      const sortedPhotos = [...bronzePhotos].sort((a, b) => 
+      const sortedPhotos = [...representativePhotos].sort((a, b) => 
         new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
       );
 
@@ -135,7 +166,7 @@ export class BurstPhotoDetectionService {
 
       return {
         groups: burstGroups,
-        totalPhotos: bronzePhotos.length,
+        totalPhotos: representativePhotos.length,
         ungroupedPhotos: ungroupedPhotos
       };
 

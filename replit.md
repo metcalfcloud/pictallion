@@ -134,6 +134,17 @@ The application uses a relational database with four main tables:
 - **Tier Background Colors**: Added custom CSS variables for proper light/dark mode tier color adaptation
 - **Complete Dark Mode Compatibility**: All interface elements now properly support both light and dark themes
 
+### Enhanced Burst Photo Detection with Cross-Tier State Management (July 29, 2025)
+- **Enhanced State Management**: Added `processingState` field (unprocessed, processed, promoted, rejected) to file versions for comprehensive state tracking
+- **Cross-Tier Burst Detection**: Updated burst detection to analyze photos from all tiers (Bronze, Silver, Gold) with intelligent priority-based representative selection
+- **Smart Demotion Logic**: Implemented intelligent handling of mixed-tier burst groups with proper state management
+- **Bronze File Protection**: Bronze files are now sacred archives - never deleted, only state changes to track processing
+- **Comprehensive Processing States**: 
+  - Bronze files marked as "promoted" when moved to Silver
+  - Bronze files marked as "processed" when part of processed group but not selected
+  - Silver files marked as "promoted" when moved to Gold
+  - Silver files can be "rejected" with user confirmation while preserving Bronze originals
+
 ### Burst Photo Detection Implementation (July 27, 2025)
 - Implemented intelligent burst photo detection service using image similarity analysis
 - Added burst selection page for choosing photos from grouped sequences  

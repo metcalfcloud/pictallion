@@ -8,6 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { Clock, Camera, CheckCircle, AlertCircle, ArrowRight, Zap } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
+import { ProcessingStateBadge, getProcessingState } from '@/components/ui/processing-state-badge';
 
 interface BurstGroup {
   id: string;
@@ -328,6 +329,14 @@ export default function BurstSelectionPage() {
                               Best
                             </Badge>
                           )}
+                          
+                          <div className="absolute top-2 right-2 z-10">
+                            <ProcessingStateBadge 
+                              state={getProcessingState(photo)} 
+                              tier={(photo as any).tier || "bronze"} 
+                              size="sm" 
+                            />
+                          </div>
 
                           <div className="aspect-square bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
                             <img
