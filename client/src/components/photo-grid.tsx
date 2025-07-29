@@ -29,7 +29,7 @@ export default function PhotoGrid({
       case 'bronze':
         return 'bg-orange-500 text-white';
       case 'silver':
-        return 'bg-background0 text-white';
+        return 'bg-slate-500 text-white';
       case 'gold':
         return 'bg-yellow-500 text-white';
       default:
@@ -180,7 +180,7 @@ export default function PhotoGrid({
                       </button>
                     ))}
                     {photo.metadata.ai.aiTags.length > 2 && (
-                      <span className="bg-background0 text-white px-1.5 py-0.5 rounded text-xs">
+                      <span className="bg-slate-600 text-white px-1.5 py-0.5 rounded text-xs">
                         +{photo.metadata.ai.aiTags.length - 2}
                       </span>
                     )}
