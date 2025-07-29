@@ -176,9 +176,18 @@ export class EnhancedDuplicateDetectionService {
             if (existingPerceptualHash) {
               const similarity = this.calculatePerceptualSimilarity(newPerceptualHash, existingPerceptualHash);
 
-              // Consider photos with 99.5%+ visual similarity as potential duplicates
-              // This should only catch truly identical photos with different metadata
-              if (similarity >= 99.5) {
+              // Check if this might be a burst photo first
+              const isBurstPhoto = await this.isBurstPhoto(originalFilename, asset.originalFilename, photo.createdAt);
+              
+              // If it's likely a burst photo, skip conflict detection
+              if (isBurstPhoto) {
+                console.log(`Skipping conflict detection for likely burst photo: ${originalFilename} vs ${asset.originalFilename}`);
+                continue;
+              }
+
+              // Consider photos with 99.8%+ visual similarity as potential duplicates
+              // Only flag truly identical photos with different metadata
+              if (similarity >= 99.8) {
                 const asset = await storage.getMediaAsset(photo.mediaAssetId);
                 if (asset) {
                   const reasoning = this.analyzeMetadataDifferences(
@@ -383,6 +392,85 @@ export class EnhancedDuplicateDetectionService {
       message: 'File replaced with new version and marked for reprocessing',
       assetId: existingFile.mediaAssetId
     };
+  }
+
+  /**
+   * Check if two photos are likely part of a burst sequence
+   */
+  private async isBurstPhoto(newFilename: string, existingFilename: string, existingCreatedAt: string): Promise<boolean> {
+    try {
+      // Check filename patterns that suggest burst photos
+      const newBase = newFilename.replace(/\.(jpg|jpeg|png|tiff)$/i, '').toLowerCase();
+      const existingBase = existingFilename.replace(/\.(jpg|jpeg|png|tiff)$/i, '').toLowerCase();
+      
+      // Extract timestamp patterns from filenames (YYYYMMDD_HHMMSS format)
+      const timestampPattern = /^(\d{8})_(\d{6})/;
+      const newMatch = newBase.match(timestampPattern);
+      const existingMatch = existingBase.match(timestampPattern);
+      
+      if (newMatch && existingMatch) {
+        const newDateTime = `${newMatch[1]}_${newMatch[2]}`;
+        const existingDateTime = `${existingMatch[1]}_${existingMatch[2]}`;
+        
+        // If they have similar timestamp-based names, likely burst photos
+        const newTime = this.parseTimestampFromFilename(newDateTime);
+        const existingTime = this.parseTimestampFromFilename(existingDateTime);
+        
+        if (newTime && existingTime) {
+          const timeDiff = Math.abs(newTime.getTime() - existingTime.getTime());
+          // If within 2 minutes, consider it a burst sequence
+          if (timeDiff <= 120000) {
+            return true;
+          }
+        }
+      }
+      
+      // Check for sequential naming patterns (IMG_1234, IMG_1235, etc.)
+      const sequentialPattern1 = /^(.+?)[-_]?(\d+)$/;
+      const newSeqMatch = newBase.match(sequentialPattern1);
+      const existingSeqMatch = existingBase.match(sequentialPattern1);
+      
+      if (newSeqMatch && existingSeqMatch && newSeqMatch[1] === existingSeqMatch[1]) {
+        const newNum = parseInt(newSeqMatch[2]);
+        const existingNum = parseInt(existingSeqMatch[2]);
+        const numDiff = Math.abs(newNum - existingNum);
+        
+        // Sequential numbers within 10 of each other suggest burst
+        if (numDiff <= 10) {
+          return true;
+        }
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Error checking burst photo pattern:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Parse timestamp from filename format YYYYMMDD_HHMMSS
+   */
+  private parseTimestampFromFilename(timestamp: string): Date | null {
+    try {
+      const match = timestamp.match(/^(\d{8})_(\d{6})$/);
+      if (!match) return null;
+      
+      const dateStr = match[1]; // YYYYMMDD
+      const timeStr = match[2]; // HHMMSS
+      
+      const year = parseInt(dateStr.substring(0, 4));
+      const month = parseInt(dateStr.substring(4, 6)) - 1; // Month is 0-indexed
+      const day = parseInt(dateStr.substring(6, 8));
+      const hour = parseInt(timeStr.substring(0, 2));
+      const minute = parseInt(timeStr.substring(2, 4));
+      const second = parseInt(timeStr.substring(4, 6));
+      
+      const date = new Date(year, month, day, hour, minute, second);
+      return isNaN(date.getTime()) ? null : date;
+    } catch (error) {
+      return null;
+    }
   }
 
   /**

@@ -98,10 +98,10 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
 
       queryClient.invalidateQueries({ queryKey: ["/api/photos"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
-      
+
       const successCount = data.results.filter((r: any) => r.status === 'success').length;
       const conflictCount = data.results.filter((r: any) => r.status === 'conflict').length;
-      
+
       if (successCount > 0) {
         toast({
           title: "Upload Complete",
@@ -342,7 +342,7 @@ export default function UploadModal({ open, onOpenChange }: UploadModalProps) {
                   Clear All
                 </Button>
               </div>
-              
+
               <div className="space-y-2 max-h-48 overflow-y-auto">
                 {uploadFiles.map((uploadFile) => (
                   <div key={uploadFile.id} className="flex items-center space-x-3 p-3 bg-background rounded-lg">
