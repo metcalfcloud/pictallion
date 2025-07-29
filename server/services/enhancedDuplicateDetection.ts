@@ -125,22 +125,30 @@ export class EnhancedDuplicateDetectionService {
    */
   private async extractDirectMetadata(filePath: string): Promise<any> {
     try {
-      console.log(`Starting direct metadata extraction for: ${filePath}`);
       const fs = await import('fs/promises');
       const path = await import('path');
       const { ExifImage } = await import('exif');
       
+      // Log to file to bypass console truncation
+      const logFile = 'debug-metadata.log';
+      const log = (msg: string) => {
+        const timestamp = new Date().toISOString();
+        fs.appendFile(logFile, `[${timestamp}] ${msg}\n`).catch(() => {});
+      };
+      
+      log(`Starting direct metadata extraction for: ${filePath}`);
+      
       // Check if file exists
       try {
         await fs.access(filePath);
-        console.log(`File exists: ${filePath}`);
+        log(`File exists: ${filePath}`);
       } catch (accessError) {
-        console.error(`File does not exist: ${filePath}`);
+        log(`File does not exist: ${filePath}`);
         return { exif: { dateTime: new Date().toISOString() } };
       }
       
       const stats = await fs.stat(filePath);
-      console.log(`File stats for ${filePath}:`, { size: stats.size, mtime: stats.mtime });
+      log(`File stats: ${JSON.stringify({ size: stats.size, mtime: stats.mtime })}`);
       
       const metadata: any = {
         exif: {
@@ -150,32 +158,32 @@ export class EnhancedDuplicateDetectionService {
 
       // Try to extract EXIF data for images
       const ext = path.extname(filePath).toLowerCase();
-      console.log(`File extension: ${ext}`);
+      log(`File extension: ${ext}`);
       if (ext.match(/\.(jpg|jpeg|tiff)$/)) {
         try {
-          console.log(`Attempting EXIF extraction for temp file: ${filePath}`);
+          log(`Attempting EXIF extraction for temp file: ${filePath}`);
           
           // Read file as buffer for EXIF extraction
           const fileBuffer = await fs.readFile(filePath);
-          console.log(`Read file buffer: ${fileBuffer.length} bytes`);
+          log(`Read file buffer: ${fileBuffer.length} bytes`);
           
           const exifData = await new Promise((resolve, reject) => {
             try {
               new ExifImage({ image: fileBuffer }, (error: any, data: any) => {
                 if (error) {
-                  console.log(`EXIF extraction failed for ${filePath}:`, error.message);
+                  log(`EXIF extraction failed: ${error.message}`);
                   reject(error);
                 } else {
-                  console.log(`EXIF extraction successful for ${filePath}`);
-                  console.log(`Raw EXIF data keys:`, Object.keys(data));
-                  if (data.image) console.log(`Image data:`, JSON.stringify(data.image, null, 2));
-                  if (data.exif) console.log(`EXIF data:`, JSON.stringify(data.exif, null, 2));
-                  if (data.gps) console.log(`GPS data:`, JSON.stringify(data.gps, null, 2));
+                  log(`EXIF extraction successful`);
+                  log(`Raw EXIF data keys: ${Object.keys(data).join(', ')}`);
+                  if (data.image) log(`Image data: ${JSON.stringify(data.image, null, 2)}`);
+                  if (data.exif) log(`EXIF data: ${JSON.stringify(data.exif, null, 2)}`);
+                  if (data.gps) log(`GPS data: ${JSON.stringify(data.gps, null, 2)}`);
                   resolve(data);
                 }
               });
             } catch (syncError) {
-              console.error(`Synchronous EXIF error:`, syncError);
+              log(`Synchronous EXIF error: ${syncError}`);
               reject(syncError);
             }
           });
@@ -208,12 +216,12 @@ export class EnhancedDuplicateDetectionService {
             exif.gpsLongitude = data.gps.GPSLongitude ? this.convertDMSToDD(data.gps.GPSLongitude, data.gps.GPSLongitudeRef) : undefined;
           }
 
-          console.log(`Processed EXIF data for ${filePath}:`, JSON.stringify(exif, null, 2));
+          log(`Processed EXIF data: ${JSON.stringify(exif, null, 2)}`);
           // Replace the basic metadata with rich EXIF data
           metadata.exif = exif;
-          console.log(`Final metadata object:`, JSON.stringify(metadata, null, 2));
+          log(`Final metadata object: ${JSON.stringify(metadata, null, 2)}`);
         } catch (exifError) {
-          console.log(`No EXIF data available for temp file ${filePath}:`, exifError);
+          log(`No EXIF data available: ${exifError}`);
         }
       }
 
