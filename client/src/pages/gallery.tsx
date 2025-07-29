@@ -57,24 +57,18 @@ export default function Gallery() {
 
   const bulkProcessMutation = useMutation({
     mutationFn: async (photoIds: string[]) => {
-      const results = [];
-      for (const photoId of photoIds) {
-        try {
-          const response = await apiRequest('POST', `/api/photos/${photoId}/process`);
-          results.push({ photoId, success: true });
-        } catch (error) {
-          results.push({ photoId, success: false, error });
-        }
-      }
-      return results;
+      const response = await apiRequest('POST', '/api/photos/batch-process', {
+        body: JSON.stringify({ photoIds }),
+        headers: { 'Content-Type': 'application/json' }
+      });
+      return response.json();
     },
-    onSuccess: (results) => {
-      const successful = results.filter(r => r.success).length;
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["/api/photos"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
       toast({
         title: "Bulk Processing Complete",
-        description: `Successfully processed ${successful} photos to Silver tier.`,
+        description: `Successfully processed ${result.processed} photos to Silver tier.`,
       });
     },
     onError: (error) => {
