@@ -70,8 +70,9 @@ export function UnifiedUpload({
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Drag and drop functionality
+  // Drag and drop functionality  
   const onDrop = useCallback((acceptedFiles: File[]) => {
+    console.log('onDrop called with files:', acceptedFiles);
     const newFiles: UploadFile[] = acceptedFiles.map(file => ({
       id: Math.random().toString(36).substr(2, 9),
       file,
@@ -79,6 +80,7 @@ export function UnifiedUpload({
       status: 'pending',
     }));
 
+    console.log('Adding new files:', newFiles);
     setUploadFiles(current => [...current, ...newFiles]);
   }, []);
 
@@ -89,6 +91,12 @@ export function UnifiedUpload({
       'video/*': ['.mp4', '.mov', '.avi']
     },
     maxSize: 50 * 1024 * 1024, // 50MB
+    onDropRejected: (fileRejections) => {
+      console.log('Files rejected:', fileRejections);
+    },
+    onError: (error) => {
+      console.error('Dropzone error:', error);
+    }
   });
 
   // File management functions
