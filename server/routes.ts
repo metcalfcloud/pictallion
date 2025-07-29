@@ -2043,6 +2043,149 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Batch process photos from Bronze to Silver
+  app.post("/api/photos/batch-process", async (req, res) => {
+    try {
+      const { photoIds } = req.body;
+
+      if (!Array.isArray(photoIds) || photoIds.length === 0) {
+        return res.status(400).json({ message: "photoIds array is required" });
+      }
+
+      let processed = 0;
+      const errors = [];
+
+      for (const photoId of photoIds) {
+        try {
+          const photo = await storage.getFileVersion(photoId);
+          if (!photo || photo.tier !== 'bronze') {
+            continue;
+          }
+
+          // Check if this asset already has a Silver version
+          const existingSilver = await storage.getFileVersionsByAsset(photo.mediaAssetId);
+          const hasSilver = existingSilver.some(version => version.tier === 'silver');
+          if (hasSilver) {
+            continue;
+          }
+
+          // Check if file is an image
+          if (!photo.mimeType.startsWith('image/')) {
+            continue;
+          }
+
+          // Run AI analysis with OpenAI as preferred provider
+          const aiMetadata = await aiService.analyzeImage(photo.filePath, "openai");
+          const enhancedMetadata = await aiService.enhanceMetadataWithShortDescription(aiMetadata, photo.filePath);
+
+          // Get naming pattern from settings
+          const namingPatternSetting = await storage.getSettingByKey('silver_naming_pattern');
+          const customPatternSetting = await storage.getSettingByKey('custom_naming_pattern');
+          const namingPattern = namingPatternSetting?.value || 'datetime';
+          const customPattern = customPatternSetting?.value || '';
+
+          // Generate new filename for Silver tier
+          let newFilename: string | undefined;
+          if (namingPattern !== 'original') {
+            const asset = await storage.getMediaAsset(photo.mediaAssetId);
+            const namingContext = {
+              aiMetadata: {
+                shortDescription: enhancedMetadata.shortDescription,
+                detectedObjects: enhancedMetadata.detectedObjects,
+                aiTags: enhancedMetadata.aiTags,
+              },
+              exifMetadata: (photo.metadata && typeof photo.metadata === 'object' && 'exif' in photo.metadata && typeof photo.metadata.exif === 'object')
+                ? (photo.metadata.exif as { dateTime?: string; camera?: string; lens?: string })
+                : undefined,
+              originalFilename: asset?.originalFilename || 'unknown.jpg',
+              tier: 'silver' as const
+            };
+            const finalPattern = namingPattern === 'custom' ? customPattern : namingPattern;
+            newFilename = await generateSilverFilename(namingContext, finalPattern);
+          }
+
+          // Copy file to Silver tier with new filename
+          const silverPath = await fileManager.copyToSilver(photo.filePath, newFilename);
+
+          // Detect faces in the image
+          const detectedFaces = await faceDetectionService.detectFaces(photo.filePath);
+
+          // Detect events based on photo date
+          let eventType: string | undefined;
+          let eventName: string | undefined;
+          const asset = await storage.getMediaAsset(photo.mediaAssetId);
+          const photoWithAsset = { ...photo, mediaAsset: asset };
+          const photoDate = extractPhotoDate(photoWithAsset);
+          if (photoDate) {
+            try {
+              const detectedEvents = await eventDetectionService.detectEvents(photoDate);
+              if (detectedEvents.length > 0) {
+                const bestEvent = detectedEvents.reduce((max, event) => 
+                  event.confidence > max.confidence ? event : max
+                );
+                if (bestEvent.confidence >= 80) {
+                  eventType = bestEvent.eventType;
+                  eventName = bestEvent.eventName;
+                }
+              }
+            } catch (error) {
+              console.error('Event detection failed for photo:', photoId, error);
+            }
+          }
+
+          // Combine existing metadata with enhanced AI metadata
+          const existingMetadata = photo.metadata || {};
+          const combinedMetadata = {
+            ...existingMetadata,
+            ai: enhancedMetadata,
+          };
+
+          // Create Silver file version
+          const silverVersion = await storage.createFileVersion({
+            mediaAssetId: photo.mediaAssetId,
+            tier: 'silver',
+            filePath: silverPath,
+            fileHash: photo.fileHash,
+            fileSize: photo.fileSize,
+            mimeType: photo.mimeType,
+            metadata: combinedMetadata as any,
+            aiShortDescription: enhancedMetadata.shortDescription,
+            eventType: eventType || undefined,
+            eventName: eventName || undefined,
+            isReviewed: false,
+          });
+
+          // Save detected faces to database
+          for (const face of detectedFaces) {
+            await storage.createFace({
+              photoId: silverVersion.id,
+              boundingBox: face.boundingBox,
+              confidence: face.confidence,
+              embedding: face.embedding,
+              personId: face.personId || null,
+            });
+          }
+
+          // Log promotion
+          await storage.createAssetHistory({
+            mediaAssetId: photo.mediaAssetId,
+            action: 'PROMOTED',
+            details: 'Batch promoted from Bronze to Silver tier with AI processing',
+          });
+
+          processed++;
+        } catch (error: any) {
+          errors.push({ photoId, error: error.message });
+        }
+      }
+
+      res.json({ processed, errors });
+    } catch (error) {
+      console.error("Error in batch processing:", error);
+      res.status(500).json({ message: "Failed to batch process photos" });
+    }
+  });
+
   // Batch promote photos to Gold
   app.post("/api/photos/batch-promote", async (req, res) => {
     try {
