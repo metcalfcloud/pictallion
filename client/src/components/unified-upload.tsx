@@ -70,36 +70,11 @@ export function UnifiedUpload({
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Prevent default drag behaviors on the document
-  React.useEffect(() => {
-    const preventDefaults = (e: DragEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-    };
-
-    const handleDrop = (e: DragEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      console.log('Global drop prevented');
-    };
-
-    // Prevent default drag behaviors globally
-    window.addEventListener('dragenter', preventDefaults, false);
-    window.addEventListener('dragleave', preventDefaults, false);
-    window.addEventListener('dragover', preventDefaults, false);
-    window.addEventListener('drop', handleDrop, false);
-
-    return () => {
-      window.removeEventListener('dragenter', preventDefaults, false);
-      window.removeEventListener('dragleave', preventDefaults, false);
-      window.removeEventListener('dragover', preventDefaults, false);
-      window.removeEventListener('drop', handleDrop, false);
-    };
-  }, []);
+  // No need for global event prevention since test dropzone works
 
   // Drag and drop functionality  
   const onDrop = useCallback((acceptedFiles: File[]) => {
-    console.log('onDrop called with files:', acceptedFiles);
+    console.log('Main upload - onDrop called with files:', acceptedFiles);
     const newFiles: UploadFile[] = acceptedFiles.map(file => ({
       id: Math.random().toString(36).substr(2, 9),
       file,
@@ -107,19 +82,19 @@ export function UnifiedUpload({
       status: 'pending',
     }));
 
-    console.log('Adding new files:', newFiles);
+    console.log('Main upload - Adding new files:', newFiles);
     setUploadFiles(current => [...current, ...newFiles]);
   }, []);
 
   const { getRootProps, getInputProps, isDragActive, isDragAccept, isDragReject } = useDropzone({
     onDrop,
     accept: {
-      'image/*': ['.jpeg', '.jpg', '.png', '.tiff'],
-      'video/*': ['.mp4', '.mov', '.avi']
+      'image/*': [],
+      'video/*': []
     },
     maxSize: 50 * 1024 * 1024, // 50MB
     onDropRejected: (fileRejections) => {
-      console.log('Files rejected:', fileRejections);
+      console.log('Main upload - Files rejected:', fileRejections);
       toast({
         title: "Files Rejected",
         description: `${fileRejections.length} files were rejected. Check file type and size limits.`,
@@ -127,20 +102,17 @@ export function UnifiedUpload({
       });
     },
     onError: (error) => {
-      console.error('Dropzone error:', error);
+      console.error('Main upload - Dropzone error:', error);
     },
     onDragEnter: () => {
-      console.log('Drag enter detected');
+      console.log('Main upload - Drag enter detected');
     },
     onDragLeave: () => {
-      console.log('Drag leave detected');
+      console.log('Main upload - Drag leave detected');
     },
     onDragOver: () => {
-      console.log('Drag over detected');
+      console.log('Main upload - Drag over detected');
     },
-    noClick: false,
-    noKeyboard: false,
-    preventDropOnDocument: true,
     multiple: true
   });
 
