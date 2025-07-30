@@ -97,7 +97,19 @@ class FileManager {
     if (cameraInfo) {
       // Clean camera name for filesystem
       deviceFolder = cameraInfo.replace(/[^a-zA-Z0-9\s-]/g, '').replace(/\s+/g, '_');
+    } else {
+      // Try to extract device info from filename patterns
+      const filenameDeviceMatch = originalFilename.match(/^(IMG|DSC|DCIM|P\d+|DJI)/i);
+      if (filenameDeviceMatch) {
+        deviceFolder = `${filenameDeviceMatch[1]}_device`;
+      } else {
+        // Use current date as device identifier if nothing else available
+        const now = new Date();
+        deviceFolder = `device_${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      }
     }
+    
+    console.log(`Device folder determined: ${deviceFolder} (from camera: ${cameraInfo || 'none'})`);
     
     const batchName = `batch_${year}-${String(monthNum).padStart(2, '0')}-${String(photoDate.getDate()).padStart(2, '0')}`;
     
@@ -268,9 +280,27 @@ class FileManager {
           const metadata: ExifMetadata = {};
 
           if (exifData.image) {
-            metadata.camera = exifData.image.Make && exifData.image.Model 
-              ? `${exifData.image.Make} ${exifData.image.Model}` 
-              : undefined;
+            // Try multiple sources for camera information
+            let make = exifData.image.Make || exifData.image.make;
+            let model = exifData.image.Model || exifData.image.model;
+            
+            // Clean up make and model strings
+            if (make) make = make.trim();
+            if (model) model = model.trim();
+            
+            if (make && model) {
+              metadata.camera = `${make} ${model}`;
+            } else if (make) {
+              metadata.camera = make;
+            } else if (model) {
+              metadata.camera = model;
+            }
+            
+            console.log(`Camera detection for ${imagePath}:`, {
+              make: exifData.image.Make,
+              model: exifData.image.Model,
+              detected: metadata.camera
+            });
           }
 
           if (exifData.exif) {
