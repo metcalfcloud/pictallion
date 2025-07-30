@@ -22,7 +22,9 @@ export default function PhotoGrid({
   viewMode, 
   onPhotoClick, 
   onProcessPhoto,
-  isProcessing = false 
+  isProcessing = false,
+  selectedPhotos = [],
+  onPhotoSelect
 }: PhotoGridProps) {
   const getTierBadgeClass = (tier: string) => {
     switch (tier) {
@@ -145,171 +147,127 @@ export default function PhotoGrid({
   }
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
       {photos.map((photo) => (
         <div key={photo.id} className="relative group">
-          <div 
-            className="cursor-pointer relative"
-            onClick={() => onPhotoClick(photo)}
-          >
-            <img 
-              src={`/api/files/${photo.filePath}`}
-              alt={photo.mediaAsset.originalFilename}
-              className="w-full h-32 object-cover rounded-lg"
-            />
-            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 rounded-lg" />
-
-            {/* Enhanced hover info */}
-            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-200 p-2 flex flex-col justify-between">
-              <div className="space-y-1">
-                {photo.metadata?.ai?.aiTags && photo.metadata.ai.aiTags.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    {photo.metadata.ai.aiTags.slice(0, 2).map((tag: string, index: number) => (
-                      <button
-                        key={index} 
-                        className="bg-blue-500 hover:bg-blue-600 text-white px-1.5 py-0.5 rounded text-xs font-medium transition-colors cursor-pointer"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // Quick filter by this tag
-                          const searchEvent = new CustomEvent('quickSearch', { detail: tag });
-                          window.dispatchEvent(searchEvent);
-                        }}
-                        title={`Filter by "${tag}"`}
-                      >
-                        {tag}
-                      </button>
-                    ))}
-                    {photo.metadata.ai.aiTags.length > 2 && (
-                      <span className="bg-slate-600 text-white px-1.5 py-0.5 rounded text-xs">
-                        +{photo.metadata.ai.aiTags.length - 2}
-                      </span>
-                    )}
-                  </div>
-                )}
-
-                {/* Quick action buttons */}
-                <div className="flex gap-1 mt-2">
+          {/* Polaroid Card */}
+          <div className="bg-white dark:bg-gray-100 p-3 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 rotate-0 hover:rotate-1 cursor-pointer"
+               onClick={() => onPhotoClick(photo)}>
+            
+            {/* Photo Section */}
+            <div className="relative bg-gray-200 rounded-sm overflow-hidden aspect-square mb-4">
+              <img 
+                src={`/api/files/${photo.filePath}`}
+                alt={photo.mediaAsset.originalFilename}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-200" />
+              
+              {/* Review Badge */}
+              {needsReview(photo) && (
+                <div className="absolute top-2 right-2">
+                  <Badge variant="outline" className="text-yellow-600 border-yellow-600 bg-white/90">
+                    <Eye className="w-3 h-3" />
+                  </Badge>
+                </div>
+              )}
+              
+              {/* Selection Checkbox */}
+              {onPhotoSelect && (
+                <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <input
+                    type="checkbox"
+                    checked={selectedPhotos?.includes(photo.id) || false}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      onPhotoSelect(photo.id, e.target.checked);
+                    }}
+                    className="w-4 h-4 text-blue-600 bg-white rounded border-gray-300 focus:ring-blue-500"
+                  />
+                </div>
+              )}
+            </div>
+            
+            {/* Polaroid White Bottom Section */}
+            <div className="space-y-2 text-gray-800 dark:text-gray-900">
+              {/* Filename */}
+              <h3 className="font-medium text-sm truncate">
+                {photo.mediaAsset.originalFilename}
+              </h3>
+              
+              {/* Metadata Row */}
+              <div className="flex items-center justify-between text-xs">
+                <div className="flex items-center space-x-2">
+                  <Badge className={cn("text-xs px-2", getTierBadgeClass(photo.tier))}>
+                    {getTierIcon(photo.tier)}
+                    <span className="ml-1 capitalize">{photo.tier}</span>
+                  </Badge>
+                  <ProcessingStateBadge 
+                    state={getProcessingState(photo)} 
+                    tier={photo.tier} 
+                    size="sm" 
+                  />
+                </div>
+                
+                {/* Date */}
+                <span className="text-gray-500 dark:text-gray-600">
+                  {new Date(photo.createdAt).toLocaleDateString()}
+                </span>
+              </div>
+              
+              {/* AI Tags */}
+              {photo.metadata?.ai?.aiTags && photo.metadata.ai.aiTags.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {photo.metadata.ai.aiTags.slice(0, 2).map((tag: string, index: number) => (
+                    <span key={index} className="text-xs bg-gray-200 dark:bg-gray-300 px-2 py-1 rounded-full text-gray-700">
+                      {tag}
+                    </span>
+                  ))}
+                  {photo.metadata.ai.aiTags.length > 2 && (
+                    <span className="text-xs text-gray-500">+{photo.metadata.ai.aiTags.length - 2}</span>
+                  )}
+                </div>
+              )}
+              
+              {/* Actions */}
+              <div className="flex items-center justify-between pt-1">
+                <div className="flex items-center space-x-1">
                   {canProcess(photo) && (
-                    <button
-                      className="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1"
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-6 px-2 text-xs bg-white/80 border-gray-300"
                       onClick={(e) => {
                         e.stopPropagation();
                         onProcessPhoto!(photo.id);
                       }}
                       disabled={isProcessing}
-                      title="Process with AI"
                     >
-                      <Bot className="w-3 h-3" />
+                      <Bot className="w-3 h-3 mr-1" />
                       AI
-                    </button>
+                    </Button>
                   )}
-
-                  {photo.tier === 'silver' && (
-                    <button
-                      className="bg-yellow-500 hover:bg-yellow-600 text-white px-2 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        // Quick promote action
-                        const promoteEvent = new CustomEvent('quickPromote', { detail: photo.id });
-                        window.dispatchEvent(promoteEvent);
-                      }}
-                      title="Promote to Gold"
-                    >
-                      <Star className="w-3 h-3" />
-                      Gold
-                    </button>
-                  )}
-
-                  <button
-                    className="bg-purple-500 hover:bg-purple-600 text-white px-2 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      // Quick collection add
-                      const collectionEvent = new CustomEvent('quickCollection', { detail: photo.id });
-                      window.dispatchEvent(collectionEvent);
-                    }}
-                    title="Add to Collection"
+                </div>
+                
+                <div className="flex items-center space-x-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 hover:bg-gray-200 dark:hover:bg-gray-300"
+                    onClick={(e) => e.stopPropagation()}
                   >
                     <Heart className="w-3 h-3" />
-                  </button>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 hover:bg-gray-200 dark:hover:bg-gray-300"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <MoreVertical className="w-3 h-3" />
+                  </Button>
                 </div>
               </div>
-
-              <div className="text-white text-xs space-y-1">
-                {photo.metadata?.ai?.shortDescription && (
-                  <p className="line-clamp-2 bg-black bg-opacity-50 p-1 rounded">
-                    {photo.metadata.ai.shortDescription}
-                  </p>
-                )}
-                {photo.metadata?.exif?.camera && (
-                  <button
-                    className="bg-black bg-opacity-50 hover:bg-opacity-70 p-1 rounded w-full text-left transition-colors"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      // Quick filter by camera
-                      const cameraEvent = new CustomEvent('quickSearch', { detail: photo.metadata.exif.camera });
-                      window.dispatchEvent(cameraEvent);
-                    }}
-                    title={`Filter by camera "${photo.metadata.exif.camera}"`}
-                  >
-                    📷 {photo.metadata.exif.camera}
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Tier Badge */}
-          <div className="absolute top-2 left-2">
-            <Badge className={cn("text-xs", getTierBadgeClass(photo.tier))}>
-              {getTierIcon(photo.tier)}
-              <span className="ml-1 capitalize">{photo.tier}</span>
-            </Badge>
-          </div>
-
-          {/* Processing State Badge */}
-          <div className="absolute top-10 left-2">
-            <ProcessingStateBadge 
-              state={getProcessingState(photo)} 
-              tier={photo.tier} 
-              size="sm" 
-            />
-          </div>
-
-          {/* Review Badge */}
-          {needsReview(photo) && (
-            <div className="absolute top-2 right-2">
-              <Badge variant="outline" className="text-yellow-600 border-yellow-600 bg-card">
-                <Eye className="w-3 h-3" />
-              </Badge>
-            </div>
-          )}
-
-          {/* Actions */}
-          <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-            <div className="flex space-x-1">
-              {canProcess(photo) && (
-                <Button
-                  size="sm"
-                  className="h-6 w-6 p-0"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onProcessPhoto!(photo.id);
-                  }}
-                  disabled={isProcessing}
-                >
-                  <Bot className="w-3 h-3" />
-                </Button>
-              )}
-
-              <Button
-                variant="secondary"
-                size="sm"
-                className="h-6 w-6 p-0"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <Heart className="w-3 h-3" />
-              </Button>
             </div>
           </div>
         </div>
