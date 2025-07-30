@@ -22,7 +22,8 @@ import {
   Maximize2,
   Minimize2,
   Archive,
-  RefreshCw
+  RefreshCw,
+  Users
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
@@ -69,7 +70,7 @@ export default function PhotoDetailModal({
       if (photo.metadata?.exif?.dateTimeOriginal) {
         return new Date(photo.metadata.exif.dateTimeOriginal).toISOString().split('T')[0];
       }
-      
+
       // Try to extract from filename if it has timestamp format (YYYYMMDD_HHMMSS)
       const filename = photo.mediaAsset?.originalFilename || '';
       const timestampMatch = filename.match(/^(\d{8})_(\d{6})/);
@@ -78,13 +79,13 @@ export default function PhotoDetailModal({
         const year = parseInt(dateStr.substring(0, 4));
         const month = parseInt(dateStr.substring(4, 6)) - 1; // Month is 0-indexed
         const day = parseInt(dateStr.substring(6, 8));
-        
+
         const extractedDate = new Date(year, month, day);
         if (!isNaN(extractedDate.getTime())) {
           return extractedDate.toISOString().split('T')[0];
         }
       }
-      
+
       return null;
     } catch (error) {
       console.error('Error extracting photo date:', error);
@@ -479,13 +480,50 @@ export default function PhotoDetailModal({
                 </div>
               )}
 
+              {/* Detected People */}
+              {photo.metadata?.ai?.detectedPeople && photo.metadata.ai.detectedPeople.length > 0 && (
+                <div className="mb-6">
+                  <h4 className="text-sm font-semibold text-card-foreground mb-3">
+                    <Users className="w-4 h-4 inline mr-1" />
+                    Detected People
+                  </h4>
+                  <div className="space-y-2">
+                    {photo.metadata.ai.detectedPeople.map((person: any, index: number) => (
+                      <div key={index} className="flex items-center justify-between p-2 bg-muted/50 rounded border">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                            <Users className="w-4 h-4 text-blue-600" />
+                          </div>
+                          <div>
+                            <div className="text-sm font-medium text-card-foreground">
+                              {person.name || 'Unknown Person'}
+                            </div>
+                            {person.age && (
+                              <div className="text-xs text-muted-foreground">
+                                Age: {person.age}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <Badge 
+                          variant={person.confidence >= 95 ? "default" : person.confidence >= 80 ? "secondary" : "outline"}
+                          className="text-xs"
+                        >
+                          {Math.round(person.confidence)}%
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <Separator className="my-6" />
 
               {/* Editable Metadata */}
               {isEditing ? (
                 <div className="border-t pt-4">
                   <h4 className="text-sm font-semibold text-card-foreground mb-3">Edit Metadata</h4>
-                  
+
                   {/* Compact Form Content */}
                   <div className="space-y-3 max-h-60 overflow-y-auto">
                     <div>
@@ -624,7 +662,7 @@ export default function PhotoDetailModal({
                         <Calendar className="w-4 h-4 inline mr-1" />
                         Events
                       </h4>
-                      
+
                       {/* Manual/Saved Event */}
                       {(photo.eventType || photo.eventName) && (
                         <div className="mb-2 p-2 bg-background rounded border">
@@ -645,7 +683,7 @@ export default function PhotoDetailModal({
                           </div>
                         </div>
                       )}
-                      
+
                       {/* Auto-Detected Events */}
                       {detectedEvents.length > 0 && (
                         <div className="space-y-2">
@@ -745,7 +783,7 @@ export default function PhotoDetailModal({
                       <Download className="w-4 h-4" />
                     </Button>
                   </div>
-                  
+
                   {/* Second row - Silver tier specific actions */}
                   {isSilverTier && (
                     <div className="flex gap-2">
