@@ -17,7 +17,7 @@ import { eventDetectionService } from "./services/eventDetection";
 import { insertMediaAssetSchema, insertFileVersionSchema, insertAssetHistorySchema } from "@shared/schema";
 
 // Helper function to extract photo date from metadata or filename
-function extractPhotoDate(photo: any): Date | null {
+function extractPhotoDate(photo: any): Date | undefined {
   try {
     // First try EXIF datetime fields
     if (photo.metadata?.exif?.dateTime) {
@@ -51,10 +51,10 @@ function extractPhotoDate(photo: any): Date | null {
       return new Date(photo.createdAt);
     }
 
-    return null;
+    return undefined;
   } catch (error) {
     console.error('Error extracting photo date:', error);
-    return null;
+    return undefined;
   }
 }
 
