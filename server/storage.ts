@@ -90,6 +90,7 @@ export interface IStorage {
   createFace(face: InsertFace): Promise<Face>;
   getAllFaces(): Promise<Face[]>;
   getFacesByPerson(personId: string): Promise<Face[]>;
+  getFacesByPhoto(photoId: string): Promise<Face[]>;
   getUnassignedFaces(): Promise<Face[]>;
   linkFaceToPerson(faceId: string, personId: string): Promise<void>;
   assignFaceToPerson?(faceId: string, personId: string): Promise<void>;
@@ -392,6 +393,10 @@ export class DatabaseStorage implements IStorage {
 
   async getFacesByPerson(personId: string): Promise<Face[]> {
     return await db.select().from(faces).where(eq(faces.personId, personId));
+  }
+
+  async getFacesByPhoto(photoId: string): Promise<Face[]> {
+    return await db.select().from(faces).where(eq(faces.photoId, photoId));
   }
 
   async linkFaceToPerson(faceId: string, personId: string): Promise<void> {

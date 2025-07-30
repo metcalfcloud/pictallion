@@ -54,6 +54,33 @@ export default function SilverReview() {
   const [searchFilters, setSearchFilters] = useState<SearchFilters>({ tier: 'silver' });
   const [showOnlyUnreviewed, setShowOnlyUnreviewed] = useState(true);
 
+  // Fetch photos with advanced search first
+  const { data: searchResults, isLoading, refetch } = useQuery({
+    queryKey: ['/api/photos/search', searchFilters, showOnlyUnreviewed],
+    queryFn: async () => {
+      const filters = {
+        ...searchFilters,
+        tier: 'silver' as const,
+        isReviewed: showOnlyUnreviewed ? false : undefined
+      };
+
+      const response = await fetch('/api/photos/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filters, limit: 100 })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch photos');
+      }
+
+      return response.json();
+    }
+  });
+
+  const photos = (searchResults?.photos as Photo[]) || [];
+  const selectedPhoto = photos[selectedPhotoIndex];
+
   // Fetch global tag library
   const { data: tagLibrary = [] } = useQuery({
     queryKey: ['/api/tags/library'],
@@ -106,33 +133,6 @@ export default function SilverReview() {
       return response.json();
     }
   });
-
-  // Fetch photos with advanced search
-  const { data: searchResults, isLoading, refetch } = useQuery({
-    queryKey: ['/api/photos/search', searchFilters, showOnlyUnreviewed],
-    queryFn: async () => {
-      const filters = {
-        ...searchFilters,
-        tier: 'silver' as const,
-        isReviewed: showOnlyUnreviewed ? false : undefined
-      };
-
-      const response = await fetch('/api/photos/search', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filters, limit: 100 })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch photos');
-      }
-
-      return response.json();
-    }
-  });
-
-  const photos = (searchResults?.photos as Photo[]) || [];
-  const selectedPhoto = photos[selectedPhotoIndex];
 
   // Navigation handlers
   const goToPrevious = () => {
