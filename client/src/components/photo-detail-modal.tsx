@@ -217,8 +217,8 @@ export default function PhotoDetailModal({
           </div>
 
           {/* Metadata Panel */}
-          <div className="w-96 bg-card dark:bg-gray-900 overflow-y-auto">
-            <div className="p-6">
+          <div className="w-96 bg-card dark:bg-gray-900 flex flex-col">
+            <div className="flex-1 overflow-y-auto p-6"></div>
               {/* Header */}
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-lg font-semibold text-card-foreground truncate">
@@ -344,7 +344,7 @@ export default function PhotoDetailModal({
 
               {/* Editable Metadata */}
               {isEditing ? (
-                <div className="space-y-4 mb-6">
+                <div className="space-y-4 mb-6 max-h-[60vh] overflow-y-auto"></div>
                   <h4 className="text-sm font-semibold text-card-foreground">Edit Metadata</h4>
 
                   <div>
