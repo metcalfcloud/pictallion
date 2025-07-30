@@ -165,7 +165,7 @@ export default function Gallery() {
     }
     const photoIds = bronzePhotos.map(p => p.id);
     console.log(`Processing ${photoIds.length} bronze photos...`);
-    bulkProcessMutation.mutate(photoIds);
+    bulkProcessMutation.mutate({ photoIds });
   };
 
   const handleBulkPromoteToGold = () => {
@@ -178,7 +178,7 @@ export default function Gallery() {
       });
       return;
     }
-    bulkPromoteMutation.mutate(silverPhotos.map(p => p.id));
+    bulkPromoteMutation.mutate({ photoIds: silverPhotos.map(p => p.id) });
   };
 
   return (
