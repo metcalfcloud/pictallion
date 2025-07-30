@@ -583,22 +583,6 @@ export default function PhotoDetailModal({
                         className="mt-1"
                       />
                     </div>
-
-                    <div>
-                      <Label className="text-xs">Rating</Label>
-                      <div className="flex items-center gap-1 mt-1">
-                        {[1, 2, 3, 4, 5].map((starValue) => (
-                          <button
-                            key={starValue}
-                            type="button"
-                            onClick={() => setEditedMetadata(prev => ({ ...prev, rating: starValue }))}
-                            className={`p-1 rounded ${editedMetadata.rating >= starValue ? 'text-yellow-400' : 'text-muted-foreground'}`}
-                          >
-                            <Star className="w-4 h-4 fill-current" />
-                          </button>
-                        ))}
-                      </div>
-                    </div>
                   </div>
 
                   {/* Always Visible Action Buttons */}
@@ -717,20 +701,6 @@ export default function PhotoDetailModal({
                           ))}
                         </div>
                       )}
-                    </div>
-                  )}
-
-                  {photo.rating && photo.rating > 0 && (
-                    <div className="mb-4">
-                      <h4 className="text-sm font-semibold text-card-foreground mb-2">Rating</h4>
-                      <div className="flex items-center gap-1">
-                        {[1, 2, 3, 4, 5].map((starValue) => (
-                          <Star 
-                            key={starValue}
-                            className={`w-4 h-4 ${photo.rating >= starValue ? 'text-yellow-400 fill-current' : 'text-muted-foreground'}`} 
-                          />
-                        ))}
-                      </div>
                     </div>
                   )}
                 </>
