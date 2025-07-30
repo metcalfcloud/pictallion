@@ -16,7 +16,6 @@ import { AdvancedSearch } from "@/components/advanced-search";
 import type { SearchFilters } from "@/components/advanced-search";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Badge } from "@/components/ui/badge";
 
 interface Photo {
   id: string;
