@@ -270,74 +270,159 @@ class FileManager {
 
   private async extractExifData(imagePath: string): Promise<ExifMetadata> {
     return new Promise((resolve, reject) => {
+      // Set a timeout to prevent hanging
+      const timeout = setTimeout(() => {
+        reject(new Error('EXIF extraction timeout'));
+      }, 10000);
+
       try {
         new ExifImage({ image: imagePath }, (error: any, exifData: any) => {
+          clearTimeout(timeout);
+          
           if (error) {
+            console.log(`EXIF extraction error for ${imagePath}:`, error.message);
             reject(error);
             return;
           }
 
-          const metadata: ExifMetadata = {};
+          try {
+            const metadata: ExifMetadata = {};
 
-          if (exifData.image) {
-            // Try multiple sources for camera information
-            let make = exifData.image.Make || exifData.image.make;
-            let model = exifData.image.Model || exifData.image.model;
-            
-            // Clean up make and model strings
-            if (make) make = make.trim();
-            if (model) model = model.trim();
-            
-            if (make && model) {
-              metadata.camera = `${make} ${model}`;
-            } else if (make) {
-              metadata.camera = make;
-            } else if (model) {
-              metadata.camera = model;
+            // Extract camera information with multiple fallback sources
+            if (exifData.image) {
+              const make = this.safeGetStringField(exifData.image.Make || exifData.image.make);
+              const model = this.safeGetStringField(exifData.image.Model || exifData.image.model);
+              
+              if (make && model) {
+                metadata.camera = `${make} ${model}`;
+              } else if (make) {
+                metadata.camera = make;
+              } else if (model) {
+                metadata.camera = model;
+              }
+              
+              console.log(`Camera detection for ${imagePath}:`, {
+                rawMake: exifData.image.Make,
+                rawModel: exifData.image.Model,
+                detected: metadata.camera
+              });
             }
-            
-            console.log(`Camera detection for ${imagePath}:`, {
-              make: exifData.image.Make,
-              model: exifData.image.Model,
-              detected: metadata.camera
-            });
-          }
 
-          if (exifData.exif) {
-            // Store all available date/time fields - prioritize DateTimeOriginal as main dateTime
-            metadata.dateTime = exifData.exif.DateTimeOriginal || 
-                               exifData.exif.CreateDate || 
-                               exifData.image?.DateTime;
-            
-            // Store all date fields for complete information
-            metadata.dateTimeOriginal = exifData.exif.DateTimeOriginal;
-            metadata.createDate = exifData.exif.CreateDate;
-            metadata.modifyDate = exifData.image?.ModifyDate;
-            
-            metadata.aperture = exifData.exif.FNumber ? `f/${exifData.exif.FNumber}` : undefined;
-            metadata.shutter = exifData.exif.ExposureTime ? `1/${Math.round(1/exifData.exif.ExposureTime)}s` : undefined;
-            metadata.iso = exifData.exif.ISO ? String(exifData.exif.ISO) : undefined;
-            metadata.focalLength = exifData.exif.FocalLength ? `${exifData.exif.FocalLength}mm` : undefined;
-            metadata.lens = exifData.exif.LensModel;
-          }
+            // Extract date/time information with proper prioritization
+            if (exifData.exif) {
+              // Priority order: DateTimeOriginal > CreateDate > DateTime
+              const dateTimeOriginal = this.safeGetStringField(exifData.exif.DateTimeOriginal);
+              const createDate = this.safeGetStringField(exifData.exif.CreateDate);
+              const dateTime = this.safeGetStringField(exifData.image?.DateTime);
+              
+              metadata.dateTime = dateTimeOriginal || createDate || dateTime;
+              metadata.dateTimeOriginal = dateTimeOriginal;
+              metadata.createDate = createDate;
+              metadata.modifyDate = this.safeGetStringField(exifData.image?.ModifyDate);
+              
+              // Extract camera settings with proper validation
+              metadata.aperture = this.formatAperture(exifData.exif.FNumber);
+              metadata.shutter = this.formatShutter(exifData.exif.ExposureTime);
+              metadata.iso = this.safeGetNumberField(exifData.exif.ISO);
+              metadata.focalLength = this.formatFocalLength(exifData.exif.FocalLength);
+              metadata.lens = this.safeGetStringField(exifData.exif.LensModel);
+            }
 
-          if (exifData.gps) {
-            metadata.gpsLatitude = exifData.gps.GPSLatitude ? this.convertDMSToDD(exifData.gps.GPSLatitude, exifData.gps.GPSLatitudeRef) : undefined;
-            metadata.gpsLongitude = exifData.gps.GPSLongitude ? this.convertDMSToDD(exifData.gps.GPSLongitude, exifData.gps.GPSLongitudeRef) : undefined;
-          }
+            // Extract GPS information with validation
+            if (exifData.gps && this.isValidGpsData(exifData.gps)) {
+              try {
+                metadata.gpsLatitude = exifData.gps.GPSLatitude ? 
+                  this.convertDMSToDD(exifData.gps.GPSLatitude, exifData.gps.GPSLatitudeRef) : undefined;
+                metadata.gpsLongitude = exifData.gps.GPSLongitude ? 
+                  this.convertDMSToDD(exifData.gps.GPSLongitude, exifData.gps.GPSLongitudeRef) : undefined;
+              } catch (gpsError) {
+                console.log(`GPS extraction error for ${imagePath}:`, gpsError);
+              }
+            }
 
-          resolve(metadata);
+            resolve(metadata);
+          } catch (processingError) {
+            console.error(`Error processing EXIF data for ${imagePath}:`, processingError);
+            resolve({}); // Return empty metadata instead of rejecting
+          }
         });
       } catch (error) {
+        clearTimeout(timeout);
         reject(error);
       }
     });
   }
 
+  private safeGetStringField(value: any): string | undefined {
+    if (value === null || value === undefined) return undefined;
+    const str = String(value).trim();
+    return str.length > 0 ? str : undefined;
+  }
+
+  private safeGetNumberField(value: any): string | undefined {
+    if (value === null || value === undefined || isNaN(Number(value))) return undefined;
+    return String(value);
+  }
+
+  private formatAperture(fNumber: any): string | undefined {
+    if (fNumber === null || fNumber === undefined || isNaN(Number(fNumber))) return undefined;
+    return `f/${Number(fNumber).toFixed(1)}`;
+  }
+
+  private formatShutter(exposureTime: any): string | undefined {
+    if (exposureTime === null || exposureTime === undefined || isNaN(Number(exposureTime))) return undefined;
+    const time = Number(exposureTime);
+    if (time >= 1) return `${time}s`;
+    return `1/${Math.round(1/time)}s`;
+  }
+
+  private formatFocalLength(focalLength: any): string | undefined {
+    if (focalLength === null || focalLength === undefined || isNaN(Number(focalLength))) return undefined;
+    return `${Number(focalLength)}mm`;
+  }
+
+  private isValidGpsData(gps: any): boolean {
+    return gps && 
+           Array.isArray(gps.GPSLatitude) && gps.GPSLatitude.length === 3 &&
+           Array.isArray(gps.GPSLongitude) && gps.GPSLongitude.length === 3 &&
+           typeof gps.GPSLatitudeRef === 'string' &&
+           typeof gps.GPSLongitudeRef === 'string';
+  }
+
   private convertDMSToDD(dms: number[], ref: string): number {
-    let dd = dms[0] + dms[1]/60 + dms[2]/3600;
-    if (ref === "S" || ref === "W") dd = dd * -1;
-    return dd;
+    // Validate input
+    if (!Array.isArray(dms) || dms.length !== 3) {
+      throw new Error('Invalid DMS array format');
+    }
+    
+    const [degrees, minutes, seconds] = dms.map(Number);
+    
+    // Validate numeric values
+    if (isNaN(degrees) || isNaN(minutes) || isNaN(seconds)) {
+      throw new Error('Invalid DMS numeric values');
+    }
+    
+    // Validate ranges
+    if (minutes >= 60 || seconds >= 60 || degrees < 0 || minutes < 0 || seconds < 0) {
+      throw new Error('Invalid DMS value ranges');
+    }
+    
+    let dd = degrees + minutes/60 + seconds/3600;
+    
+    // Apply hemisphere reference
+    if (ref === "S" || ref === "W") {
+      dd = dd * -1;
+    }
+    
+    // Validate final coordinates
+    const isLatitude = ref === "N" || ref === "S";
+    const maxValue = isLatitude ? 90 : 180;
+    
+    if (Math.abs(dd) > maxValue) {
+      throw new Error(`Invalid ${isLatitude ? 'latitude' : 'longitude'} value: ${dd}`);
+    }
+    
+    return Math.round(dd * 1000000) / 1000000; // Round to 6 decimal places
   }
 
   private parseExifDate(dateStr: string): Date | null {
