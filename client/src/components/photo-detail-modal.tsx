@@ -54,7 +54,9 @@ export default function PhotoDetailModal({
     location: '',
     eventType: '',
     eventName: '',
-    rating: 0
+    rating: 0,
+    aiTags: [] as string[],
+    aiDescription: ''
   });
 
   const queryClient = useQueryClient();
@@ -113,7 +115,9 @@ export default function PhotoDetailModal({
       location: photo.location || '',
       eventType: photo.eventType || '',
       eventName: photo.eventName || '',
-      rating: photo.rating || 0
+      rating: photo.rating || 0,
+      aiTags: photo.metadata?.ai?.aiTags || [],
+      aiDescription: photo.metadata?.ai?.longDescription || ''
     });
   }, [photo]);
 
@@ -245,7 +249,9 @@ export default function PhotoDetailModal({
       location: photo.location || '',
       eventType: photo.eventType || '',
       eventName: photo.eventName || '',
-      rating: photo.rating || 0
+      rating: photo.rating || 0,
+      aiTags: photo.metadata?.ai?.aiTags || [],
+      aiDescription: photo.metadata?.ai?.longDescription || ''
     });
   };
 
@@ -314,9 +320,18 @@ export default function PhotoDetailModal({
                   {photo.metadata?.ai?.longDescription && (
                     <div>
                       <h4 className="text-sm font-semibold text-card-foreground mb-2">Description</h4>
-                      <p className="text-sm text-muted-foreground">
-                        {photo.metadata.ai.longDescription}
-                      </p>
+                      {isEditing ? (
+                        <Textarea
+                          value={editedMetadata.aiDescription || photo.metadata.ai.longDescription}
+                          onChange={(e) => setEditedMetadata(prev => ({ ...prev, aiDescription: e.target.value }))}
+                          placeholder="Edit AI description..."
+                          className="text-sm min-h-[60px]"
+                        />
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          {editedMetadata.aiDescription || photo.metadata.ai.longDescription}
+                        </p>
+                      )}
                     </div>
                   )}
 
@@ -324,16 +339,30 @@ export default function PhotoDetailModal({
                   {photo.metadata?.ai?.aiTags && (
                     <div>
                       <h4 className="text-sm font-semibold text-card-foreground mb-2">AI Generated Tags</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {photo.metadata.ai.aiTags.map((tag: string, index: number) => (
-                          <span 
-                            key={index} 
-                            className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs"
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
+                      {isEditing ? (
+                        <div>
+                          <Input
+                            value={editedMetadata.aiTags?.join(', ') || photo.metadata.ai.aiTags.join(', ')}
+                            onChange={(e) => {
+                              const aiTags = e.target.value.split(',').map(k => k.trim()).filter(k => k);
+                              setEditedMetadata(prev => ({ ...prev, aiTags }));
+                            }}
+                            placeholder="Edit AI tags (comma-separated)..."
+                            className="text-sm"
+                          />
+                        </div>
+                      ) : (
+                        <div className="flex flex-wrap gap-2">
+                          {(editedMetadata.aiTags || photo.metadata.ai.aiTags).map((tag: string, index: number) => (
+                            <span 
+                              key={index} 
+                              className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

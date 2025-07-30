@@ -20,3 +20,16 @@ if (!process.env.DATABASE_URL) {
 
 export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 export const db = drizzle({ client: pool, schema });
+import { 
+  users, 
+  mediaAssets, 
+  fileVersions, 
+  assetHistory, 
+  collections, 
+  collectionPhotos, 
+  people, 
+  faces, 
+  settings, 
+  events,
+  globalTagLibrary
+} from "@shared/schema";

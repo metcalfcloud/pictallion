@@ -16,6 +16,7 @@ import { AdvancedSearch } from "@/components/advanced-search";
 import type { SearchFilters } from "@/components/advanced-search";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { Badge } from "@/components/ui/badge";
 
 interface Photo {
   id: string;
@@ -48,6 +49,16 @@ export default function SilverReview() {
   const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = useState(false);
   const [searchFilters, setSearchFilters] = useState<SearchFilters>({ tier: 'silver' });
   const [showOnlyUnreviewed, setShowOnlyUnreviewed] = useState(true);
+
+  // Fetch global tag library
+  const { data: tagLibrary = [] } = useQuery({
+    queryKey: ['/api/tags/library'],
+    queryFn: async () => {
+      const response = await fetch('/api/tags/library');
+      if (!response.ok) throw new Error('Failed to fetch tag library');
+      return response.json();
+    }
+  });
 
   // Fetch photos with advanced search
   const { data: searchResults, isLoading, refetch } = useQuery({
@@ -561,6 +572,29 @@ export default function SilverReview() {
                   placeholder="Add keywords..."
                   className="mt-1"
                 />
+                {tagLibrary.length > 0 && (
+                  <div className="mt-2">
+                    <Label className="text-xs text-muted-foreground">Popular tags from Gold tier:</Label>
+                    <div className="flex flex-wrap gap-1 mt-1 max-h-20 overflow-y-auto">
+                      {tagLibrary.slice(0, 20).map((tagInfo: any) => (
+                        <Badge
+                          key={tagInfo.tag}
+                          variant="outline"
+                          className="text-xs cursor-pointer hover:bg-blue-100"
+                          onClick={() => {
+                            const currentKeywords = selectedPhoto?.keywords || [];
+                            if (!currentKeywords.includes(tagInfo.tag)) {
+                              const newKeywords = [...currentKeywords, tagInfo.tag];
+                              updateMetadata({ keywords: newKeywords });
+                            }
+                          }}
+                        >
+                          {tagInfo.tag} ({tagInfo.usage_count})
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div>

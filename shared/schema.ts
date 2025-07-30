@@ -111,6 +111,13 @@ export const faces = pgTable("faces", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const globalTagLibrary = pgTable("global_tag_library", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tag: text("tag").notNull().unique(),
+  usageCount: integer("usage_count").default(1).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Relations
 export const mediaAssetsRelations = relations(mediaAssets, ({ many }) => ({
   fileVersions: many(fileVersions),
@@ -221,6 +228,11 @@ export const insertEventSchema = createInsertSchema(events).omit({
   createdAt: true,
 });
 
+export const insertGlobalTagLibrarySchema = createInsertSchema(globalTagLibrary).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof insertUserSchema._output;
@@ -242,6 +254,8 @@ export type Setting = typeof settings.$inferSelect;
 export type InsertSetting = typeof insertSettingSchema._output;
 export type Event = typeof events.$inferSelect;
 export type InsertEvent = typeof insertEventSchema._output;
+export type GlobalTagLibrary = typeof globalTagLibrary.$inferSelect;
+export type InsertGlobalTagLibrary = typeof insertGlobalTagLibrarySchema._output;
 
 // Metadata interfaces
 export interface AIMetadata {

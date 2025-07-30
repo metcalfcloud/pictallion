@@ -15,6 +15,8 @@ import { burstPhotoService } from "./services/burstPhotoDetection";
 import { generateSilverFilename } from "./services/aiNaming";
 import { eventDetectionService } from "./services/eventDetection";
 import { insertMediaAssetSchema, insertFileVersionSchema, insertAssetHistorySchema } from "@shared/schema";
+import { sql } from "@vercel/postgres";
+import { db } from "./db";
 
 // Helper function to extract photo date from metadata or filename
 function extractPhotoDate(photo: any): Date | undefined {
@@ -204,7 +206,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get photos by tier with intelligent deduplication
+  // Global tag library endpoints
+  app.get("/api/tags/library", async (req, res) => {
+    try {
+      const result = await db.execute(sql`
+        SELECT tag, usage_count, created_at 
+        FROM global_tag_library 
+        ORDER BY usage_count DESC, tag ASC
+      `);
+      res.json(result.rows);
+    } catch (error) {
+      console.error("Error fetching tag library:", error);
+      res.status(500).json({ message: "Failed to fetch tag library" });
+    }
+  });
+
+  app.post("/api/tags/library", async (req, res) => {
+    try {
+      const { tags } = req.body;
+
+      for (const tag of tags) {
+        // Insert or update tag usage count
+        await db.execute(sql`
+          INSERT INTO global_tag_library (tag, usage_count, created_at)
+          VALUES (${tag}, 1, NOW())
+          ON CONFLICT (tag) 
+          DO UPDATE SET usage_count = global_tag_library.usage_count + 1
+        `);
+      }
+
+      res.json({ message: "Tags added to library" });
+    } catch (error) {
+      console.error("Error adding tags to library:", error);
+      res.status(500).json({ message: "Failed to add tags to library" });
+    }
+  });
+
+  // Get all photos with optional filters
   app.get("/api/photos", async (req, res) => {
     try {
       const tier = req.query.tier as "bronze" | "silver" | "gold" | "unprocessed" | "all_versions" | undefined;
@@ -617,27 +655,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update photo metadata
-  app.patch("/api/photos/:id", async (req, res) => {
+  app.patch("/api/photos/:id/metadata", async (req, res) => {
     try {
-      const { metadata, isReviewed } = req.body;
+      const photoId = req.params.id;
+      const updates = req.body;
 
-      const updates: Partial<typeof req.body> = {};
-      if (metadata !== undefined) updates.metadata = metadata;
-      if (isReviewed !== undefined) updates.isReviewed = isReviewed;
+      const photo = await storage.getFileVersion(photoId);
+      if (!photo) {
+        return res.status(404).json({ message: "Photo not found" });
+      }
 
-      const updatedPhoto = await storage.updateFileVersion(req.params.id, updates);
+      // Handle AI metadata updates
+      if (updates.aiTags || updates.aiDescription) {
+        const existingMetadata = photo.metadata || {};
+        const updatedMetadata = {
+          ...existingMetadata,
+          ai: {
+            ...existingMetadata.ai,
+            ...(updates.aiTags && { aiTags: updates.aiTags }),
+            ...(updates.aiDescription && { longDescription: updates.aiDescription })
+          }
+        };
 
-      // Log metadata update
-      await storage.createAssetHistory({
-        mediaAssetId: updatedPhoto.mediaAssetId,
-        action: 'METADATA_EDITED',
-        details: 'Photo metadata updated',
-      });
+        // Remove aiTags and aiDescription from updates and add the metadata
+        const { aiTags, aiDescription, ...otherUpdates } = updates;
+        const finalUpdates = {
+          ...otherUpdates,
+          metadata: updatedMetadata
+        };
 
+        await storage.updateFileVersion(photoId, finalUpdates);
+      } else {
+        await storage.updateFileVersion(photoId, updates);
+      }
+
+      const updatedPhoto = await storage.getFileVersion(photoId);
       res.json(updatedPhoto);
     } catch (error) {
-      console.error("Error updating photo:", error);
-      res.status(500).json({ message: "Failed to update photo" });
+      console.error("Error updating photo metadata:", error);
+      res.status(500).json({ message: "Failed to update metadata" });
     }
   });
 
@@ -805,7 +861,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const thumbnailFace = faces.find(f => f.id === person.selectedThumbnailFaceId);
               if (thumbnailFace) {
                 selectedFace = thumbnailFace;
-              }
+              }              }
             }
 
             const photo = await storage.getFileVersion(selectedFace.photoId);
@@ -1592,7 +1648,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           const analysis = await burstPhotoService.analyzeBurstPhotos(photosWithAssets);
           const group = analysis.groups.find(g => g.id === groupId);
-          
+
           if (group) {
             for (const groupPhoto of group.photos) {
               // Get the actual file version to check tier
@@ -1677,7 +1733,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
             // Refresh EXIF metadata to ensure we have all date fields
             const refreshedMetadata = await fileManager.extractMetadata(photo.filePath);
-            
+
             const combinedMetadata = {
               ...(photo.metadata || {}),
               ...refreshedMetadata,
@@ -1891,11 +1947,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         perceptualHash: photo.perceptualHash,
       });
 
-      // Log promotion
+      // Save tags to global library
+      if (photo.metadata?.ai?.aiTags) {
+        try {
+          for (const tag of photo.metadata.ai.aiTags) {
+            await db.execute(sql`
+              INSERT INTO global_tag_library (tag, usage_count, created_at)
+              VALUES (${tag}, 1, NOW())
+              ON CONFLICT (tag) 
+              DO UPDATE SET usage_count = global_tag_library.usage_count + 1
+            `);
+          }
+        } catch (tagError) {
+          console.warn("Failed to save tags to global library:", tagError);
+        }
+      }
+
+      // Log the embedding
       await storage.createAssetHistory({
         mediaAssetId: photo.mediaAssetId,
-        action: 'PROMOTED_TO_GOLD',
-        details: 'Photo promoted to Gold tier with embedded metadata',
+        action: 'EMBEDDED',
+        details: 'Metadata embedded into file and promoted to Gold tier',
       });
 
       res.json({ success: true, goldVersion });
@@ -2003,7 +2075,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           // Get asset for both filename generation and photo date extraction
           const asset = await storage.getMediaAsset(photo.mediaAssetId);
-          
+
           // Generate new filename for Silver tier
           let newFilename: string | undefined;
           if (namingPattern !== 'original') {
