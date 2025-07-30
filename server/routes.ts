@@ -21,17 +21,8 @@ import { db } from "./db";
 // Helper function to extract photo date from metadata or filename
 function extractPhotoDate(photo: any): Date | undefined {
   try {
-    // Debug: Log the photo metadata structure for investigation
-    console.log('Photo metadata structure:', JSON.stringify({
-      hasMetadata: !!photo.metadata,
-      metadataType: typeof photo.metadata,
-      metadataKeys: photo.metadata ? Object.keys(photo.metadata) : [],
-      hasExif: !!(photo.metadata?.exif),
-      exifKeys: photo.metadata?.exif ? Object.keys(photo.metadata.exif) : [],
-      hasMediaAsset: !!photo.mediaAsset,
-      originalFilename: photo.mediaAsset?.originalFilename,
-      createdAt: photo.createdAt
-    }, null, 2));
+    // Log basic date extraction info for debugging
+    console.log('Extracting date for photo:', photo.mediaAsset?.originalFilename);
 
     // First try EXIF datetime fields with various formats
     if (photo.metadata?.exif) {
@@ -608,7 +599,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             aiTags: enhancedMetadata.aiTags,
           },
           exifMetadata: (photo.metadata && typeof photo.metadata === 'object' && 'exif' in photo.metadata && typeof photo.metadata.exif === 'object')
-            ? (photo.metadata.exif as { dateTime?: string; camera?: string; lens?: string })
+            ? (photo.metadata.exif as { dateTime?: string; dateTimeOriginal?: string; createDate?: string; camera?: string; lens?: string })
             : undefined,
           originalFilename: asset?.originalFilename || 'unknown.jpg',
           tier: 'silver' as const
@@ -1589,7 +1580,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   aiTags: enhancedMetadata.aiTags || []
                 },
                 exifMetadata: (photo.metadata && typeof photo.metadata === 'object' && 'exif' in photo.metadata && typeof photo.metadata.exif === 'object')
-                  ? (photo.metadata.exif as { dateTime?: string; camera?: string; lens?: string })
+                  ? (photo.metadata.exif as { dateTime?: string; dateTimeOriginal?: string; createDate?: string; camera?: string; lens?: string })
                   : undefined,
                 originalFilename: mediaAsset.originalFilename,
                 tier: 'silver' as const
@@ -1738,7 +1729,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   aiTags: enhancedMetadata.aiTags || []
                 },
                 exifMetadata: (photo.metadata && typeof photo.metadata === 'object' && 'exif' in photo.metadata && typeof photo.metadata.exif === 'object')
-                  ? (photo.metadata.exif as { dateTime?: string; camera?: string; lens?: string })
+                  ? (photo.metadata.exif as { dateTime?: string; dateTimeOriginal?: string; createDate?: string; camera?: string; lens?: string })
                   : undefined,
                 originalFilename: mediaAsset.originalFilename,
                 tier: 'silver' as const
@@ -2128,7 +2119,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 aiTags: enhancedMetadata.aiTags,
               },
               exifMetadata: (photo.metadata && typeof photo.metadata === 'object' && 'exif' in photo.metadata && typeof photo.metadata.exif === 'object')
-                ? (photo.metadata.exif as { dateTime?: string; camera?: string; lens?: string })
+                ? (photo.metadata.exif as { dateTime?: string; dateTimeOriginal?: string; createDate?: string; camera?: string; lens?: string })
                 : undefined,
               originalFilename: asset?.originalFilename || 'unknown.jpg',
               tier: 'silver' as const

@@ -11,6 +11,8 @@ export interface NamingContext {
   };
   exifMetadata?: {
     dateTime?: string;
+    dateTimeOriginal?: string;
+    createDate?: string;
     camera?: string;
     lens?: string;
   };
@@ -111,8 +113,15 @@ export async function generateAIShortDescription(base64Image: string): Promise<s
 export function applyNamingPattern(pattern: string, context: NamingContext): string {
   let filename = pattern;
   
-  // Extract date components from EXIF or use current date
-  const date = context.exifMetadata?.dateTime ? new Date(context.exifMetadata.dateTime) : new Date();
+  // Extract date components from EXIF (prioritize dateTimeOriginal) or use current date
+  let date = new Date();
+  if (context.exifMetadata?.dateTimeOriginal) {
+    date = new Date(context.exifMetadata.dateTimeOriginal);
+  } else if (context.exifMetadata?.createDate) {
+    date = new Date(context.exifMetadata.createDate);
+  } else if (context.exifMetadata?.dateTime) {
+    date = new Date(context.exifMetadata.dateTime);
+  }
   
   // Replace date/time placeholders
   filename = filename.replace('{year}', date.getFullYear().toString());
