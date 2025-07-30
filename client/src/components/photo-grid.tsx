@@ -105,7 +105,7 @@ export default function PhotoGrid({
                       )}
 
                       {photo.metadata?.ai?.aiTags && (
-                        <div className="flex flex-wrap gap-1">
+                        <div className="flex flex-wrap gap-1 mb-2">
                           {photo.metadata.ai.aiTags.slice(0, 4).map((tag: string, index: number) => (
                             <span key={index} className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs">
                               {tag}
@@ -114,6 +114,22 @@ export default function PhotoGrid({
                           {photo.metadata.ai.aiTags.length > 4 && (
                             <span className="text-xs text-muted-foreground">
                               +{photo.metadata.ai.aiTags.length - 4} more
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      {photo.metadata?.ai?.detectedPeople && photo.metadata.ai.detectedPeople.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {photo.metadata.ai.detectedPeople.slice(0, 3).map((person: any, index: number) => (
+                            <span key={index} className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs flex items-center gap-1">
+                              <span className="w-2 h-2 bg-green-600 rounded-full"></span>
+                              {person.name || 'Unknown'}
+                            </span>
+                          ))}
+                          {photo.metadata.ai.detectedPeople.length > 3 && (
+                            <span className="text-xs text-muted-foreground">
+                              +{photo.metadata.ai.detectedPeople.length - 3} more
                             </span>
                           )}
                         </div>

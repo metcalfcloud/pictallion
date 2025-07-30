@@ -727,7 +727,7 @@ export default function PhotoDetailModal({
                         {[1, 2, 3, 4, 5].map((starValue) => (
                           <Star 
                             key={starValue}
-                            className={`w-4 h-4 ${(photo.rating ?? 0) >= starValue ? 'text-yellow-400 fill-current' : 'text-muted-foreground'}`} 
+                            className={`w-4 h-4 ${photo.rating >= starValue ? 'text-yellow-400 fill-current' : 'text-muted-foreground'}`} 
                           />
                         ))}
                       </div>
