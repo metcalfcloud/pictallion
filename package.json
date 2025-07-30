@@ -138,6 +138,8 @@
     "appId": "com.pictallion.desktop",
     "productName": "Pictallion",
     "icon": "assets/icon.ico",
+    "npmRebuild": false,
+    "buildDependenciesFromSource": false,
     "files": [
       "electron/**/*",
       "client/**/*",
