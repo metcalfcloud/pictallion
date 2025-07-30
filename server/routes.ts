@@ -487,7 +487,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           let aiShortDescription = null;
           if (file.mimetype.startsWith('image/')) {
             try {
-              const { aiService } = await import("../services/aiService");
+              const { aiService } = await import("./services/ai");
               aiMetadata = await aiService.analyzeImage(silverPath, "openai");
               aiShortDescription = aiMetadata.shortDescription;
             } catch (aiError) {

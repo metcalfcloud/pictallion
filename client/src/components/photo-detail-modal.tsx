@@ -271,7 +271,7 @@ export default function PhotoDetailModal({
       case 'bronze':
         return 'bg-orange-500 text-white';
       case 'silver':
-        return 'bg-background0 text-white';
+        return 'bg-gray-500 text-white';
       case 'gold':
         return 'bg-yellow-500 text-white';
       default:
