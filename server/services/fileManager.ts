@@ -43,20 +43,35 @@ class FileManager {
         
         // Use photo's actual date from EXIF (prioritize DateTimeOriginal)
         if (exifData.dateTimeOriginal) {
-          photoDate = new Date(exifData.dateTimeOriginal);
-          console.log(`Using photo date from EXIF DateTimeOriginal: ${photoDate.toISOString()}`);
+          const parsedDate = new Date(exifData.dateTimeOriginal);
+          if (!isNaN(parsedDate.getTime())) {
+            photoDate = parsedDate;
+            console.log(`Using photo date from EXIF DateTimeOriginal: ${photoDate.toISOString()}`);
+          }
         } else if (exifData.createDate) {
-          photoDate = new Date(exifData.createDate);
-          console.log(`Using photo date from EXIF CreateDate: ${photoDate.toISOString()}`);
+          const parsedDate = new Date(exifData.createDate);
+          if (!isNaN(parsedDate.getTime())) {
+            photoDate = parsedDate;
+            console.log(`Using photo date from EXIF CreateDate: ${photoDate.toISOString()}`);
+          }
         } else if (exifData.dateTime) {
-          photoDate = new Date(exifData.dateTime);
-          console.log(`Using photo date from EXIF DateTime: ${photoDate.toISOString()}`);
+          const parsedDate = new Date(exifData.dateTime);
+          if (!isNaN(parsedDate.getTime())) {
+            photoDate = parsedDate;
+            console.log(`Using photo date from EXIF DateTime: ${photoDate.toISOString()}`);
+          }
         } else {
           console.log(`No EXIF date found for ${originalFilename}, using current date`);
         }
       }
     } catch (error) {
       console.log(`Could not extract EXIF data for ${originalFilename}, using current date`);
+    }
+    
+    // Ensure we have a valid date
+    if (isNaN(photoDate.getTime())) {
+      photoDate = new Date();
+      console.log(`Invalid date detected, using current date: ${photoDate.toISOString()}`);
     }
 
     // Create hierarchical directory structure using photo's actual date
