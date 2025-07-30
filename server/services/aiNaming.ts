@@ -116,26 +116,20 @@ export function applyNamingPattern(pattern: string, context: NamingContext): str
   // Extract date components from EXIF (prioritize dateTimeOriginal) or use current date
   let date = new Date();
   
-  // Debug: Log the EXIF metadata to understand its structure
-  console.log('EXIF metadata in naming:', JSON.stringify(context.exifMetadata, null, 2));
-  
   if (context.exifMetadata?.dateTimeOriginal) {
     const parsedDate = new Date(context.exifMetadata.dateTimeOriginal);
     if (!isNaN(parsedDate.getTime())) {
       date = parsedDate;
-      console.log('Using EXIF dateTimeOriginal for naming:', date.toISOString());
     }
   } else if (context.exifMetadata?.createDate) {
     const parsedDate = new Date(context.exifMetadata.createDate);
     if (!isNaN(parsedDate.getTime())) {
       date = parsedDate;
-      console.log('Using EXIF createDate for naming:', date.toISOString());
     }
   } else if (context.exifMetadata?.dateTime) {
     const parsedDate = new Date(context.exifMetadata.dateTime);
     if (!isNaN(parsedDate.getTime())) {
       date = parsedDate;
-      console.log('Using EXIF dateTime for naming:', date.toISOString());
     }
   }
   
@@ -156,12 +150,9 @@ export function applyNamingPattern(pattern: string, context: NamingContext): str
       const extractedDate = new Date(year, month, day, hour, minute, second);
       if (!isNaN(extractedDate.getTime())) {
         date = extractedDate;
-        console.log('Using filename timestamp for naming:', date.toISOString());
       }
     }
   }
-  
-  console.log('Final date used for naming pattern:', date.toISOString());
   
   // Replace date/time placeholders
   filename = filename.replace('{year}', date.getFullYear().toString());

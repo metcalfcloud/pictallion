@@ -21,8 +21,7 @@ import { db } from "./db";
 // Helper function to extract photo date from metadata or filename
 function extractPhotoDate(photo: any): Date | undefined {
   try {
-    // Log basic date extraction info for debugging
-    console.log('Extracting date for photo:', photo.mediaAsset?.originalFilename);
+    // Extract date from photo metadata or filename
 
     // First try EXIF datetime fields with various formats
     if (photo.metadata?.exif) {
