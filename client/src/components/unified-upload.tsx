@@ -73,7 +73,24 @@ export function UnifiedUpload({
 
   // File handling
   const handleFilesSelected = useCallback((files: File[]) => {
-    const newFiles: UploadFile[] = files.map(file => ({
+    const currentFilenames = new Set(uploadFiles.map(f => f.file.name));
+    
+    // Filter out files that are already in the upload queue
+    const uniqueFiles = files.filter(file => {
+      if (currentFilenames.has(file.name)) {
+        toast({
+          title: "Duplicate File",
+          description: `"${file.name}" is already in the upload queue.`,
+          variant: "destructive"
+        });
+        return false;
+      }
+      return true;
+    });
+
+    if (uniqueFiles.length === 0) return;
+
+    const newFiles: UploadFile[] = uniqueFiles.map(file => ({
       id: Math.random().toString(36).substr(2, 9),
       file,
       progress: 0,
@@ -81,7 +98,7 @@ export function UnifiedUpload({
     }));
 
     setUploadFiles(current => [...current, ...newFiles]);
-  }, []);
+  }, [uploadFiles, toast]);
 
   // Drag and drop handlers
   const handleDragEnter = (e: DragEvent) => {
