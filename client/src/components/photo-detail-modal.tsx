@@ -217,8 +217,8 @@ export default function PhotoDetailModal({
           </div>
 
           {/* Metadata Panel */}
-          <div className="w-80 bg-card dark:bg-gray-900 flex flex-col">
-            <div className="flex-1 overflow-y-auto p-6">
+          <div className="w-80 bg-card dark:bg-gray-900 flex flex-col min-h-0">
+            <div className="flex-1 overflow-y-auto p-6 min-h-0">
               {/* Header */}
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-lg font-semibold text-card-foreground truncate">
@@ -344,11 +344,11 @@ export default function PhotoDetailModal({
 
               {/* Editable Metadata */}
               {isEditing ? (
-                <div className="flex flex-col">
+                <div className="flex flex-col h-full">
+                  <h4 className="text-sm font-semibold text-card-foreground mb-4">Edit Metadata</h4>
+                  
                   {/* Scrollable Form Content */}
-                  <div className="flex-1 overflow-y-auto max-h-[30vh] space-y-4 mb-4">
-                    <h4 className="text-sm font-semibold text-card-foreground">Edit Metadata</h4>
-
+                  <div className="flex-1 overflow-y-auto space-y-4 mb-4" style={{ maxHeight: 'calc(100vh - 300px)' }}>
                     <div>
                       <Label htmlFor="keywords" className="text-xs">Keywords (comma-separated)</Label>
                       <Input
@@ -424,8 +424,8 @@ export default function PhotoDetailModal({
                     </div>
                   </div>
 
-                  {/* Fixed Action Buttons */}
-                  <div className="space-y-2 border-t pt-4">
+                  {/* Always Visible Action Buttons */}
+                  <div className="flex-shrink-0 space-y-2 border-t pt-4 bg-card">
                     <div className="flex gap-2">
                       <Button 
                         onClick={handleSaveMetadata}
@@ -562,49 +562,51 @@ export default function PhotoDetailModal({
                 </>
               )}
 
-              {/* Actions */}
-              <div className="space-y-3">
-                {canProcess && (
-                  <Button 
-                    className="w-full"
-                    onClick={() => onProcessPhoto!(photo.id)}
-                    disabled={isProcessing}
-                  >
-                    <Bot className="w-4 h-4 mr-2" />
-                    {isProcessing ? 'Processing...' : 'Process with AI'}
-                  </Button>
-                )}
+              {/* Actions - Only show when not editing */}
+              {!isEditing && (
+                <div className="space-y-3 border-t pt-4 mt-4">
+                  {canProcess && (
+                    <Button 
+                      className="w-full"
+                      onClick={() => onProcessPhoto!(photo.id)}
+                      disabled={isProcessing}
+                    >
+                      <Bot className="w-4 h-4 mr-2" />
+                      {isProcessing ? 'Processing...' : 'Process with AI'}
+                    </Button>
+                  )}
 
-                <Button 
-                  variant="outline" 
-                  className="w-full"
-                  onClick={() => setIsEditing(!isEditing)}
-                >
-                  <Edit className="w-4 h-4 mr-2" />
-                  {isEditing ? 'Cancel Edit' : 'Edit Metadata'}
-                </Button>
-
-                {canPromoteToGold && (
                   <Button 
                     variant="outline" 
                     className="w-full"
-                    onClick={() => promoteToGoldMutation.mutate()}
-                    disabled={promoteToGoldMutation.isPending}
+                    onClick={() => setIsEditing(!isEditing)}
                   >
-                    <Star className="w-4 h-4 mr-2" />
-                    {promoteToGoldMutation.isPending ? 'Promoting...' : 'Promote to Gold'}
+                    <Edit className="w-4 h-4 mr-2" />
+                    Edit Metadata
                   </Button>
-                )}
 
-                <Button 
-                  variant="outline" 
-                  className="w-full"
-                  onClick={handleDownload}
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Download
-                </Button>
-              </div>
+                  {canPromoteToGold && (
+                    <Button 
+                      variant="outline" 
+                      className="w-full"
+                      onClick={() => promoteToGoldMutation.mutate()}
+                      disabled={promoteToGoldMutation.isPending}
+                    >
+                      <Star className="w-4 h-4 mr-2" />
+                      {promoteToGoldMutation.isPending ? 'Promoting...' : 'Promote to Gold'}
+                    </Button>
+                  )}
+
+                  <Button 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={handleDownload}
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Download
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </div>
