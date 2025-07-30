@@ -174,7 +174,7 @@ export default function PhotoDetailModal({
     }
   });
 
-  const canProcess = photo.tier === 'bronze' && onProcessPhoto;
+  const canPromoteToSilver = photo.tier === 'bronze' && onProcessPhoto;
   const canPromoteToGold = photo.tier === 'silver' && photo.isReviewed;
 
   const handleSaveMetadata = () => {
@@ -653,16 +653,19 @@ export default function PhotoDetailModal({
               {/* Actions - Only show when not editing */}
               {!isEditing && (
                 <div className="flex gap-2 border-t pt-3 mt-4">
-                  <Button 
-                    variant="outline" 
-                    className="flex-1"
-                    onClick={() => setIsEditing(!isEditing)}
-                    size="sm"
-                  >
-                    <Edit className="w-4 h-4 mr-1" />
-                    Edit
-                  </Button>
-                  {canProcess && (
+                  {/* Only show edit button for silver and gold tiers */}
+                  {photo.tier !== 'bronze' && (
+                    <Button 
+                      variant="outline" 
+                      className="flex-1"
+                      onClick={() => setIsEditing(!isEditing)}
+                      size="sm"
+                    >
+                      <Edit className="w-4 h-4 mr-1" />
+                      Edit
+                    </Button>
+                  )}
+                  {canPromoteToSilver && (
                     <Button 
                       className="flex-1"
                       onClick={() => onProcessPhoto!(photo.id)}
@@ -670,7 +673,7 @@ export default function PhotoDetailModal({
                       size="sm"
                     >
                       <Bot className="w-4 h-4 mr-1" />
-                      {isProcessing ? 'Processing...' : 'Process'}
+                      {isProcessing ? 'Promoting...' : 'Promote to Silver'}
                     </Button>
                   )}
                   {canPromoteToGold && (
