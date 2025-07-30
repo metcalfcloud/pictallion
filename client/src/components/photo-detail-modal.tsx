@@ -227,7 +227,7 @@ export default function PhotoDetailModal({
   });
 
   const canPromoteToSilver = photo.tier === 'bronze' && onProcessPhoto;
-  const canPromoteToGold = photo.tier === 'silver' && photo.isReviewed;
+  const canPromoteToGold = photo.tier === 'silver';
   const isSilverTier = photo.tier === 'silver';
 
   const handleSaveMetadata = () => {
@@ -765,13 +765,13 @@ export default function PhotoDetailModal({
                     )}
                     {canPromoteToGold && (
                       <Button 
-                        variant="outline" 
                         onClick={() => promoteToGoldMutation.mutate()}
                         disabled={promoteToGoldMutation.isPending}
                         size="sm"
+                        className="flex-1"
                       >
                         <Star className="w-4 h-4 mr-1" />
-                        Promote to Gold
+                        {promoteToGoldMutation.isPending ? 'Promoting...' : 'Promote to Gold'}
                       </Button>
                     )}
                     <Button 
