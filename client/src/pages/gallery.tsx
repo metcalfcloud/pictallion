@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import * as React from "react";
 import { Search, Grid, List, Filter, Bot, Star, Eye, CheckSquare, Square, MoreHorizontal, Sparkles } from "lucide-react";
+import { cn } from "@/lib/utils";
 import PhotoGrid from "@/components/photo-grid";
 import PhotoDetailModal from "@/components/photo-detail-modal";
 import { AdvancedSearch } from "@/components/advanced-search";
@@ -27,11 +28,14 @@ export default function Gallery() {
   const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
   const [searchFilters, setSearchFilters] = useState<import("@/components/advanced-search").SearchFilters>({});
   const [showSmartCollections, setShowSmartCollections] = useState(false);
+  const [isBatchProcessing, setIsBatchProcessing] = useState(false);
+  const [processingStats, setProcessingStats] = useState({ processed: 0, total: 0 });
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   const { data: photos, isLoading } = useQuery<Photo[]>({
     queryKey: ["/api/photos", tierFilter !== 'all' ? { tier: tierFilter } : {}],
+    refetchInterval: isBatchProcessing ? 2000 : false, // Auto-refresh every 2 seconds during batch processing
   });
 
   const processPhotoMutation = useMutation({
@@ -63,7 +67,13 @@ export default function Gallery() {
       });
       return response.json();
     },
+    onMutate: ({ photoIds }) => {
+      setIsBatchProcessing(true);
+      setProcessingStats({ processed: 0, total: photoIds.length });
+    },
     onSuccess: (result) => {
+      setIsBatchProcessing(false);
+      setProcessingStats({ processed: 0, total: 0 });
       queryClient.invalidateQueries({ queryKey: ["/api/photos"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
       toast({
@@ -72,6 +82,8 @@ export default function Gallery() {
       });
     },
     onError: (error) => {
+      setIsBatchProcessing(false);
+      setProcessingStats({ processed: 0, total: 0 });
       toast({
         title: "Bulk Processing Failed",
         description: error.message,
@@ -87,7 +99,13 @@ export default function Gallery() {
       });
       return response.json();
     },
+    onMutate: ({ photoIds }) => {
+      setIsBatchProcessing(true);
+      setProcessingStats({ processed: 0, total: photoIds.length });
+    },
     onSuccess: (result) => {
+      setIsBatchProcessing(false);
+      setProcessingStats({ processed: 0, total: 0 });
       queryClient.invalidateQueries({ queryKey: ["/api/photos"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
       toast({
@@ -96,6 +114,8 @@ export default function Gallery() {
       });
     },
     onError: (error) => {
+      setIsBatchProcessing(false);
+      setProcessingStats({ processed: 0, total: 0 });
       toast({
         title: "Bulk Promotion Failed",
         description: error.message,
@@ -103,6 +123,19 @@ export default function Gallery() {
       });
     },
   });
+
+  // Track processing progress by counting tier changes
+  React.useEffect(() => {
+    if (isBatchProcessing && photos) {
+      const silverCount = photos.filter(photo => photo.tier === 'silver').length;
+      const bronzeCount = photos.filter(photo => photo.tier === 'bronze').length;
+      const totalProcessed = Math.max(0, processingStats.total - bronzeCount);
+      
+      if (totalProcessed !== processingStats.processed) {
+        setProcessingStats(prev => ({ ...prev, processed: totalProcessed }));
+      }
+    }
+  }, [photos, isBatchProcessing, processingStats.total, processingStats.processed]);
 
   // Handle quick actions from photo grid
   React.useEffect(() => {
@@ -205,6 +238,34 @@ export default function Gallery() {
 
       {/* Content */}
       <div className="flex-1 p-6 overflow-y-auto">
+        {/* Batch Processing Indicator */}
+        {isBatchProcessing && (
+          <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center space-x-2">
+                <Bot className="w-5 h-5 text-blue-600 animate-pulse" />
+                <span className="font-medium text-blue-900 dark:text-blue-100">
+                  Batch Processing in Progress...
+                </span>
+              </div>
+              <span className="text-sm text-blue-700 dark:text-blue-300">
+                {processingStats.processed} / {processingStats.total} completed
+              </span>
+            </div>
+            <div className="w-full bg-blue-200 dark:bg-blue-800 rounded-full h-2">
+              <div 
+                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                style={{ 
+                  width: `${processingStats.total > 0 ? (processingStats.processed / processingStats.total) * 100 : 0}%` 
+                }}
+              />
+            </div>
+            <p className="text-sm text-blue-700 dark:text-blue-300 mt-2">
+              You can navigate away from this page - processing will continue in the background.
+              Return here to see the updated results.
+            </p>
+          </div>
+        )}
         {/* Filters and Controls */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-4">
@@ -256,10 +317,15 @@ export default function Gallery() {
               <Button
                 size="sm"
                 onClick={() => handleBulkProcessBronze()}
-                disabled={processPhotoMutation.isPending || bulkProcessMutation.isPending}
+                disabled={processPhotoMutation.isPending || bulkProcessMutation.isPending || isBatchProcessing}
               >
-                <Bot className="w-4 h-4 mr-2" />
-                {bulkProcessMutation.isPending ? 'Processing...' : 'Process All Bronze'}
+                <Bot className={cn("w-4 h-4 mr-2", isBatchProcessing && "animate-pulse")} />
+                {isBatchProcessing 
+                  ? `Processing... (${processingStats.processed}/${processingStats.total})` 
+                  : bulkProcessMutation.isPending 
+                  ? 'Starting...' 
+                  : 'Process All Bronze'
+                }
               </Button>
             )}
 
@@ -267,10 +333,15 @@ export default function Gallery() {
               <Button
                 size="sm"
                 onClick={() => handleBulkPromoteToGold()}
-                disabled={processPhotoMutation.isPending}
+                disabled={processPhotoMutation.isPending || bulkPromoteMutation.isPending || isBatchProcessing}
               >
-                <Star className="w-4 h-4 mr-2" />
-                Promote All to Gold
+                <Star className={cn("w-4 h-4 mr-2", isBatchProcessing && "animate-pulse")} />
+                {isBatchProcessing 
+                  ? `Promoting... (${processingStats.processed}/${processingStats.total})` 
+                  : bulkPromoteMutation.isPending 
+                  ? 'Starting...' 
+                  : 'Promote All to Gold'
+                }
               </Button>
             )}
 
