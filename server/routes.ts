@@ -861,7 +861,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const thumbnailFace = faces.find(f => f.id === person.selectedThumbnailFaceId);
               if (thumbnailFace) {
                 selectedFace = thumbnailFace;
-              }              }
+              }
             }
 
             const photo = await storage.getFileVersion(selectedFace.photoId);
