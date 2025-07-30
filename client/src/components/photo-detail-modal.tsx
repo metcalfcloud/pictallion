@@ -242,8 +242,8 @@ export default function PhotoDetailModal({
 
           {/* Metadata Panel - Hide when image is fullscreen */}
           {!isImageFullscreen && (
-            <div className="w-96 bg-card dark:bg-gray-900 flex flex-col min-h-0">
-              <div className="flex-1 overflow-y-auto p-6 min-h-0">
+            <div className="flex-1 bg-card dark:bg-gray-900 flex flex-col">
+              <div className="flex-1 overflow-y-auto p-6">
               {/* Header */}
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-lg font-semibold text-card-foreground truncate">
@@ -369,11 +369,11 @@ export default function PhotoDetailModal({
 
               {/* Editable Metadata */}
               {isEditing ? (
-                <div className="flex flex-col h-full">
+                <div className="flex flex-col flex-1">
                   <h4 className="text-sm font-semibold text-card-foreground mb-4">Edit Metadata</h4>
                   
                   {/* Scrollable Form Content */}
-                  <div className="flex-1 overflow-y-auto space-y-4 mb-4" style={{ maxHeight: 'calc(100vh - 300px)' }}>
+                  <div className="flex-1 overflow-y-auto space-y-4">
                     <div>
                       <Label htmlFor="keywords" className="text-xs">Keywords (comma-separated)</Label>
                       <Input
@@ -450,12 +450,13 @@ export default function PhotoDetailModal({
                   </div>
 
                   {/* Always Visible Action Buttons */}
-                  <div className="flex-shrink-0 space-y-2 border-t pt-4 bg-card">
+                  <div className="flex-shrink-0 border-t pt-3 mt-3 bg-card space-y-2">
                     <div className="flex gap-2">
                       <Button 
                         onClick={handleSaveMetadata}
                         disabled={updateMetadataMutation.isPending}
                         className="flex-1"
+                        size="sm"
                       >
                         <Save className="w-4 h-4 mr-2" />
                         {updateMetadataMutation.isPending ? 'Saving...' : 'Save'}
@@ -464,6 +465,7 @@ export default function PhotoDetailModal({
                         variant="outline"
                         onClick={resetMetadata}
                         className="flex-1"
+                        size="sm"
                       >
                         <RotateCcw className="w-4 h-4 mr-2" />
                         Reset
@@ -474,6 +476,7 @@ export default function PhotoDetailModal({
                       variant="ghost"
                       onClick={() => setIsEditing(false)}
                       className="w-full"
+                      size="sm"
                     >
                       Cancel
                     </Button>
@@ -589,7 +592,7 @@ export default function PhotoDetailModal({
 
               {/* Actions - Only show when not editing */}
               {!isEditing && (
-                <div className="space-y-3 border-t pt-4 mt-4">
+                <div className="space-y-3 border-t pt-4 mt-auto">
                   {canProcess && (
                     <Button 
                       className="w-full"
