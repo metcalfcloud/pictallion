@@ -20,7 +20,9 @@ import {
   RotateCcw,
   Tag,
   Maximize2,
-  Minimize2
+  Minimize2,
+  Archive,
+  RefreshCw
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
@@ -174,8 +176,54 @@ export default function PhotoDetailModal({
     }
   });
 
+  // Archive photo mutation
+  const archivePhotoMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch(`/api/photos/${photo.id}/archive`, {
+        method: 'POST'
+      });
+      if (!response.ok) throw new Error('Failed to archive photo');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/photos'] });
+      toast({ title: "Photo archived successfully!" });
+      onOpenChange(false);
+    },
+    onError: (error: Error) => {
+      toast({ 
+        title: "Failed to archive photo", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    }
+  });
+
+  // AI Reprocess mutation
+  const aiReprocessMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch(`/api/photos/${photo.id}/reprocess`, {
+        method: 'POST'
+      });
+      if (!response.ok) throw new Error('Failed to reprocess photo');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/photos'] });
+      toast({ title: "Photo reprocessed successfully!" });
+    },
+    onError: (error: Error) => {
+      toast({ 
+        title: "Failed to reprocess photo", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    }
+  });
+
   const canPromoteToSilver = photo.tier === 'bronze' && onProcessPhoto;
   const canPromoteToGold = photo.tier === 'silver' && photo.isReviewed;
+  const isSilverTier = photo.tier === 'silver';
 
   const handleSaveMetadata = () => {
     updateMetadataMutation.mutate(editedMetadata);
@@ -652,47 +700,77 @@ export default function PhotoDetailModal({
 
               {/* Actions - Only show when not editing */}
               {!isEditing && (
-                <div className="flex gap-2 border-t pt-3 mt-4">
-                  {/* Only show edit button for silver and gold tiers */}
-                  {photo.tier !== 'bronze' && (
+                <div className="space-y-2 border-t pt-3 mt-4">
+                  {/* First row - Primary actions */}
+                  <div className="flex gap-2">
+                    {/* Only show edit button for silver and gold tiers */}
+                    {photo.tier !== 'bronze' && (
+                      <Button 
+                        variant="outline" 
+                        className="flex-1"
+                        onClick={() => setIsEditing(!isEditing)}
+                        size="sm"
+                      >
+                        <Edit className="w-4 h-4 mr-1" />
+                        Edit
+                      </Button>
+                    )}
+                    {canPromoteToSilver && (
+                      <Button 
+                        className="flex-1"
+                        onClick={() => onProcessPhoto!(photo.id)}
+                        disabled={isProcessing}
+                        size="sm"
+                      >
+                        <Bot className="w-4 h-4 mr-1" />
+                        {isProcessing ? 'Promoting...' : 'Promote to Silver'}
+                      </Button>
+                    )}
+                    {canPromoteToGold && (
+                      <Button 
+                        variant="outline" 
+                        onClick={() => promoteToGoldMutation.mutate()}
+                        disabled={promoteToGoldMutation.isPending}
+                        size="sm"
+                      >
+                        <Star className="w-4 h-4 mr-1" />
+                        Promote to Gold
+                      </Button>
+                    )}
                     <Button 
                       variant="outline" 
-                      className="flex-1"
-                      onClick={() => setIsEditing(!isEditing)}
+                      onClick={handleDownload}
                       size="sm"
                     >
-                      <Edit className="w-4 h-4 mr-1" />
-                      Edit
+                      <Download className="w-4 h-4" />
                     </Button>
+                  </div>
+                  
+                  {/* Second row - Silver tier specific actions */}
+                  {isSilverTier && (
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        onClick={() => archivePhotoMutation.mutate()}
+                        disabled={archivePhotoMutation.isPending}
+                        size="sm"
+                        className="flex-1"
+                      >
+                        <Archive className="w-4 h-4 mr-1" />
+                        {archivePhotoMutation.isPending ? 'Archiving...' : 'Archive'}
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => aiReprocessMutation.mutate()}
+                        disabled={aiReprocessMutation.isPending}
+                        size="sm"
+                        className="flex-1"
+                      >
+                        <RefreshCw className="w-4 h-4 mr-1" />
+                        {aiReprocessMutation.isPending ? 'Reprocessing...' : 'AI Reprocess'}
+                      </Button>
+                    </div>
                   )}
-                  {canPromoteToSilver && (
-                    <Button 
-                      className="flex-1"
-                      onClick={() => onProcessPhoto!(photo.id)}
-                      disabled={isProcessing}
-                      size="sm"
-                    >
-                      <Bot className="w-4 h-4 mr-1" />
-                      {isProcessing ? 'Promoting...' : 'Promote to Silver'}
-                    </Button>
-                  )}
-                  {canPromoteToGold && (
-                    <Button 
-                      variant="outline" 
-                      onClick={() => promoteToGoldMutation.mutate()}
-                      disabled={promoteToGoldMutation.isPending}
-                      size="sm"
-                    >
-                      <Star className="w-4 h-4" />
-                    </Button>
-                  )}
-                  <Button 
-                    variant="outline" 
-                    onClick={handleDownload}
-                    size="sm"
-                  >
-                    <Download className="w-4 h-4" />
-                  </Button>
                 </div>
               )}
             </div>
