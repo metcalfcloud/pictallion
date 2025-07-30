@@ -469,7 +469,7 @@ const resolveMutation = {
   // Action buttons
   const ActionButtons = () => (
     <div className="flex justify-end space-x-3 pt-4 border-t">
-      <Button variant="outline" onClick={mode === 'modal' ? closeModal : () => onOpenChange?.(false)}>
+      <Button variant="outline" onClick={mode === 'modal' ? closeModal : clearCompletedFiles}>
         {uploadFiles.some(f => f.status === 'success') ? 'Done' : mode === 'modal' ? 'Cancel' : 'Close'}
       </Button>
       {uploadFiles.some(f => f.status === 'conflict') && (
