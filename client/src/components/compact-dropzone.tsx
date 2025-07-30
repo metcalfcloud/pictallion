@@ -66,10 +66,10 @@ export function CompactDropzone({
 
   return (
     <Card className="h-full">
-      <CardContent className="p-6 h-full">
+      <CardContent className="p-6 flex flex-col h-full">
         <h3 className="text-lg font-semibold text-card-foreground mb-4">Quick Upload</h3>
         <div
-          className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors h-full flex flex-col justify-center min-h-[200px] ${
+          className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors flex-1 flex flex-col justify-center ${
             isActive 
               ? 'border-primary bg-primary/5' 
               : 'border-border hover:border-primary hover:bg-primary/5'

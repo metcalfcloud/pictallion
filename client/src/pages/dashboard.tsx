@@ -59,9 +59,19 @@ interface Photo {
   };
 }
 
+// Define UploadFile interface to match UnifiedUpload
+interface UploadFile {
+  id: string;
+  file: File;
+  status: 'pending' | 'uploading' | 'success' | 'error' | 'conflict' | 'skipped';
+  progress: number;
+  message?: string;
+}
+
 export default function Dashboard() {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
+  const [preloadedFiles, setPreloadedFiles] = useState<UploadFile[]>([]);
 
   const { data: stats, isLoading: statsLoading } = useQuery<Stats>({
     queryKey: ["/api/stats"],
@@ -121,7 +131,10 @@ export default function Dashboard() {
           </div>
           <div className="flex items-center space-x-3">
             <Button 
-              onClick={() => setIsUploadModalOpen(true)}
+              onClick={() => {
+                setPreloadedFiles([]); // Clear any preloaded files
+                setIsUploadModalOpen(true);
+              }}
               className="bg-blue-600 hover:bg-blue-700"
             >
               <UploadIcon className="w-4 h-4 mr-2" />
@@ -257,7 +270,16 @@ export default function Dashboard() {
           <div className="lg:col-span-1">
             <CompactDropzone 
               onFilesSelected={(files) => {
-                // Convert files to the format expected by UnifiedUpload and open modal
+                // Convert files to UploadFile format
+                const uploadFiles: UploadFile[] = files.map(file => ({
+                  id: Math.random().toString(36).substr(2, 9),
+                  file,
+                  status: 'pending' as const,
+                  progress: 0,
+                }));
+                
+                // Set preloaded files and open modal
+                setPreloadedFiles(uploadFiles);
                 setIsUploadModalOpen(true);
               }}
             />
@@ -407,7 +429,14 @@ export default function Dashboard() {
 
       <UnifiedUpload 
         open={isUploadModalOpen} 
-        onOpenChange={setIsUploadModalOpen} 
+        onOpenChange={(open) => {
+          setIsUploadModalOpen(open);
+          // Clear preloaded files when modal closes
+          if (!open) {
+            setPreloadedFiles([]);
+          }
+        }}
+        preloadedFiles={preloadedFiles.length > 0 ? preloadedFiles : undefined}
       />
 
       {selectedPhoto && (
