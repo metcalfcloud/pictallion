@@ -15,7 +15,7 @@ import { burstPhotoService } from "./services/burstPhotoDetection";
 import { generateSilverFilename } from "./services/aiNaming";
 import { eventDetectionService } from "./services/eventDetection";
 import { insertMediaAssetSchema, insertFileVersionSchema, insertAssetHistorySchema } from "@shared/schema";
-import { sql } from "@vercel/postgres";
+import { sql } from "drizzle-orm";
 import { db } from "./db";
 
 // Helper function to extract photo date from metadata or filename

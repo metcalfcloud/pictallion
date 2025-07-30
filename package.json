@@ -56,6 +56,7 @@
     "@tanstack/react-query-devtools": "^5.83.0",
     "@tensorflow/tfjs-node": "^4.22.0",
     "@types/multer": "^2.0.0",
+    "@vercel/postgres": "^0.10.0",
     "@vladmandic/face-api": "^1.7.15",
     "better-sqlite3": "^12.2.0",
     "class-variance-authority": "^0.7.1",
