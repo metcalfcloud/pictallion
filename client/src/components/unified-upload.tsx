@@ -464,6 +464,12 @@ const resolveMutation = {
     const hasCompleted = uploadFiles.some(f => ['success', 'error', 'conflict', 'skipped'].includes(f.status));
     const hasPending = uploadFiles.some(f => f.status === 'pending');
     const isUploading = uploadFiles.some(f => f.status === 'uploading');
+    const hasConflicts = uploadFiles.some(f => f.status === 'conflict');
+    
+    // Don't show action buttons if there are no files and no actions to take
+    if (uploadFiles.length === 0) {
+      return null;
+    }
     
     return (
       <div className="flex justify-end space-x-3 pt-4 border-t">
@@ -479,14 +485,14 @@ const resolveMutation = {
           <Button onClick={clearCompletedFiles}>
             Done
           </Button>
-        ) : (
-          <Button variant="outline" onClick={mode === 'modal' ? closeModal : () => {}}>
-            {mode === 'modal' ? 'Close' : 'Ready'}
+        ) : mode === 'modal' ? (
+          <Button variant="outline" onClick={closeModal}>
+            Close
           </Button>
-        )}
+        ) : null}
         
         {/* Secondary actions */}
-        {uploadFiles.some(f => f.status === 'conflict') && (
+        {hasConflicts && (
           <Button 
             onClick={() => setShowConflicts(true)}
             variant="outline"
