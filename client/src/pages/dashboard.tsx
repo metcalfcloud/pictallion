@@ -21,6 +21,7 @@ import {
 import { Link } from "wouter";
 import { useState } from "react";
 import { UnifiedUpload } from "@/components/unified-upload";
+import { CompactDropzone } from "@/components/compact-dropzone";
 import PhotoDetailModal from "@/components/photo-detail-modal";
 import { ProcessingStateBadge, getProcessingState } from "@/components/ui/processing-state-badge";
 
@@ -194,59 +195,74 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* Processing Pipeline */}
-        <Card className="mb-8">
-          <CardContent className="p-6">
-            <h3 className="text-lg font-semibold text-card-foreground mb-4">Processing Pipeline</h3>
-            <div className="flex items-center justify-between">
-              {/* Upload Staging */}
-              <div className="flex-1 text-center">
-                <div className="w-16 h-16 bg-orange-100 dark:bg-orange-900/20 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <Camera className="text-orange-600 dark:text-orange-400 text-2xl" />
+        {/* Processing Pipeline & Upload Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          {/* Processing Pipeline */}
+          <div className="lg:col-span-2">
+            <Card className="h-full">
+              <CardContent className="p-6">
+                <h3 className="text-lg font-semibold text-card-foreground mb-4">Processing Pipeline</h3>
+                <div className="flex items-center justify-between">
+                  {/* Upload Staging */}
+                  <div className="flex-1 text-center">
+                    <div className="w-16 h-16 bg-orange-100 dark:bg-orange-900/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <Camera className="text-orange-600 dark:text-orange-400 text-2xl" />
+                    </div>
+                    <h4 className="font-medium text-card-foreground">Upload Staging</h4>
+                    <p className="text-2xl font-bold text-orange-600 dark:text-orange-400 mt-1">
+                      Temporary
+                    </p>
+                    <p className="text-sm text-muted-foreground">Processing to Silver</p>
+                  </div>
+
+                  {/* Arrow */}
+                  <div className="px-4">
+                    <ArrowRight className="text-muted-foreground text-xl" />
+                  </div>
+
+                  {/* Silver Tier */}
+                  <div className="flex-1 text-center">
+                    <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <WandSparkles className="text-muted-foreground dark:text-gray-300 text-2xl" />
+                    </div>
+                    <h4 className="font-medium text-card-foreground">Silver Tier</h4>
+                    <p className="text-2xl font-bold text-muted-foreground dark:text-gray-300 mt-1">
+                      {statsLoading ? "..." : stats?.silverCount || 0}
+                    </p>
+                    <p className="text-sm text-muted-foreground">AI processed</p>
+                  </div>
+
+                  {/* Arrow */}
+                  <div className="px-4">
+                    <ArrowRight className="text-muted-foreground text-xl" />
+                  </div>
+
+                  {/* Gold Tier */}
+                  <div className="flex-1 text-center">
+                    <div className="w-16 h-16 bg-yellow-100 dark:bg-yellow-900/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <Star className="text-yellow-600 dark:text-yellow-400 text-2xl" />
+                    </div>
+                    <h4 className="font-medium text-card-foreground">Gold Tier</h4>
+                    <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400 mt-1">
+                      {statsLoading ? "..." : stats?.goldCount || 0}
+                    </p>
+                    <p className="text-sm text-muted-foreground">Curated</p>
+                  </div>
                 </div>
-                <h4 className="font-medium text-card-foreground">Upload Staging</h4>
-                <p className="text-2xl font-bold text-orange-600 dark:text-orange-400 mt-1">
-                  Temporary
-                </p>
-                <p className="text-sm text-muted-foreground">Processing to Silver</p>
-              </div>
+              </CardContent>
+            </Card>
+          </div>
 
-              {/* Arrow */}
-              <div className="px-4">
-                <ArrowRight className="text-muted-foreground text-xl" />
-              </div>
-
-              {/* Silver Tier */}
-              <div className="flex-1 text-center">
-                <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <WandSparkles className="text-muted-foreground dark:text-gray-300 text-2xl" />
-                </div>
-                <h4 className="font-medium text-card-foreground">Silver Tier</h4>
-                <p className="text-2xl font-bold text-muted-foreground dark:text-gray-300 mt-1">
-                  {statsLoading ? "..." : stats?.silverCount || 0}
-                </p>
-                <p className="text-sm text-muted-foreground">AI processed</p>
-              </div>
-
-              {/* Arrow */}
-              <div className="px-4">
-                <ArrowRight className="text-muted-foreground text-xl" />
-              </div>
-
-              {/* Gold Tier */}
-              <div className="flex-1 text-center">
-                <div className="w-16 h-16 bg-yellow-100 dark:bg-yellow-900/20 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <Star className="text-yellow-600 dark:text-yellow-400 text-2xl" />
-                </div>
-                <h4 className="font-medium text-card-foreground">Gold Tier</h4>
-                <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400 mt-1">
-                  {statsLoading ? "..." : stats?.goldCount || 0}
-                </p>
-                <p className="text-sm text-muted-foreground">Curated</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+          {/* Compact Dropzone */}
+          <div className="lg:col-span-1">
+            <CompactDropzone 
+              onFilesSelected={(files) => {
+                // Convert files to the format expected by UnifiedUpload and open modal
+                setIsUploadModalOpen(true);
+              }}
+            />
+          </div>
+        </div>
 
         {/* Recent Activity & Quick Actions */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
@@ -305,24 +321,7 @@ export default function Dashboard() {
                   </Button>
                 )}
 
-                {(stats?.pendingReviewCount ?? 0) > 0 && (
-                  <Button
-                    variant="outline"
-                    className="flex items-center justify-between p-4 h-auto border border-yellow-200 dark:border-yellow-800 hover:border-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-950"
-                    asChild
-                  >
-                    <Link href="/gallery?tier=silver">
-                      <div className="flex items-center">
-                        <Eye className="h-5 w-5 mr-3 text-yellow-600" />
-                        <div className="text-left">
-                          <div className="font-medium">Review {(stats?.pendingReviewCount ?? 0)} processed photos</div>
-                          <div className="text-sm text-muted-foreground">Verify AI results and curate</div>
-                        </div>
-                      </div>
-                      <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                    </Link>
-                  </Button>
-                )}
+
 
                 <Button
                   variant="outline"
