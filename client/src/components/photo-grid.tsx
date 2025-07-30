@@ -170,6 +170,23 @@ export default function PhotoGrid({
                 <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-200" />
               </div>
               
+              {/* Tier-colored Push Pin */}
+              <div className={cn(
+                "absolute -top-2 -right-2 w-4 h-4 rounded-full shadow-lg transform rotate-12",
+                photo.tier === 'bronze' && "bg-orange-500",
+                photo.tier === 'silver' && "bg-slate-500",
+                photo.tier === 'gold' && "bg-yellow-500"
+              )}>
+                <div className="absolute inset-0.5 bg-white rounded-full">
+                  <div className={cn(
+                    "absolute inset-1 rounded-full",
+                    photo.tier === 'bronze' && "bg-orange-400",
+                    photo.tier === 'silver' && "bg-slate-400",
+                    photo.tier === 'gold' && "bg-yellow-400"
+                  )} />
+                </div>
+              </div>
+              
               {/* Review Badge */}
               {needsReview(photo) && (
                 <div className="absolute top-2 right-2">
