@@ -115,13 +115,53 @@ export function applyNamingPattern(pattern: string, context: NamingContext): str
   
   // Extract date components from EXIF (prioritize dateTimeOriginal) or use current date
   let date = new Date();
+  
+  // Debug: Log the EXIF metadata to understand its structure
+  console.log('EXIF metadata in naming:', JSON.stringify(context.exifMetadata, null, 2));
+  
   if (context.exifMetadata?.dateTimeOriginal) {
-    date = new Date(context.exifMetadata.dateTimeOriginal);
+    const parsedDate = new Date(context.exifMetadata.dateTimeOriginal);
+    if (!isNaN(parsedDate.getTime())) {
+      date = parsedDate;
+      console.log('Using EXIF dateTimeOriginal for naming:', date.toISOString());
+    }
   } else if (context.exifMetadata?.createDate) {
-    date = new Date(context.exifMetadata.createDate);
+    const parsedDate = new Date(context.exifMetadata.createDate);
+    if (!isNaN(parsedDate.getTime())) {
+      date = parsedDate;
+      console.log('Using EXIF createDate for naming:', date.toISOString());
+    }
   } else if (context.exifMetadata?.dateTime) {
-    date = new Date(context.exifMetadata.dateTime);
+    const parsedDate = new Date(context.exifMetadata.dateTime);
+    if (!isNaN(parsedDate.getTime())) {
+      date = parsedDate;
+      console.log('Using EXIF dateTime for naming:', date.toISOString());
+    }
   }
+  
+  // If no valid EXIF date found, try to extract from filename
+  if (date.getTime() === new Date().getTime()) {
+    const filename = context.originalFilename;
+    const timestampMatch = filename.match(/^(\d{8})_(\d{6})/);
+    if (timestampMatch) {
+      const dateStr = timestampMatch[1]; // YYYYMMDD
+      const timeStr = timestampMatch[2]; // HHMMSS
+      const year = parseInt(dateStr.substring(0, 4));
+      const month = parseInt(dateStr.substring(4, 6)) - 1; // Month is 0-indexed
+      const day = parseInt(dateStr.substring(6, 8));
+      const hour = parseInt(timeStr.substring(0, 2));
+      const minute = parseInt(timeStr.substring(2, 4));
+      const second = parseInt(timeStr.substring(4, 6));
+
+      const extractedDate = new Date(year, month, day, hour, minute, second);
+      if (!isNaN(extractedDate.getTime())) {
+        date = extractedDate;
+        console.log('Using filename timestamp for naming:', date.toISOString());
+      }
+    }
+  }
+  
+  console.log('Final date used for naming pattern:', date.toISOString());
   
   // Replace date/time placeholders
   filename = filename.replace('{year}', date.getFullYear().toString());
