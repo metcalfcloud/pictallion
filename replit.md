@@ -32,7 +32,7 @@ Deployment preference: Wants to package and distribute the app for easy installa
 - `/client` - React frontend application
 - `/server` - Express.js backend API
 - `/shared` - Shared TypeScript schemas and types
-- `/data/media` - Media storage directories (Bronze/Silver/Gold tiers)
+- `/data/media` - Media storage directories (Silver/Gold tiers organized by date)
 
 ## Key Components
 
@@ -40,13 +40,13 @@ Deployment preference: Wants to package and distribute the app for easy installa
 The application uses a relational database with four main tables:
 - **users**: User authentication and management
 - **mediaAssets**: Core media asset records with original filenames
-- **fileVersions**: Different processing tiers of each asset (Bronze/Silver/Gold)
+- **fileVersions**: Processing tiers of each asset (Silver/Gold only)
 - **assetHistory**: Audit trail of all asset operations
 
 ### Tiered Processing System
-1. **Bronze Tier**: Raw ingested media with basic metadata stored in batch folders
-2. **Silver Tier**: AI-processed media with enriched metadata organized by date
-3. **Gold Tier**: Curated, finalized media with embedded metadata
+1. **Upload Staging**: Temporary upload area for incoming files (not tracked in database)
+2. **Silver Tier**: AI-processed media with enriched metadata organized by date (first immutable tier)
+3. **Gold Tier**: Curated, finalized media with embedded metadata and human review
 
 ### AI Processing Pipeline
 - **Image Analysis**: OpenAI Vision API for comprehensive image understanding
@@ -60,30 +60,29 @@ The application uses a relational database with four main tables:
 - **Age Calculation**: Smart age calculation for birthday events based on photo date vs. birthdate
 
 ### File Management
-- **Directory Structure**: Automated creation of required media directories
-- **Batch Organization**: Bronze tier files organized in dated batches (max 500 files)
+- **Directory Structure**: Automated creation of Silver and Gold tier directories organized by date
+- **Direct Processing**: Files processed directly from upload to Silver tier with AI analysis
 - **Duplicate Detection**: Handled during ingestion to prevent duplicates from entering the system
 - **Burst Photo Grouping**: 95%+ similarity detection within ±1 minute time windows
 - **File Validation**: MIME type checking and size limits (50MB)
 
 ### User Interface
-- **Dashboard**: Overview with statistics and recent activity
+- **Dashboard**: Overview with Silver/Gold statistics and recent activity
 - **Gallery**: Grid/list view with filtering by tier and search capabilities
-- **Upload**: Consolidated upload system with drag-and-drop interface, progress tracking, and advanced conflict resolution
+- **Upload**: Consolidated upload system with direct-to-Silver processing, drag-and-drop interface, progress tracking, and advanced conflict resolution
 - **Burst Photos**: Intelligent grouping and selection interface for burst sequences
 - **People**: Face detection and person management
-
 - **Photo Detail Modal**: Comprehensive metadata display, editing, and event detection
 - **Events Page**: Browse photos by detected events and celebrations
 - **Event Settings**: Configure holiday detection for different countries
 
 ## Data Flow
 
-1. **Media Ingestion**: Files uploaded via dropzone → temporary storage → Bronze tier
-2. **Burst Analysis**: Bronze tier photos analyzed for burst sequences (95%+ similarity within ±1 minute)
-3. **AI Processing**: Selected Bronze photos → Silver tier with AI analysis and metadata enrichment
+1. **Media Ingestion**: Files uploaded via dropzone → temporary staging → direct processing to Silver tier with AI analysis
+2. **Burst Analysis**: Silver tier photos analyzed for burst sequences (95%+ similarity within ±1 minute)
+3. **AI Processing**: Automatic AI analysis during Silver tier creation with metadata enrichment
 4. **Human Review**: Silver tier metadata validation and editing
-5. **Final Curation**: Silver → Gold tier for finalized media
+5. **Final Curation**: Silver → Gold tier for finalized media with embedded metadata
 
 
 ## Recent Changes
