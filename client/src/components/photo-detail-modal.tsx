@@ -186,15 +186,36 @@ export default function PhotoDetailModal({
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // Extract photo date from EXIF or filename
+  // Extract photo date for event detection
   const extractPhotoDate = (photo: Photo): string | null => {
     try {
-      // First try EXIF datetime fields
-      if (photo.metadata?.exif?.dateTime) {
-        return new Date(photo.metadata.exif.dateTime).toISOString().split('T')[0];
-      }
-      if (photo.metadata?.exif?.dateTimeOriginal) {
-        return new Date(photo.metadata.exif.dateTimeOriginal).toISOString().split('T')[0];
+      // First try EXIF datetime fields with validation
+      if (photo.metadata?.exif) {
+        const exif = photo.metadata.exif;
+
+        // Try DateTimeOriginal first (most accurate)
+        if (exif.dateTimeOriginal) {
+          const date = new Date(exif.dateTimeOriginal);
+          if (!isNaN(date.getTime()) && date.getFullYear() > 1900) {
+            return date.toISOString().split('T')[0];
+          }
+        }
+
+        // Try CreateDate
+        if (exif.createDate) {
+          const date = new Date(exif.createDate);
+          if (!isNaN(date.getTime()) && date.getFullYear() > 1900) {
+            return date.toISOString().split('T')[0];
+          }
+        }
+
+        // Try DateTime
+        if (exif.dateTime) {
+          const date = new Date(exif.dateTime);
+          if (!isNaN(date.getTime()) && date.getFullYear() > 1900) {
+            return date.toISOString().split('T')[0];
+          }
+        }
       }
 
       // Try to extract from filename if it has timestamp format (YYYYMMDD_HHMMSS)
@@ -207,7 +228,7 @@ export default function PhotoDetailModal({
         const day = parseInt(dateStr.substring(6, 8));
 
         const extractedDate = new Date(year, month, day);
-        if (!isNaN(extractedDate.getTime())) {
+        if (!isNaN(extractedDate.getTime()) && extractedDate.getFullYear() > 1900) {
           return extractedDate.toISOString().split('T')[0];
         }
       }
@@ -828,7 +849,7 @@ export default function PhotoDetailModal({
                                   </div>
                                   {event.age !== undefined && (
                                     <div className="text-xs text-muted-foreground mt-1">
-                                      Age: {event.age} years old
+                                      Age: {event.age}                                      years old
                                     </div>
                                   )}
                                 </div>
