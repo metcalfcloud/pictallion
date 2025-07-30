@@ -235,54 +235,60 @@ export default function PhotoDetailModal({
 
           {/* Metadata Panel with Pinned Polaroid Photo */}
           <div className="flex-1 bg-card dark:bg-gray-900 flex flex-col">
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {/* Pinned Polaroid Photo */}
-              <div className="flex justify-center">
-                <div className="relative">
-                  <div 
-                    className="bg-white p-2 pb-4 shadow-lg transform rotate-3 hover:rotate-0 transition-transform duration-200 cursor-pointer relative"
-                    onClick={() => setIsImageFullscreen(true)}
-                  >
-                    <img 
-                      src={`/api/files/${photo.filePath}`}
-                      alt={photo.mediaAsset?.originalFilename || 'Photo'}
-                      className="w-32 h-32 object-cover"
-                      onError={(e) => {
-                        e.currentTarget.src = '/placeholder-image.svg';
-                      }}
-                    />
-                    {/* Push Pin */}
-                    <div className="absolute -top-1 -left-1 w-3 h-3 bg-red-500 rounded-full shadow-sm border border-red-600"></div>
+            <div className="flex-1 overflow-y-auto p-4">
+              {/* Top Section: Photo on left, Description & Tags on right */}
+              <div className="flex gap-4 mb-4">
+                {/* Pinned Polaroid Photo - Far Left */}
+                <div className="flex-shrink-0">
+                  <div className="relative">
+                    <div 
+                      className="bg-white p-2 pb-4 shadow-lg transform rotate-3 hover:rotate-0 transition-transform duration-200 cursor-pointer relative"
+                      onClick={() => setIsImageFullscreen(true)}
+                    >
+                      <img 
+                        src={`/api/files/${photo.filePath}`}
+                        alt={photo.mediaAsset?.originalFilename || 'Photo'}
+                        className="w-32 h-32 object-cover"
+                        onError={(e) => {
+                          e.currentTarget.src = '/placeholder-image.svg';
+                        }}
+                      />
+                      {/* Push Pin */}
+                      <div className="absolute -top-1 -left-1 w-3 h-3 bg-red-500 rounded-full shadow-sm border border-red-600"></div>
+                    </div>
                   </div>
+                </div>
+
+                {/* Description & Tags - Fill right space */}
+                <div className="flex-1 space-y-3">
+                  {/* AI Description */}
+                  {photo.metadata?.ai?.longDescription && (
+                    <div>
+                      <h4 className="text-sm font-semibold text-card-foreground mb-2">Description</h4>
+                      <p className="text-sm text-muted-foreground">
+                        {photo.metadata.ai.longDescription}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* AI Tags */}
+                  {photo.metadata?.ai?.aiTags && (
+                    <div>
+                      <h4 className="text-sm font-semibold text-card-foreground mb-2">AI Generated Tags</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {photo.metadata.ai.aiTags.map((tag: string, index: number) => (
+                          <span 
+                            key={index} 
+                            className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
-
-              {/* AI Description */}
-              {photo.metadata?.ai?.longDescription && (
-                <div>
-                  <h4 className="text-sm font-semibold text-card-foreground mb-2">Description</h4>
-                  <p className="text-sm text-muted-foreground">
-                    {photo.metadata.ai.longDescription}
-                  </p>
-                </div>
-              )}
-
-              {/* AI Tags */}
-              {photo.metadata?.ai?.aiTags && (
-                <div>
-                  <h4 className="text-sm font-semibold text-card-foreground mb-2">AI Generated Tags</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {photo.metadata.ai.aiTags.map((tag: string, index: number) => (
-                      <span 
-                        key={index} 
-                        className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               {/* Two Column Metadata Layout */}
               <div className="grid grid-cols-2 gap-4 text-sm">
