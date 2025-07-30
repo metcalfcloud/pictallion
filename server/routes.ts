@@ -1472,7 +1472,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           { tier: 'Silver', count: stats.silverCount, percentage: Math.round((stats.silverCount / stats.totalPhotos) * 100) || 0 },
           { tier: 'Gold', count: stats.goldCount, percentage: Math.round((stats.goldCount / stats.totalPhotos) * 100) || 0 },
         ],
-        pendingReview: stats.pendingReviewCount,
+
         topTags: [
           { tag: 'landscape', count: 15 },
           { tag: 'portrait', count: 12 },

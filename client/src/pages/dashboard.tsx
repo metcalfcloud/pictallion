@@ -28,7 +28,6 @@ interface Stats {
   totalPhotos: number;
   silverCount: number;
   goldCount: number;
-  pendingReviewCount: number;
 }
 
 interface Activity {
@@ -134,7 +133,7 @@ export default function Dashboard() {
       {/* Content */}
       <div className="flex-1 p-6 overflow-y-auto bg-background">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -173,24 +172,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Pending Review</p>
-                  <p className="text-3xl font-bold text-card-foreground mt-1">
-                    {statsLoading ? "..." : stats?.pendingReviewCount || 0}
-                  </p>
-                  <p className="text-sm text-yellow-600 dark:text-yellow-400 mt-1">
-                    <Clock className="inline w-4 h-4" /> Needs attention
-                  </p>
-                </div>
-                <div className="w-12 h-12 bg-yellow-100 dark:bg-yellow-900/20 rounded-lg flex items-center justify-center">
-                  <Eye className="text-yellow-600 dark:text-yellow-400 text-xl" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+
 
           <Card>
             <CardContent className="p-6">

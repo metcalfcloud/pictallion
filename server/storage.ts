@@ -65,7 +65,6 @@ export interface IStorage {
     totalPhotos: number;
     silverCount: number;
     goldCount: number;
-    pendingReviewCount: number;
   }>;
 
   // Recent activity
@@ -245,15 +244,10 @@ export class DatabaseStorage implements IStorage {
     const goldResult = await db.select({ count: count() }).from(fileVersions).where(eq(fileVersions.tier, "gold"));
     const goldCount = goldResult[0]?.count || 0;
 
-    const pendingReviewResult = await db.select({ count: count() }).from(fileVersions)
-      .where(and(eq(fileVersions.tier, "silver"), eq(fileVersions.isReviewed, false)));
-    const pendingReviewCount = pendingReviewResult[0]?.count || 0;
-
     return {
       totalPhotos,
       silverCount,
       goldCount,
-      pendingReviewCount,
     };
   }
 
