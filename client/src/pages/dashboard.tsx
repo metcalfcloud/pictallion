@@ -15,7 +15,8 @@ import {
   Clock,
   CheckCircle,
   ArrowRight,
-  Heart
+  Heart,
+  Sparkles
 } from "lucide-react";
 import { Link } from "wouter";
 import { useState } from "react";
@@ -27,7 +28,6 @@ interface Stats {
   totalPhotos: number;
   silverCount: number;
   goldCount: number;
-  aiProcessedCount: number;
   pendingReviewCount: number;
 }
 
@@ -144,7 +144,7 @@ export default function Dashboard() {
                     {statsLoading ? "..." : stats?.totalPhotos || 0}
                   </p>
                   <p className="text-sm text-green-600 dark:text-green-400 mt-1">
-                    <TrendingUp className="inline w-4 h-4" /> Collection growing
+                    <TrendingUp className="inline w-4 h-4" /> Unique assets
                   </p>
                 </div>
                 <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center">
@@ -158,16 +158,16 @@ export default function Dashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">AI Processed</p>
+                  <p className="text-sm font-medium text-muted-foreground">Silver Tier</p>
                   <p className="text-3xl font-bold text-card-foreground mt-1">
-                    {statsLoading ? "..." : stats?.aiProcessedCount || 0}
+                    {statsLoading ? "..." : stats?.silverCount || 0}
                   </p>
                   <p className="text-sm text-green-600 dark:text-green-400 mt-1">
-                    <Bot className="inline w-4 h-4" /> Processing active
+                    <Sparkles className="inline w-4 h-4" /> AI processed
                   </p>
                 </div>
                 <div className="w-12 h-12 bg-green-100 dark:bg-green-900/20 rounded-lg flex items-center justify-center">
-                  <Bot className="text-green-600 dark:text-green-400 text-xl" />
+                  <Sparkles className="text-green-600 dark:text-green-400 text-xl" />
                 </div>
               </div>
             </CardContent>
@@ -217,16 +217,16 @@ export default function Dashboard() {
           <CardContent className="p-6">
             <h3 className="text-lg font-semibold text-card-foreground mb-4">Processing Pipeline</h3>
             <div className="flex items-center justify-between">
-              {/* Bronze Tier */}
+              {/* Upload Staging */}
               <div className="flex-1 text-center">
                 <div className="w-16 h-16 bg-orange-100 dark:bg-orange-900/20 rounded-full flex items-center justify-center mx-auto mb-3">
                   <Camera className="text-orange-600 dark:text-orange-400 text-2xl" />
                 </div>
-                <h4 className="font-medium text-card-foreground">Bronze Tier</h4>
+                <h4 className="font-medium text-card-foreground">Upload Staging</h4>
                 <p className="text-2xl font-bold text-orange-600 dark:text-orange-400 mt-1">
-                  Upload Area
+                  Temporary
                 </p>
-                <p className="text-sm text-muted-foreground">Temp staging</p>
+                <p className="text-sm text-muted-foreground">Processing to Silver</p>
               </div>
 
               {/* Arrow */}

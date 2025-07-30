@@ -65,7 +65,6 @@ export interface IStorage {
     totalPhotos: number;
     silverCount: number;
     goldCount: number;
-    aiProcessedCount: number;
     pendingReviewCount: number;
   }>;
 
@@ -236,7 +235,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCollectionStats() {
-    const totalPhotosResult = await db.select({ count: count() }).from(fileVersions);
+    // Total unique photos = count of unique media assets (not file versions)
+    const totalPhotosResult = await db.select({ count: count() }).from(mediaAssets);
     const totalPhotos = totalPhotosResult[0]?.count || 0;
 
     const silverResult = await db.select({ count: count() }).from(fileVersions).where(eq(fileVersions.tier, "silver"));
@@ -244,10 +244,6 @@ export class DatabaseStorage implements IStorage {
 
     const goldResult = await db.select({ count: count() }).from(fileVersions).where(eq(fileVersions.tier, "gold"));
     const goldCount = goldResult[0]?.count || 0;
-
-    const aiProcessedResult = await db.select({ count: count() }).from(fileVersions)
-      .where(sql`metadata->>'ai' IS NOT NULL`);
-    const aiProcessedCount = aiProcessedResult[0]?.count || 0;
 
     const pendingReviewResult = await db.select({ count: count() }).from(fileVersions)
       .where(and(eq(fileVersions.tier, "silver"), eq(fileVersions.isReviewed, false)));
@@ -257,7 +253,6 @@ export class DatabaseStorage implements IStorage {
       totalPhotos,
       silverCount,
       goldCount,
-      aiProcessedCount,
       pendingReviewCount,
     };
   }
