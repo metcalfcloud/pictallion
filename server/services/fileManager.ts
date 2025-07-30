@@ -34,44 +34,57 @@ class FileManager {
     
     // Extract EXIF metadata to determine camera/device and photo date
     let cameraInfo = null;
-    let photoDate = new Date(); // fallback to current date
+    let photoDate: Date | null = null;
     
     try {
       if (path.extname(originalFilename).toLowerCase().match(/\.(jpg|jpeg|tiff)$/)) {
         const exifData = await this.extractExifData(tempPath);
         cameraInfo = exifData.camera;
         
+        console.log(`EXIF data for ${originalFilename}:`, {
+          dateTimeOriginal: exifData.dateTimeOriginal,
+          createDate: exifData.createDate,
+          dateTime: exifData.dateTime
+        });
+        
         // Use photo's actual date from EXIF (prioritize DateTimeOriginal)
         if (exifData.dateTimeOriginal) {
-          const parsedDate = new Date(exifData.dateTimeOriginal);
-          if (!isNaN(parsedDate.getTime())) {
-            photoDate = parsedDate;
+          photoDate = this.parseExifDate(exifData.dateTimeOriginal);
+          if (photoDate) {
             console.log(`Using photo date from EXIF DateTimeOriginal: ${photoDate.toISOString()}`);
           }
-        } else if (exifData.createDate) {
-          const parsedDate = new Date(exifData.createDate);
-          if (!isNaN(parsedDate.getTime())) {
-            photoDate = parsedDate;
+        }
+        
+        if (!photoDate && exifData.createDate) {
+          photoDate = this.parseExifDate(exifData.createDate);
+          if (photoDate) {
             console.log(`Using photo date from EXIF CreateDate: ${photoDate.toISOString()}`);
           }
-        } else if (exifData.dateTime) {
-          const parsedDate = new Date(exifData.dateTime);
-          if (!isNaN(parsedDate.getTime())) {
-            photoDate = parsedDate;
+        }
+        
+        if (!photoDate && exifData.dateTime) {
+          photoDate = this.parseExifDate(exifData.dateTime);
+          if (photoDate) {
             console.log(`Using photo date from EXIF DateTime: ${photoDate.toISOString()}`);
           }
-        } else {
-          console.log(`No EXIF date found for ${originalFilename}, using current date`);
         }
       }
     } catch (error) {
-      console.log(`Could not extract EXIF data for ${originalFilename}, using current date`);
+      console.log(`Could not extract EXIF data for ${originalFilename}:`, error);
     }
     
-    // Ensure we have a valid date
-    if (isNaN(photoDate.getTime())) {
+    // Try to extract from filename if no EXIF date found
+    if (!photoDate) {
+      photoDate = this.extractDateFromFilename(originalFilename);
+      if (photoDate) {
+        console.log(`Using date extracted from filename: ${photoDate.toISOString()}`);
+      }
+    }
+    
+    // Fall back to current date only if no date could be extracted
+    if (!photoDate) {
       photoDate = new Date();
-      console.log(`Invalid date detected, using current date: ${photoDate.toISOString()}`);
+      console.log(`No date found in EXIF or filename, using current date: ${photoDate.toISOString()}`);
     }
 
     // Create hierarchical directory structure using photo's actual date
@@ -295,6 +308,51 @@ class FileManager {
     let dd = dms[0] + dms[1]/60 + dms[2]/3600;
     if (ref === "S" || ref === "W") dd = dd * -1;
     return dd;
+  }
+
+  private parseExifDate(dateStr: string): Date | null {
+    if (!dateStr) return null;
+    
+    try {
+      // EXIF dates are typically in format "YYYY:MM:DD HH:MM:SS"
+      // Convert to ISO format for parsing
+      const normalizedDate = dateStr.replace(/(\d{4}):(\d{2}):(\d{2})/, '$1-$2-$3');
+      const parsedDate = new Date(normalizedDate);
+      
+      if (!isNaN(parsedDate.getTime()) && parsedDate.getFullYear() > 1900 && parsedDate.getFullYear() < 2100) {
+        return parsedDate;
+      }
+    } catch (error) {
+      // Ignore parsing errors
+    }
+    
+    return null;
+  }
+
+  private extractDateFromFilename(filename: string): Date | null {
+    try {
+      // Try to extract from filename if it has timestamp format (YYYYMMDD_HHMMSS)
+      const timestampMatch = filename.match(/^(\d{8})_(\d{6})/);
+      if (timestampMatch) {
+        const dateStr = timestampMatch[1]; // YYYYMMDD
+        const timeStr = timestampMatch[2]; // HHMMSS
+        const year = parseInt(dateStr.substring(0, 4));
+        const month = parseInt(dateStr.substring(4, 6)) - 1; // Month is 0-indexed
+        const day = parseInt(dateStr.substring(6, 8));
+        const hour = parseInt(timeStr.substring(0, 2));
+        const minute = parseInt(timeStr.substring(2, 4));
+        const second = parseInt(timeStr.substring(4, 6));
+
+        const extractedDate = new Date(year, month, day, hour, minute, second);
+        if (!isNaN(extractedDate.getTime()) && extractedDate.getFullYear() > 1900) {
+          return extractedDate;
+        }
+      }
+    } catch (error) {
+      // Ignore parsing errors
+    }
+    
+    return null;
   }
 
   getFileUrl(relativePath: string): string {
