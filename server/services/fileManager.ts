@@ -32,22 +32,37 @@ class FileManager {
   async moveToBronze(tempPath: string, originalFilename: string): Promise<string> {
     console.log(`Moving file to Bronze: ${originalFilename} from ${tempPath}`);
     
-    // Extract basic metadata to determine camera/device
+    // Extract EXIF metadata to determine camera/device and photo date
     let cameraInfo = null;
+    let photoDate = new Date(); // fallback to current date
+    
     try {
       if (path.extname(originalFilename).toLowerCase().match(/\.(jpg|jpeg|tiff)$/)) {
         const exifData = await this.extractExifData(tempPath);
         cameraInfo = exifData.camera;
+        
+        // Use photo's actual date from EXIF (prioritize DateTimeOriginal)
+        if (exifData.dateTimeOriginal) {
+          photoDate = new Date(exifData.dateTimeOriginal);
+          console.log(`Using photo date from EXIF DateTimeOriginal: ${photoDate.toISOString()}`);
+        } else if (exifData.createDate) {
+          photoDate = new Date(exifData.createDate);
+          console.log(`Using photo date from EXIF CreateDate: ${photoDate.toISOString()}`);
+        } else if (exifData.dateTime) {
+          photoDate = new Date(exifData.dateTime);
+          console.log(`Using photo date from EXIF DateTime: ${photoDate.toISOString()}`);
+        } else {
+          console.log(`No EXIF date found for ${originalFilename}, using current date`);
+        }
       }
     } catch (error) {
-      console.log(`Could not extract EXIF data for ${originalFilename}`);
+      console.log(`Could not extract EXIF data for ${originalFilename}, using current date`);
     }
 
-    // Create hierarchical directory structure
-    const date = new Date();
-    const year = date.getFullYear();
-    const monthNum = date.getMonth() + 1;
-    const monthName = date.toLocaleString('en-US', { month: 'long' });
+    // Create hierarchical directory structure using photo's actual date
+    const year = photoDate.getFullYear();
+    const monthNum = photoDate.getMonth() + 1;
+    const monthName = photoDate.toLocaleString('en-US', { month: 'long' });
     const monthFolder = `${String(monthNum).padStart(2, '0')}-${monthName}`;
     
     let deviceFolder = 'unknown_device';
@@ -56,7 +71,7 @@ class FileManager {
       deviceFolder = cameraInfo.replace(/[^a-zA-Z0-9\s-]/g, '').replace(/\s+/g, '_');
     }
     
-    const batchName = `batch_${year}-${String(monthNum).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    const batchName = `batch_${year}-${String(monthNum).padStart(2, '0')}-${String(photoDate.getDate()).padStart(2, '0')}`;
     
     // Create directory structure: bronze/YYYY/MM-Month/device/batch_YYYY-MM-DD/
     const batchDir = path.join(
