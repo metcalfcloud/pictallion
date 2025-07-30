@@ -59,8 +59,7 @@ export default function Gallery() {
   const bulkProcessMutation = useMutation({
     mutationFn: async ({ photoIds }: { photoIds: string[] }) => {
       const response = await apiRequest('POST', '/api/photos/batch-process', {
-        body: JSON.stringify({ photoIds }),
-        headers: { 'Content-Type': 'application/json' }
+        photoIds
       });
       return response.json();
     },
@@ -84,8 +83,7 @@ export default function Gallery() {
   const bulkPromoteMutation = useMutation({
     mutationFn: async ({ photoIds }: { photoIds: string[] }) => {
       const response = await apiRequest('POST', '/api/photos/batch-promote', {
-        body: JSON.stringify({ photoIds }),
-        headers: { 'Content-Type': 'application/json' }
+        photoIds
       });
       return response.json();
     },
