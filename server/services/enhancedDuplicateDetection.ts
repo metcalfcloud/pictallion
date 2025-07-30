@@ -543,7 +543,7 @@ export class EnhancedDuplicateDetectionService {
           };
 
         case 'replace_with_new':
-          // Replace the existing bronze file with new file
+          // Replace the existing silver file with new file
           return await this.replaceExistingFile(conflict);
 
         case 'keep_both':
@@ -569,9 +569,9 @@ export class EnhancedDuplicateDetectionService {
   private async replaceExistingFile(conflict: DuplicateConflict): Promise<{ success: boolean; message: string; assetId: string }> {
     const { fileManager } = await import("./fileManager.js");
 
-    // Only allow replacement if existing file is in bronze tier
-    if (conflict.existingPhoto.tier !== 'bronze') {
-      throw new Error('Can only replace files in Bronze tier');
+    // Only allow replacement if existing file is in silver tier
+    if (conflict.existingPhoto.tier !== 'silver') {
+      throw new Error('Can only replace files in Silver tier');
     }
 
     // Remove the old file
@@ -582,18 +582,18 @@ export class EnhancedDuplicateDetectionService {
       console.log('Old file already removed or not found');
     }
 
-    // Move new file to bronze tier
-    const bronzePath = await fileManager.moveToBronze(
+    // Process new file to silver tier
+    const silverPath = await fileManager.processToSilver(
       conflict.newFile.tempPath, 
       conflict.newFile.originalFilename
     );
 
     // Extract metadata from new file
-    const metadata = await fileManager.extractMetadata(bronzePath);
+    const metadata = await fileManager.extractMetadata(silverPath);
 
     // Update the existing file version with new file data
     await storage.updateFileVersion(conflict.existingPhoto.id, {
-      filePath: bronzePath,
+      filePath: silverPath,
       fileHash: conflict.newFile.fileHash,
       fileSize: conflict.newFile.fileSize,
       metadata,
@@ -716,34 +716,58 @@ export class EnhancedDuplicateDetectionService {
       originalFilename: conflict.newFile.originalFilename,
     });
 
-    // Move file to Bronze tier
-    const bronzePath = await fileManager.moveToBronze(
+    // Process file to Silver tier
+    const silverPath = await fileManager.processToSilver(
       conflict.newFile.tempPath, 
       conflict.newFile.originalFilename
     );
 
-    // Extract metadata
-    const metadata = await fileManager.extractMetadata(bronzePath);
+    // Extract metadata with AI processing
+    const metadata = await fileManager.extractMetadata(silverPath);
+    
+    // Add AI analysis for images
+    let aiMetadata = null;
+    let aiShortDescription = null;
+    const mimeType = path.extname(conflict.newFile.originalFilename).toLowerCase().includes('jpg') ? 'image/jpeg' : 
+                     path.extname(conflict.newFile.originalFilename).toLowerCase().includes('png') ? 'image/png' : 
+                     'image/jpeg';
+    
+    if (mimeType.startsWith('image/')) {
+      try {
+        const { aiService } = await import("./aiService");
+        aiMetadata = await aiService.analyzeImage(silverPath, "openai");
+        aiShortDescription = aiMetadata.shortDescription;
+      } catch (aiError) {
+        console.warn(`AI analysis failed for ${conflict.newFile.originalFilename}:`, aiError);
+      }
+    }
 
-    // Create Bronze file version
+    const combinedMetadata = {
+      ...metadata,
+      ai: aiMetadata,
+    };
+
+    // Create Silver file version
     const fileVersion = await storage.createFileVersion({
       mediaAssetId: mediaAsset.id,
-      tier: 'bronze',
-      filePath: bronzePath,
+      tier: 'silver',
+      filePath: silverPath,
       fileHash: conflict.newFile.fileHash,
       fileSize: conflict.newFile.fileSize,
       mimeType: path.extname(conflict.newFile.originalFilename).toLowerCase().includes('jpg') ? 'image/jpeg' : 
                 path.extname(conflict.newFile.originalFilename).toLowerCase().includes('png') ? 'image/png' : 
                 'image/jpeg', // default
-      metadata,
+      metadata: combinedMetadata as any,
       perceptualHash: conflict.newFile.perceptualHash,
+      aiShortDescription,
+      isReviewed: false,
     });
 
     // Log ingestion
     await storage.createAssetHistory({
       mediaAssetId: mediaAsset.id,
       action: 'INGESTED',
-      details: `File uploaded to Bronze tier (kept both versions): ${conflict.newFile.originalFilename}`,
+      details: `File uploaded to Silver tier with AI processing (kept both versions): ${conflict.newFile.originalFilename}`,
     });
 
     return {

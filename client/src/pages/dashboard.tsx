@@ -25,7 +25,6 @@ import { ProcessingStateBadge, getProcessingState } from "@/components/ui/proces
 
 interface Stats {
   totalPhotos: number;
-  bronzeCount: number;
   silverCount: number;
   goldCount: number;
   aiProcessedCount: number;
@@ -91,10 +90,8 @@ export default function Dashboard() {
 
   const getTierBadgeClass = (tier: string) => {
     switch (tier) {
-      case 'bronze':
-        return 'bg-orange-500 text-white';
       case 'silver':
-        return 'bg-background0 text-white';
+        return 'bg-blue-500 text-white';
       case 'gold':
         return 'bg-yellow-500 text-white';
       default:
@@ -227,9 +224,9 @@ export default function Dashboard() {
                 </div>
                 <h4 className="font-medium text-card-foreground">Bronze Tier</h4>
                 <p className="text-2xl font-bold text-orange-600 dark:text-orange-400 mt-1">
-                  {statsLoading ? "..." : stats?.bronzeCount || 0}
+                  Upload Area
                 </p>
-                <p className="text-sm text-muted-foreground">Raw uploads</p>
+                <p className="text-sm text-muted-foreground">Temp staging</p>
               </div>
 
               {/* Arrow */}
@@ -307,17 +304,17 @@ export default function Dashboard() {
             <CardContent className="p-6">
               <h3 className="text-lg font-semibold text-card-foreground mb-4">Quick Actions</h3>
               <div className="grid grid-cols-1 gap-3">
-                {(stats?.bronzeCount ?? 0) > 0 && (
+                {(stats?.silverCount ?? 0) > 0 && (
                   <Button
                     variant="outline"
                     className="flex items-center justify-between p-4 h-auto border border-green-200 dark:border-green-800 hover:border-green-400 hover:bg-green-50 dark:hover:bg-green-950"
                     asChild
                   >
-                    <Link href="/gallery?tier=bronze">
+                    <Link href="/gallery?tier=silver">
                       <div className="flex items-center">
                         <WandSparkles className="h-5 w-5 mr-3 text-green-600" />
                         <div className="text-left">
-                          <div className="font-medium">Process {(stats?.bronzeCount ?? 0)} new photos</div>
+                          <div className="font-medium">Review {(stats?.silverCount ?? 0)} Silver photos</div>
                           <div className="text-sm text-muted-foreground">Add AI tags and descriptions</div>
                         </div>
                       </div>

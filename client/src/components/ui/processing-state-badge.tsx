@@ -3,7 +3,7 @@ import { Check, Clock, ArrowUp, X } from "lucide-react";
 
 interface ProcessingStateBadgeProps {
   state: "unprocessed" | "processed" | "promoted" | "rejected";
-  tier: "bronze" | "silver" | "gold";
+  tier: "silver" | "gold";
   size?: "sm" | "md" | "lg";
 }
 
@@ -27,7 +27,7 @@ export function ProcessingStateBadge({ state, tier, size = "sm" }: ProcessingSta
       case "promoted":
         return {
           icon: ArrowUp,
-          label: `Promoted to ${tier === 'bronze' ? 'Silver' : 'Gold'}`,
+          label: `Promoted to Gold`,
           variant: "default" as const,
           className: "bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border-green-200 dark:border-green-800"
         };

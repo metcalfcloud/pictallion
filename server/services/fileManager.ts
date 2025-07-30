@@ -13,7 +13,6 @@ class FileManager {
       this.mediaDir,
       path.join(this.mediaDir, 'dropzone'),
       path.join(this.mediaDir, 'dropzone', 'duplicates'),
-      path.join(this.mediaDir, 'bronze'),
       path.join(this.mediaDir, 'silver'),
       path.join(this.mediaDir, 'gold'),
       path.join(this.mediaDir, 'archive'),
@@ -29,17 +28,15 @@ class FileManager {
     }
   }
 
-  async moveToBronze(tempPath: string, originalFilename: string): Promise<string> {
-    console.log(`Moving file to Bronze: ${originalFilename} from ${tempPath}`);
+  async processToSilver(tempPath: string, originalFilename: string): Promise<string> {
+    console.log(`Processing file directly to Silver: ${originalFilename} from ${tempPath}`);
     
-    // Extract EXIF metadata to determine camera/device and photo date
-    let cameraInfo = null;
+    // Extract EXIF metadata to determine photo date for organization
     let photoDate: Date | null = null;
     
     try {
       if (path.extname(originalFilename).toLowerCase().match(/\.(jpg|jpeg|tiff)$/)) {
         const exifData = await this.extractExifData(tempPath);
-        cameraInfo = exifData.camera;
         
         console.log(`EXIF data for ${originalFilename}:`, {
           dateTimeOriginal: exifData.dateTimeOriginal,
@@ -87,48 +84,17 @@ class FileManager {
       console.log(`No date found in EXIF or filename, using current date: ${photoDate.toISOString()}`);
     }
 
-    // Create hierarchical directory structure using photo's actual date
+    // Create Silver directory structure by date
     const year = photoDate.getFullYear();
-    const monthNum = photoDate.getMonth() + 1;
-    const monthName = photoDate.toLocaleString('en-US', { month: 'long' });
-    const monthFolder = `${String(monthNum).padStart(2, '0')}-${monthName}`;
+    const month = String(photoDate.getMonth() + 1).padStart(2, '0');
+    const silverDir = path.join(this.mediaDir, 'silver', String(year), month);
     
-    let deviceFolder = 'unknown_device';
-    if (cameraInfo) {
-      // Clean camera name for filesystem
-      deviceFolder = cameraInfo.replace(/[^a-zA-Z0-9\s-]/g, '').replace(/\s+/g, '_');
-    } else {
-      // Try to extract device info from filename patterns
-      const filenameDeviceMatch = originalFilename.match(/^(IMG|DSC|DCIM|P\d+|DJI)/i);
-      if (filenameDeviceMatch) {
-        deviceFolder = `${filenameDeviceMatch[1]}_device`;
-      } else {
-        // Use current date as device identifier if nothing else available
-        const now = new Date();
-        deviceFolder = `device_${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-      }
-    }
-    
-    console.log(`Device folder determined: ${deviceFolder} (from camera: ${cameraInfo || 'none'})`);
-    
-    const batchName = `batch_${year}-${String(monthNum).padStart(2, '0')}-${String(photoDate.getDate()).padStart(2, '0')}`;
-    
-    // Create directory structure: bronze/YYYY/MM-Month/device/batch_YYYY-MM-DD/
-    const batchDir = path.join(
-      this.mediaDir, 
-      'bronze', 
-      String(year), 
-      monthFolder, 
-      deviceFolder, 
-      batchName
-    );
-    
-    console.log(`Target batch directory: ${batchDir}`);
+    console.log(`Target Silver directory: ${silverDir}`);
 
     try {
-      await fs.access(batchDir);
+      await fs.access(silverDir);
     } catch {
-      await fs.mkdir(batchDir, { recursive: true });
+      await fs.mkdir(silverDir, { recursive: true });
     }
 
     // Generate unique filename to avoid conflicts
@@ -136,20 +102,20 @@ class FileManager {
     const name = path.basename(originalFilename, ext);
     const timestamp = Date.now();
     const newFilename = `${name}_${timestamp}${ext}`;
-    const bronzePath = path.join(batchDir, newFilename);
+    const silverPath = path.join(silverDir, newFilename);
 
-    console.log(`Moving ${tempPath} to ${bronzePath}`);
-    await fs.rename(tempPath, bronzePath);
+    console.log(`Moving ${tempPath} to ${silverPath}`);
+    await fs.rename(tempPath, silverPath);
     
-    const relativePath = path.relative(this.dataDir, bronzePath);
-    console.log(`File moved successfully to Bronze: ${relativePath}`);
+    const relativePath = path.relative(this.dataDir, silverPath);
+    console.log(`File moved successfully to Silver: ${relativePath}`);
     
     // Return relative path from data directory
     return relativePath;
   }
 
-  async copyToSilver(bronzePath: string, newFilename?: string, photoDate?: Date): Promise<string> {
-    const fullBronzePath = path.join(this.dataDir, bronzePath);
+  async copyToSilver(sourcePath: string, newFilename?: string, photoDate?: Date): Promise<string> {
+    const fullSourcePath = path.join(this.dataDir, sourcePath);
     
     // Use photo's actual date if provided, otherwise fall back to current date
     const date = photoDate || new Date();
@@ -162,7 +128,7 @@ class FileManager {
       await fs.mkdir(silverDir, { recursive: true });
     }
 
-    const filename = newFilename || path.basename(bronzePath);
+    const filename = newFilename || path.basename(sourcePath);
     let silverPath = path.join(silverDir, filename);
     
     // Check if file already exists and generate unique filename if needed
@@ -183,7 +149,7 @@ class FileManager {
       }
     }
     
-    await fs.copyFile(fullBronzePath, silverPath);
+    await fs.copyFile(fullSourcePath, silverPath);
     
     return path.relative(this.dataDir, silverPath);
   }

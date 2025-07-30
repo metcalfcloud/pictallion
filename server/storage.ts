@@ -49,7 +49,7 @@ export interface IStorage {
   createFileVersion(version: InsertFileVersion): Promise<FileVersion>;
   getFileVersion(id: string): Promise<FileVersion | undefined>;
   getFileVersionsByAsset(assetId: string): Promise<FileVersion[]>;
-  getFileVersionsByTier(tier: "bronze" | "silver" | "gold"): Promise<FileVersion[]>;
+  getFileVersionsByTier(tier: "silver" | "gold"): Promise<FileVersion[]>;
   getAllFileVersions(): Promise<FileVersion[]>;
   updateFileVersion(id: string, updates: Partial<FileVersion>): Promise<FileVersion>;
   updateFileVersionPerceptualHash(id: string, perceptualHash: string): Promise<void>;
@@ -63,7 +63,6 @@ export interface IStorage {
   // Statistics
   getCollectionStats(): Promise<{
     totalPhotos: number;
-    bronzeCount: number;
     silverCount: number;
     goldCount: number;
     aiProcessedCount: number;
@@ -179,7 +178,7 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(fileVersions.createdAt));
   }
 
-  async getFileVersionsByTier(tier: "bronze" | "silver" | "gold"): Promise<FileVersion[]> {
+  async getFileVersionsByTier(tier: "silver" | "gold"): Promise<FileVersion[]> {
     return await db
       .select()
       .from(fileVersions)
@@ -240,9 +239,6 @@ export class DatabaseStorage implements IStorage {
     const totalPhotosResult = await db.select({ count: count() }).from(fileVersions);
     const totalPhotos = totalPhotosResult[0]?.count || 0;
 
-    const bronzeResult = await db.select({ count: count() }).from(fileVersions).where(eq(fileVersions.tier, "bronze"));
-    const bronzeCount = bronzeResult[0]?.count || 0;
-
     const silverResult = await db.select({ count: count() }).from(fileVersions).where(eq(fileVersions.tier, "silver"));
     const silverCount = silverResult[0]?.count || 0;
 
@@ -259,7 +255,6 @@ export class DatabaseStorage implements IStorage {
 
     return {
       totalPhotos,
-      bronzeCount,
       silverCount,
       goldCount,
       aiProcessedCount,

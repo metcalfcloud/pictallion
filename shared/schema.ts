@@ -19,7 +19,7 @@ export const mediaAssets = pgTable("media_assets", {
 export const fileVersions = pgTable("file_versions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   mediaAssetId: varchar("media_asset_id").references(() => mediaAssets.id).notNull(),
-  tier: text("tier", { enum: ["bronze", "silver", "gold"] }).notNull(),
+  tier: text("tier", { enum: ["silver", "gold"] }).notNull(),
   filePath: text("file_path").notNull(),
   fileHash: text("file_hash").notNull(),
   fileSize: integer("file_size").notNull(),
@@ -33,7 +33,7 @@ export const fileVersions = pgTable("file_versions", {
   eventName: text("event_name"), // specific event name
   perceptualHash: text("perceptual_hash"), // for visual similarity detection
   aiShortDescription: text("ai_short_description"), // 2-3 word AI description in PascalCase
-  processingState: text("processing_state", { enum: ["unprocessed", "processed", "promoted", "rejected"] }).default("unprocessed"), // State management for bronze files
+  processingState: text("processing_state", { enum: ["processed", "promoted", "rejected"] }).default("processed"), // State management for files
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

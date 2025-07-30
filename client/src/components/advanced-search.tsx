@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 
 export interface SearchFilters {
   query?: string;
-  tier?: 'bronze' | 'silver' | 'gold';
+  tier?: 'silver' | 'gold';
   rating?: { min?: number; max?: number };
   dateRange?: { start?: Date; end?: Date };
   keywords?: string[];
@@ -202,7 +202,7 @@ export function AdvancedSearch({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All tiers</SelectItem>
-                      <SelectItem value="bronze">Bronze</SelectItem>
+
                       <SelectItem value="silver">Silver</SelectItem>
                       <SelectItem value="gold">Gold</SelectItem>
                     </SelectContent>

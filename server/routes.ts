@@ -277,32 +277,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all photos with optional filters
   app.get("/api/photos", async (req, res) => {
     try {
-      const tier = req.query.tier as "bronze" | "silver" | "gold" | "unprocessed" | "all_versions" | undefined;
+      const tier = req.query.tier as "silver" | "gold" | "unprocessed" | "all_versions" | undefined;
       const showAllVersions = req.query.showAllVersions === 'true';
 
       if (tier === 'unprocessed') {
-        // Get bronze photos that haven't been processed to silver, 
-        // and silver photos that haven't been promoted to gold
+        // Get silver photos that haven't been promoted to gold
         const allAssets = await storage.getAllMediaAssets();
         const unprocessedPhotos = [];
 
         for (const asset of allAssets) {
           const versions = await storage.getFileVersionsByAsset(asset.id);
-          const hasBronze = versions.some(v => v.tier === 'bronze');
           const hasSilver = versions.some(v => v.tier === 'silver');
           const hasGold = versions.some(v => v.tier === 'gold');
-
-          // Add bronze if no silver exists
-          if (hasBronze && !hasSilver) {
-            const bronzeVersion = versions.find(v => v.tier === 'bronze');
-            if (bronzeVersion) {
-              const enhancedAsset = {
-                ...asset,
-                displayFilename: path.basename(bronzeVersion.filePath)
-              };
-              unprocessedPhotos.push({ ...bronzeVersion, mediaAsset: enhancedAsset });
-            }
-          }
 
           // Add silver if no gold exists
           if (hasSilver && !hasGold) {
@@ -346,9 +332,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const hasGold = versions.some(v => v.tier === 'gold');
 
               let isSuperseded = false;
-              if (photo.tier === 'bronze' && (hasSilver || hasGold)) {
-                isSuperseded = true;
-              } else if (photo.tier === 'silver' && hasGold) {
+              if (photo.tier === 'silver' && hasGold) {
                 isSuperseded = true;
               }
 
@@ -378,12 +362,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         for (const asset of allAssets) {
           const versions = await storage.getFileVersionsByAsset(asset.id);
 
-          // Find highest tier version (Gold > Silver > Bronze)
+          // Find highest tier version (Gold > Silver)
           const goldVersion = versions.find(v => v.tier === 'gold');
           const silverVersion = versions.find(v => v.tier === 'silver');
-          const bronzeVersion = versions.find(v => v.tier === 'bronze');
 
-          const highestVersion = goldVersion || silverVersion || bronzeVersion;
+          const highestVersion = goldVersion || silverVersion;
           if (highestVersion) {
             const enhancedAsset = {
               ...asset,
@@ -493,31 +476,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
             originalFilename: file.originalname,
           });
 
-          // Move file to Bronze tier
-          const bronzePath = await fileManager.moveToBronze(file.path, file.originalname);
+          // Process file directly to Silver tier with AI analysis
+          const silverPath = await fileManager.processToSilver(file.path, file.originalname);
 
-          // Extract basic metadata
-          const metadata = await fileManager.extractMetadata(bronzePath);
+          // Extract enhanced metadata with AI processing
+          const metadata = await fileManager.extractMetadata(silverPath);
+          
+          // Run AI analysis if it's an image
+          let aiMetadata = null;
+          let aiShortDescription = null;
+          if (file.mimetype.startsWith('image/')) {
+            try {
+              const { aiService } = await import("../services/aiService");
+              aiMetadata = await aiService.analyzeImage(silverPath, "openai");
+              aiShortDescription = aiMetadata.shortDescription;
+            } catch (aiError) {
+              console.warn(`AI analysis failed for ${file.originalname}:`, aiError);
+            }
+          }
 
-          // Create Bronze file version
+          // Combine metadata
+          const combinedMetadata = {
+            ...metadata,
+            ai: aiMetadata,
+          };
+
+          // Create Silver file version with AI processing
           const fileVersion = await storage.createFileVersion({
             mediaAssetId: mediaAsset.id,
-            tier: 'bronze',
-            filePath: bronzePath,
+            tier: 'silver',
+            filePath: silverPath,
             fileHash,
             fileSize: file.size,
             mimeType: file.mimetype,
-            metadata,
+            metadata: combinedMetadata as any,
+            aiShortDescription,
+            isReviewed: false,
           });
 
           // Log ingestion
           await storage.createAssetHistory({
             mediaAssetId: mediaAsset.id,
             action: 'INGESTED',
-            details: `File uploaded to Bronze tier: ${file.originalname}`,
+            details: `File uploaded directly to Silver tier with AI processing: ${file.originalname}`,
           });
 
-          console.log(`Successfully processed ${file.originalname} to Bronze tier with asset ID: ${mediaAsset.id}`);
+          console.log(`Successfully processed ${file.originalname} to Silver tier with asset ID: ${mediaAsset.id}`);
 
           results.push({
             filename: file.originalname,
@@ -548,23 +552,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Process Bronze to Silver with AI
-  app.post("/api/photos/:id/process", async (req, res) => {
+  // Process Silver photo for re-analysis (if needed)
+  app.post("/api/photos/:id/reprocess", async (req, res) => {
     try {
       const photo = await storage.getFileVersion(req.params.id);
       if (!photo) {
         return res.status(404).json({ message: "Photo not found" });
       }
 
-      if (photo.tier !== 'bronze') {
-        return res.status(400).json({ message: "Photo must be in Bronze tier for processing" });
-      }
-
-      // Check if this asset already has a Silver version
-      const existingSilver = await storage.getFileVersionsByAsset(photo.mediaAssetId);
-      const hasSilver = existingSilver.some(version => version.tier === 'silver');
-      if (hasSilver) {
-        return res.status(400).json({ message: "This photo has already been processed to Silver tier" });
+      if (photo.tier !== 'silver') {
+        return res.status(400).json({ message: "Photo must be in Silver tier for reprocessing" });
       }
 
       // Check if file is an image (AI processing currently only supports images)
@@ -1472,7 +1469,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           { date: '2025-01-25', count: stats.totalPhotos },
         ],
         tierDistribution: [
-          { tier: 'Bronze', count: stats.bronzeCount, percentage: Math.round((stats.bronzeCount / stats.totalPhotos) * 100) || 0 },
           { tier: 'Silver', count: stats.silverCount, percentage: Math.round((stats.silverCount / stats.totalPhotos) * 100) || 0 },
           { tier: 'Gold', count: stats.goldCount, percentage: Math.round((stats.goldCount / stats.totalPhotos) * 100) || 0 },
         ],
@@ -1547,7 +1543,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         for (const photoId of selectedPhotoIds) {
           try {
             const photo = await storage.getFileVersion(photoId);
-            if (!photo || photo.tier !== 'bronze') {
+            if (!photo || photo.tier !== 'silver') {
               continue;
             }
 
@@ -2079,7 +2075,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (const photoId of photoIds) {
         try {
           const photo = await storage.getFileVersion(photoId);
-          if (!photo || photo.tier !== 'bronze') {
+          if (!photo || photo.tier !== 'silver') {
             continue;
           }
 
@@ -2435,7 +2431,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
 
       // Sort by tier priority (Gold > Silver > Bronze)
-      const tierPriority = { gold: 3, silver: 2, bronze: 1 };
+      const tierPriority = { gold: 3, silver: 2 };
       versionsWithAssets.sort((a, b) => 
         (tierPriority[b.tier as keyof typeof tierPriority] || 0) - 
         (tierPriority[a.tier as keyof typeof tierPriority] || 0)
@@ -2452,7 +2448,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/photos/similarity", async (req, res) => {
     try {
       const { tier = "silver" } = req.query;
-      const photos = await storage.getFileVersionsByTier(tier as "bronze" | "silver" | "gold");
+      const photos = await storage.getFileVersionsByTier(tier as "silver" | "gold");
 
       // Simple similarity grouping based on filename patterns and metadata
       const similarGroups = await findSimilarPhotos(photos);

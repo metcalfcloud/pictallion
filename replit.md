@@ -88,6 +88,16 @@ The application uses a relational database with four main tables:
 
 ## Recent Changes
 
+### July 30, 2025 - Complete Bronze Tier Architecture Redesign
+- **Eliminated Bronze as tracked database tier** - Bronze is now just a temporary upload staging area, not stored in database
+- **Updated to Silver/Gold only architecture** - Files process directly from upload to Silver tier with AI analysis
+- **Simplified tier hierarchy** - Silver tier is now the first immutable processed tier, Gold is final curated tier
+- **Updated all backend services** - fileManager, routes, storage, and duplicate detection now use Silver/Gold only
+- **Comprehensive frontend updates** - Gallery, dashboard, and all components updated to reflect new architecture
+- **Enhanced upload processing** - Files now get AI analysis during initial upload processing to Silver tier
+- **Improved efficiency** - Eliminated redundant Bronze→Silver processing step and file copying
+- **Updated database schema** - Removed Bronze from tier enum, updated statistics and interfaces
+
 ### July 29, 2025 - Fixed Photo Organization by Date Taken
 - **Fixed "Process All Bronze" button error** - resolved compilation issues and variable scoping problems
 - **Fixed file organization system** - photos are now organized by their actual date taken instead of current date

@@ -21,7 +21,7 @@ import type { Photo } from "@shared/types";
 export default function Gallery() {
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [tierFilter, setTierFilter] = useState<string>('unprocessed');
+  const [tierFilter, setTierFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPhotos, setSelectedPhotos] = useState<string[]>([]);
   const [showBatchOperations, setShowBatchOperations] = useState(false);
@@ -40,7 +40,7 @@ export default function Gallery() {
 
   const processPhotoMutation = useMutation({
     mutationFn: async (photoId: string) => {
-      const response = await apiRequest('POST', `/api/photos/${photoId}/process`);
+      const response = await apiRequest('POST', `/api/photos/${photoId}/reprocess`);
       return response.json();
     },
     onSuccess: () => {
@@ -48,7 +48,7 @@ export default function Gallery() {
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
       toast({
         title: "Processing Complete",
-        description: "Photo has been processed with AI and moved to Silver tier.",
+        description: "Photo has been reprocessed with updated AI analysis.",
       });
     },
     onError: (error) => {
@@ -128,8 +128,7 @@ export default function Gallery() {
   React.useEffect(() => {
     if (isBatchProcessing && photos) {
       const silverCount = photos.filter(photo => photo.tier === 'silver').length;
-      const bronzeCount = photos.filter(photo => photo.tier === 'bronze').length;
-      const totalProcessed = Math.max(0, processingStats.total - bronzeCount);
+      const totalProcessed = Math.max(0, processingStats.total - silverCount);
       
       if (totalProcessed !== processingStats.processed) {
         setProcessingStats(prev => ({ ...prev, processed: totalProcessed }));
@@ -182,20 +181,19 @@ export default function Gallery() {
     processPhotoMutation.mutate(photoId);
   };
 
-  const handleBulkProcessBronze = () => {
-    // For "unprocessed" filter, get only bronze photos
-    // For "bronze" filter, get all photos (which should all be bronze)
-    const bronzePhotos = filteredPhotos.filter(photo => photo.tier === 'bronze');
-    if (bronzePhotos.length === 0) {
+  const handleBulkProcessSilver = () => {
+    // Get unreviewed silver photos for batch processing
+    const silverPhotos = filteredPhotos.filter(photo => photo.tier === 'silver' && !photo.isReviewed);
+    if (silverPhotos.length === 0) {
       toast({
-        title: "No Bronze Photos",
-        description: "No Bronze tier photos available for processing.",
+        title: "No Unprocessed Photos",
+        description: "No Silver tier photos available for processing.",
         variant: "destructive"
       });
       return;
     }
-    const photoIds = bronzePhotos.map(p => p.id);
-    console.log(`Processing ${photoIds.length} bronze photos...`);
+    const photoIds = silverPhotos.map(p => p.id);
+    console.log(`Processing ${photoIds.length} silver photos...`);
     bulkProcessMutation.mutate({ photoIds });
   };
 
@@ -277,7 +275,6 @@ export default function Gallery() {
                 <SelectItem value="unprocessed">Unprocessed Only</SelectItem>
                 <SelectItem value="gold">Gold (Final)</SelectItem>
                 <SelectItem value="all">All Tiers</SelectItem>
-                <SelectItem value="bronze">Bronze (Raw)</SelectItem>
                 <SelectItem value="silver">Silver (AI Processed)</SelectItem>
               </SelectContent>
             </Select>
@@ -313,10 +310,10 @@ export default function Gallery() {
           </div>
 
           <div className="flex items-center space-x-2">
-            {(tierFilter === 'bronze' || tierFilter === 'unprocessed') && (
+            {tierFilter === 'silver' && (
               <Button
                 size="sm"
-                onClick={() => handleBulkProcessBronze()}
+                onClick={() => handleBulkProcessSilver()}
                 disabled={processPhotoMutation.isPending || bulkProcessMutation.isPending || isBatchProcessing}
               >
                 <Bot className={cn("w-4 h-4 mr-2", isBatchProcessing && "animate-pulse")} />
@@ -324,7 +321,7 @@ export default function Gallery() {
                   ? `Processing... (${processingStats.processed}/${processingStats.total})` 
                   : bulkProcessMutation.isPending 
                   ? 'Starting...' 
-                  : 'Process All Bronze'
+                  : 'Review Silver Photos'
                 }
               </Button>
             )}
