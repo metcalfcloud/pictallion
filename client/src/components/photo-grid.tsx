@@ -154,14 +154,21 @@ export default function PhotoGrid({
           <div className="bg-white dark:bg-gray-100 p-3 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 rotate-0 hover:rotate-1 cursor-pointer"
                onClick={() => onPhotoClick(photo)}>
             
-            {/* Photo Section */}
-            <div className="relative bg-gray-200 rounded-sm overflow-hidden aspect-square mb-4">
-              <img 
-                src={`/api/files/${photo.filePath}`}
-                alt={photo.mediaAsset.originalFilename}
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-200" />
+            {/* Photo Section with Tier-Colored Frame */}
+            <div className={cn(
+              "relative rounded-sm overflow-hidden aspect-square mb-4 p-1",
+              photo.tier === 'bronze' && "bg-orange-500",
+              photo.tier === 'silver' && "bg-slate-500", 
+              photo.tier === 'gold' && "bg-yellow-500"
+            )}>
+              <div className="bg-gray-200 rounded-sm overflow-hidden w-full h-full">
+                <img 
+                  src={`/api/files/${photo.filePath}`}
+                  alt={photo.mediaAsset.originalFilename}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-200" />
+              </div>
               
               {/* Review Badge */}
               {needsReview(photo) && (
@@ -190,44 +197,23 @@ export default function PhotoGrid({
             
             {/* Polaroid White Bottom Section */}
             <div className="space-y-2 text-gray-800 dark:text-gray-900">
-              {/* Filename */}
-              <h3 className="font-medium text-sm truncate">
-                {photo.mediaAsset.originalFilename}
+              {/* Date */}
+              <h3 className="font-medium text-sm text-center">
+                {new Date(photo.createdAt).toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric'
+                })}
               </h3>
               
-              {/* Metadata Row */}
-              <div className="flex items-center justify-between text-xs">
-                <div className="flex items-center space-x-2">
-                  <Badge className={cn("text-xs px-2", getTierBadgeClass(photo.tier))}>
-                    {getTierIcon(photo.tier)}
-                    <span className="ml-1 capitalize">{photo.tier}</span>
-                  </Badge>
-                  <ProcessingStateBadge 
-                    state={getProcessingState(photo)} 
-                    tier={photo.tier} 
-                    size="sm" 
-                  />
-                </div>
-                
-                {/* Date */}
-                <span className="text-gray-500 dark:text-gray-600">
-                  {new Date(photo.createdAt).toLocaleDateString()}
-                </span>
+              {/* Processing State */}
+              <div className="flex items-center justify-center">
+                <ProcessingStateBadge 
+                  state={getProcessingState(photo)} 
+                  tier={photo.tier} 
+                  size="sm" 
+                />
               </div>
-              
-              {/* AI Tags */}
-              {photo.metadata?.ai?.aiTags && photo.metadata.ai.aiTags.length > 0 && (
-                <div className="flex flex-wrap gap-1">
-                  {photo.metadata.ai.aiTags.slice(0, 2).map((tag: string, index: number) => (
-                    <span key={index} className="text-xs bg-gray-200 dark:bg-gray-300 px-2 py-1 rounded-full text-gray-700">
-                      {tag}
-                    </span>
-                  ))}
-                  {photo.metadata.ai.aiTags.length > 2 && (
-                    <span className="text-xs text-gray-500">+{photo.metadata.ai.aiTags.length - 2}</span>
-                  )}
-                </div>
-              )}
               
               {/* Actions */}
               <div className="flex items-center justify-between pt-1">

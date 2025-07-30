@@ -371,8 +371,9 @@ export default function SettingsPage() {
 
       {/* Settings Tabs */}
       <Tabs defaultValue="naming" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="naming">File Naming</TabsTrigger>
+          <TabsTrigger value="display">Display</TabsTrigger>
           <TabsTrigger value="ai">AI Configuration</TabsTrigger>
           <TabsTrigger value="events">Event Detection</TabsTrigger>
         </TabsList>
@@ -692,6 +693,49 @@ export default function SettingsPage() {
                 <Button onClick={saveAiConfig} disabled={aiLoading}>
                   {aiLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                   Save AI Configuration
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Display Settings Tab */}
+        <TabsContent value="display" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Display Preferences
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Date Format Setting */}
+              <div>
+                <Label htmlFor="dateFormat" className="text-sm font-semibold">Date Format on Photo Cards</Label>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Choose how dates appear on your polaroid photo cards
+                </p>
+                <Select defaultValue="short">
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select date format" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="short">Short (Jan 15, 2024)</SelectItem>
+                    <SelectItem value="long">Long (January 15, 2024)</SelectItem>
+                    <SelectItem value="numeric">Numeric (01/15/2024)</SelectItem>
+                    <SelectItem value="iso">ISO Format (2024-01-15)</SelectItem>
+                    <SelectItem value="relative">Relative (2 days ago)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Separator />
+
+              {/* Action Buttons */}
+              <div className="flex justify-end">
+                <Button className="flex items-center gap-2">
+                  <Save className="h-4 w-4" />
+                  Save Display Settings
                 </Button>
               </div>
             </CardContent>
