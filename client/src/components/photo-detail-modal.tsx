@@ -32,6 +32,130 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { Photo } from "@shared/types";
 
+// Tag Editor Component
+interface TagEditorProps {
+  tags: string[];
+  onChange: (tags: string[]) => void;
+  placeholder?: string;
+  className?: string;
+}
+
+function TagEditor({ tags, onChange, placeholder, className }: TagEditorProps) {
+  const [inputValue, setInputValue] = useState("");
+  const [suggestions, setSuggestions] = useState<Array<{tag: string, usage_count: number}>>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  // Query for tag suggestions from global library
+  const { data: globalTags = [] } = useQuery({
+    queryKey: ['/api/tags/library'],
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/tags/library');
+      return await response.json();
+    },
+  });
+
+  // Filter suggestions based on input
+  useEffect(() => {
+    if (inputValue.trim()) {
+      const filtered = globalTags
+        .filter((tagInfo: any) => 
+          tagInfo.tag.toLowerCase().includes(inputValue.toLowerCase()) && 
+          !tags.includes(tagInfo.tag)
+        )
+        .slice(0, 10); // Limit to 10 suggestions
+      setSuggestions(filtered);
+      setShowSuggestions(filtered.length > 0);
+    } else {
+      setSuggestions([]);
+      setShowSuggestions(false);
+    }
+  }, [inputValue, globalTags, tags]);
+
+  const addTag = (tag: string) => {
+    if (tag.trim() && !tags.includes(tag.trim())) {
+      onChange([...tags, tag.trim()]);
+      setInputValue("");
+      setShowSuggestions(false);
+    }
+  };
+
+  const removeTag = (tagToRemove: string) => {
+    onChange(tags.filter(tag => tag !== tagToRemove));
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addTag(inputValue);
+    } else if (e.key === 'Backspace' && !inputValue && tags.length > 0) {
+      removeTag(tags[tags.length - 1]);
+    }
+  };
+
+  return (
+    <div className={cn("relative", className)}>
+      <div className="flex flex-wrap gap-2 p-2 border rounded-md bg-background min-h-[40px]">
+        {tags.map((tag, index) => (
+          <Badge
+            key={index}
+            variant="secondary"
+            className="flex items-center gap-1 text-xs"
+          >
+            {tag}
+            <button
+              type="button"
+              onClick={() => removeTag(tag)}
+              className="hover:bg-red-500 hover:text-white rounded-full w-4 h-4 flex items-center justify-center ml-1"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          </Badge>
+        ))}
+        <input
+          type="text"
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder={tags.length === 0 ? placeholder : ""}
+          className="flex-1 min-w-[120px] bg-transparent border-none outline-none text-sm"
+        />
+      </div>
+
+      {/* Suggestions dropdown */}
+      {showSuggestions && (
+        <div className="absolute top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-lg z-50 max-h-40 overflow-y-auto">
+          {suggestions.map((tagInfo, index) => (
+            <button
+              key={index}
+              type="button"
+              onClick={() => addTag(tagInfo.tag)}
+              className="w-full px-3 py-2 text-left hover:bg-accent text-sm flex items-center justify-between"
+            >
+              <span>{tagInfo.tag}</span>
+              <Badge variant="outline" className="text-xs">
+                {tagInfo.usage_count}
+              </Badge>
+            </button>
+          ))}
+          {/* Option to create new tag */}
+          {inputValue.trim() && !suggestions.some(s => s.tag.toLowerCase() === inputValue.toLowerCase()) && (
+            <button
+              type="button"
+              onClick={() => addTag(inputValue)}
+              className="w-full px-3 py-2 text-left hover:bg-accent text-sm border-t flex items-center gap-2"
+            >
+              <span className="text-muted-foreground">Create:</span>
+              <Badge variant="outline" className="text-xs">
+                {inputValue}
+              </Badge>
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface PhotoDetailModalProps {
   photo: Photo;
   open: boolean;
@@ -340,26 +464,21 @@ export default function PhotoDetailModal({
                     <div>
                       <h4 className="text-sm font-semibold text-card-foreground mb-2">AI Generated Tags</h4>
                       {isEditing ? (
-                        <div>
-                          <Input
-                            value={editedMetadata.aiTags?.join(', ') || photo.metadata.ai.aiTags.join(', ')}
-                            onChange={(e) => {
-                              const aiTags = e.target.value.split(',').map(k => k.trim()).filter(k => k);
-                              setEditedMetadata(prev => ({ ...prev, aiTags }));
-                            }}
-                            placeholder="Edit AI tags (comma-separated)..."
-                            className="text-sm"
-                          />
-                        </div>
+                        <TagEditor
+                          tags={editedMetadata.aiTags || photo.metadata.ai.aiTags}
+                          onChange={(tags) => setEditedMetadata(prev => ({ ...prev, aiTags: tags }))}
+                          placeholder="Add AI tags..."
+                          className="text-sm"
+                        />
                       ) : (
                         <div className="flex flex-wrap gap-2">
                           {(editedMetadata.aiTags || photo.metadata.ai.aiTags).map((tag: string, index: number) => (
-                            <span 
+                            <Badge 
                               key={index} 
-                              className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs"
+                              className="bg-blue-100 text-blue-800 hover:bg-blue-200 text-xs"
                             >
                               {tag}
-                            </span>
+                            </Badge>
                           ))}
                         </div>
                       )}
@@ -556,14 +675,10 @@ export default function PhotoDetailModal({
                   {/* Compact Form Content */}
                   <div className="space-y-3 max-h-60 overflow-y-auto">
                     <div>
-                      <Label htmlFor="keywords" className="text-xs">Keywords (comma-separated)</Label>
-                      <Input
-                        id="keywords"
-                        value={editedMetadata.keywords.join(', ')}
-                        onChange={(e) => {
-                          const keywords = e.target.value.split(',').map(k => k.trim()).filter(k => k);
-                          setEditedMetadata(prev => ({ ...prev, keywords }));
-                        }}
+                      <Label htmlFor="keywords" className="text-xs">Keywords</Label>
+                      <TagEditor
+                        tags={editedMetadata.keywords}
+                        onChange={(keywords) => setEditedMetadata(prev => ({ ...prev, keywords }))}
                         placeholder="Add keywords..."
                         className="mt-1"
                       />
@@ -647,10 +762,10 @@ export default function PhotoDetailModal({
                   {(photo.keywords && photo.keywords.length > 0) && (
                     <div className="mb-4">
                       <h4 className="text-sm font-semibold text-card-foreground mb-2">Keywords</h4>
-                      <div className="flex flex-wrap gap-1">
+                      <div className="flex flex-wrap gap-2">
                         {photo.keywords.map((keyword: string, index: number) => (
-                          <Badge key={index} variant="secondary" className="text-xs">
-                            <Tag className="w-3 h-3 mr-1" />
+                          <Badge key={index} variant="secondary" className="text-xs flex items-center gap-1">
+                            <Tag className="w-3 h-3" />
                             {keyword}
                           </Badge>
                         ))}
