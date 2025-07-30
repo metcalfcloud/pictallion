@@ -352,7 +352,6 @@ export default function Dashboard() {
               <div className="flex items-center space-x-2">
                 <select className="text-sm border border-border bg-background text-foreground rounded-lg px-3 py-1 focus:outline-none focus:ring-2 focus:ring-primary">
                   <option value="all">All Tiers</option>
-                  <option value="bronze">Bronze</option>
                   <option value="silver">Silver</option>
                   <option value="gold">Gold</option>
                 </select>
