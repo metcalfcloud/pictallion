@@ -199,7 +199,7 @@ export default function PhotoDetailModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-7xl h-[90vh] p-0">
+      <DialogContent className="max-w-[95vw] max-h-[95vh] h-[95vh] w-[95vw] p-0">
         <DialogHeader className="sr-only">
           <DialogTitle>Photo Details</DialogTitle>
         </DialogHeader>
@@ -217,7 +217,7 @@ export default function PhotoDetailModal({
           </div>
 
           {/* Metadata Panel */}
-          <div className="w-96 bg-card dark:bg-gray-900 flex flex-col">
+          <div className="w-80 bg-card dark:bg-gray-900 flex flex-col">
             <div className="flex-1 overflow-y-auto p-6">
               {/* Header */}
               <div className="flex items-center justify-between mb-6">
@@ -346,7 +346,7 @@ export default function PhotoDetailModal({
               {isEditing ? (
                 <div className="flex flex-col">
                   {/* Scrollable Form Content */}
-                  <div className="flex-1 overflow-y-auto max-h-[40vh] space-y-4 mb-4">
+                  <div className="flex-1 overflow-y-auto max-h-[30vh] space-y-4 mb-4">
                     <h4 className="text-sm font-semibold text-card-foreground">Edit Metadata</h4>
 
                     <div>
