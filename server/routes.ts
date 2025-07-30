@@ -253,6 +253,153 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get faces for a specific photo
+  app.get("/api/faces/photo/:photoId", async (req, res) => {
+    try {
+      const faces = await storage.getFacesByPhoto(req.params.photoId);
+      
+      // Enhance faces with person data
+      const enhancedFaces = await Promise.all(
+        faces.map(async (face) => {
+          if (face.personId) {
+            const person = await storage.getPerson(face.personId);
+            return { ...face, person };
+          }
+          return face;
+        })
+      );
+      
+      res.json(enhancedFaces);
+    } catch (error) {
+      console.error("Error fetching faces for photo:", error);
+      res.status(500).json({ message: "Failed to fetch faces for photo" });
+    }
+  });
+
+  // Get photo history
+  app.get("/api/photos/:id/history", async (req, res) => {
+    try {
+      const photo = await storage.getFileVersion(req.params.id);
+      if (!photo) {
+        return res.status(404).json({ message: "Photo not found" });
+      }
+
+      const history = await storage.getAssetHistory(photo.mediaAssetId);
+      res.json(history);
+    } catch (error) {
+      console.error("Error fetching photo history:", error);
+      res.status(500).json({ message: "Failed to fetch photo history" });
+    }
+  });
+
+  // Get filename preview for promotion
+  app.get("/api/photos/:id/filename-preview", async (req, res) => {
+    try {
+      const photo = await storage.getFileVersion(req.params.id);
+      if (!photo) {
+        return res.status(404).json({ message: "Photo not found" });
+      }
+
+      // Get naming pattern from settings
+      const namingPatternSetting = await storage.getSettingByKey('gold_naming_pattern');
+      const customPatternSetting = await storage.getSettingByKey('custom_naming_pattern');
+      const namingPattern = namingPatternSetting?.value || 'datetime';
+      const customPattern = customPatternSetting?.value || '';
+
+      // Get media asset for filename generation
+      const mediaAsset = await storage.getMediaAsset(photo.mediaAssetId);
+      if (!mediaAsset) {
+        return res.status(404).json({ message: "Media asset not found" });
+      }
+
+      // Generate preview filename
+      const namingContext = {
+        aiMetadata: {
+          shortDescription: photo.aiShortDescription || '',
+          detectedObjects: photo.metadata?.ai?.detectedObjects || [],
+          aiTags: photo.metadata?.ai?.aiTags || []
+        },
+        exifMetadata: photo.metadata?.exif,
+        originalFilename: mediaAsset.originalFilename,
+        tier: 'gold' as const
+      };
+
+      const finalPattern = namingPattern === 'custom' ? customPattern : namingPattern;
+      const previewFilename = await generateSilverFilename(namingContext, finalPattern);
+
+      res.json({ filename: previewFilename });
+    } catch (error) {
+      console.error("Error generating filename preview:", error);
+      res.status(500).json({ message: "Failed to generate filename preview" });
+    }
+  });
+
+  // Get burst photo analysis
+  app.get("/api/photos/burst-analysis", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 100;
+      
+      // Get recent photos to analyze for burst sequences
+      const recentPhotos = await storage.getRecentPhotos(limit);
+      
+      // Group photos by time clusters (photos taken within 5 seconds of each other)
+      const burstGroups = [];
+      const timeThreshold = 5000; // 5 seconds in milliseconds
+      
+      const sortedPhotos = recentPhotos.sort((a, b) => {
+        const aTime = new Date(a.metadata?.exif?.dateTime || a.createdAt).getTime();
+        const bTime = new Date(b.metadata?.exif?.dateTime || b.createdAt).getTime();
+        return aTime - bTime;
+      });
+      
+      let currentGroup = [];
+      for (let i = 0; i < sortedPhotos.length; i++) {
+        const photo = sortedPhotos[i];
+        const photoTime = new Date(photo.metadata?.exif?.dateTime || photo.createdAt).getTime();
+        
+        if (currentGroup.length === 0) {
+          currentGroup.push(photo);
+        } else {
+          const lastPhotoTime = new Date(
+            currentGroup[currentGroup.length - 1].metadata?.exif?.dateTime || 
+            currentGroup[currentGroup.length - 1].createdAt
+          ).getTime();
+          
+          if (photoTime - lastPhotoTime <= timeThreshold) {
+            currentGroup.push(photo);
+          } else {
+            if (currentGroup.length >= 3) { // Consider 3+ photos as a burst
+              burstGroups.push({
+                id: `burst-${currentGroup[0].id}`,
+                photos: currentGroup,
+                startTime: currentGroup[0].metadata?.exif?.dateTime || currentGroup[0].createdAt,
+                endTime: currentGroup[currentGroup.length - 1].metadata?.exif?.dateTime || currentGroup[currentGroup.length - 1].createdAt,
+                count: currentGroup.length
+              });
+            }
+            currentGroup = [photo];
+          }
+        }
+      }
+      
+      // Don't forget the last group
+      if (currentGroup.length >= 3) {
+        burstGroups.push({
+          id: `burst-${currentGroup[0].id}`,
+          photos: currentGroup,
+          startTime: currentGroup[0].metadata?.exif?.dateTime || currentGroup[0].createdAt,
+          endTime: currentGroup[currentGroup.length - 1].metadata?.exif?.dateTime || currentGroup[currentGroup.length - 1].createdAt,
+          count: currentGroup.length
+        });
+      }
+      
+      res.json(burstGroups);
+    } catch (error) {
+      console.error("Error analyzing burst photos:", error);
+      res.status(500).json({ message: "Failed to analyze burst photos" });
+    }
+  });
+
   app.post("/api/tags/library", async (req, res) => {
     try {
       const { tags } = req.body;

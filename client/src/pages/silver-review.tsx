@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, Link } from "wouter";
-import { ChevronLeft, ChevronRight, Star, Tag, MapPin, Calendar, Camera, Eye, ThumbsUp, ThumbsDown, Upload, Search, Filter, RotateCcw, Sparkles } from "lucide-react";
+import { ChevronLeft, ChevronRight, Star, Tag, MapPin, Calendar, Camera, Eye, ThumbsUp, ThumbsDown, Upload, Search, Filter, RotateCcw, Sparkles, Users, User, AlertCircle, Zap, FileText, Globe, Clock, History, ImageIcon, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +16,10 @@ import { AdvancedSearch } from "@/components/advanced-search";
 import type { SearchFilters } from "@/components/advanced-search";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 
 interface Photo {
   id: string;
@@ -31,6 +35,7 @@ interface Photo {
   eventType?: string;
   eventName?: string;
   perceptualHash?: string;
+  processingState?: string;
   createdAt: string;
   mediaAsset: {
     id: string;
@@ -55,6 +60,49 @@ export default function SilverReview() {
     queryFn: async () => {
       const response = await fetch('/api/tags/library');
       if (!response.ok) throw new Error('Failed to fetch tag library');
+      return response.json();
+    }
+  });
+
+  // Fetch faces for current photo
+  const { data: facesData } = useQuery({
+    queryKey: ['/api/faces/photo', selectedPhoto?.id],
+    enabled: !!selectedPhoto?.id,
+    queryFn: async () => {
+      const response = await fetch(`/api/faces/photo/${selectedPhoto.id}`);
+      if (!response.ok) throw new Error('Failed to fetch faces');
+      return response.json();
+    }
+  });
+
+  // Fetch burst analysis
+  const { data: burstAnalysis } = useQuery({
+    queryKey: ['/api/photos/burst-analysis'],
+    queryFn: async () => {
+      const response = await fetch('/api/photos/burst-analysis');
+      if (!response.ok) throw new Error('Failed to fetch burst analysis');
+      return response.json();
+    }
+  });
+
+  // Fetch photo history
+  const { data: photoHistory } = useQuery({
+    queryKey: ['/api/photos', selectedPhoto?.id, 'history'],
+    enabled: !!selectedPhoto?.id,
+    queryFn: async () => {
+      const response = await fetch(`/api/photos/${selectedPhoto.id}/history`);
+      if (!response.ok) throw new Error('Failed to fetch photo history');
+      return response.json();
+    }
+  });
+
+  // Fetch filename preview
+  const { data: filenamePreview } = useQuery({
+    queryKey: ['/api/photos', selectedPhoto?.id, 'filename-preview'],
+    enabled: !!selectedPhoto?.id,
+    queryFn: async () => {
+      const response = await fetch(`/api/photos/${selectedPhoto.id}/filename-preview`);
+      if (!response.ok) throw new Error('Failed to fetch filename preview');
       return response.json();
     }
   });
@@ -435,123 +483,375 @@ export default function SilverReview() {
           </Card>
         </div>
 
-        {/* Metadata panel */}
-        <div className="space-y-4">
-          {/* Basic info */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Camera className="h-4 w-4" />
-                Photo Info
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div>
-                <Label className="text-xs text-muted-foreground">Filename</Label>
-                <p className="text-sm font-mono break-all">{selectedPhoto?.mediaAsset?.originalFilename || 'Unknown'}</p>
-              </div>
+        {/* Metadata panel with tabs */}
+        <Tabs defaultValue="overview" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="metadata">Metadata</TabsTrigger>
+            <TabsTrigger value="analysis">Analysis</TabsTrigger>
+          </TabsList>
 
-              <div>
-                <Label className="text-xs text-muted-foreground">Size</Label>
-                <p className="text-sm">{Math.round((selectedPhoto?.fileSize || 0) / 1024 / 1024 * 100) / 100} MB</p>
-              </div>
+          <TabsContent value="overview" className="space-y-4">
+            {/* Alerts and notifications */}
+            {(() => {
+              const photoInBurst = burstAnalysis?.groups?.find(group => 
+                group.photos.some(p => p.id === selectedPhoto?.id)
+              );
+              const unassignedFaces = facesData?.filter(face => !face.personId)?.length || 0;
+              
+              return (
+                <>
+                  {photoInBurst && (
+                    <Alert>
+                      <Zap className="h-4 w-4" />
+                      <AlertDescription>
+                        This photo is part of a burst sequence with {photoInBurst.photos.length} photos.
+                        <Link href="/burst-photos" className="ml-2 text-primary underline">
+                          Review burst
+                        </Link>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  
+                  {unassignedFaces > 0 && (
+                    <Alert>
+                      <Users className="h-4 w-4" />
+                      <AlertDescription>
+                        {unassignedFaces} unassigned {unassignedFaces === 1 ? 'face' : 'faces'} detected.
+                        <Link href="/people" className="ml-2 text-primary underline">
+                          Assign faces
+                        </Link>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </>
+              );
+            })()}
 
-              <div>
-                <Label className="text-xs text-muted-foreground">Type</Label>
-                <p className="text-sm">{selectedPhoto?.mimeType}</p>
-              </div>
-
-              <div>
-                <Label className="text-xs text-muted-foreground">Upload Date</Label>
-                <p className="text-sm">{new Date(selectedPhoto?.createdAt || '').toLocaleDateString()}</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Rating */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Star className="h-4 w-4" />
-                Rating
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <RatingSystem
-                rating={selectedPhoto?.rating || 0}
-                onRatingChange={updateRating}
-                size="lg"
-              />
-            </CardContent>
-          </Card>
-
-          {/* AI Analysis */}
-          {aiData.shortDescription && (
+            {/* Basic info */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Sparkles className="h-4 w-4" />
-                  AI Analysis
+                <CardTitle className="flex items-center gap-2 text-sm">
+                  <Camera className="h-4 w-4" />
+                  Photo Information
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div>
-                  <Label className="text-xs text-muted-foreground">Description</Label>
-                  <p className="text-sm">{aiData.shortDescription}</p>
+                  <Label className="text-xs text-muted-foreground">Original Filename</Label>
+                  <p className="text-sm font-mono break-all">{selectedPhoto?.mediaAsset?.originalFilename || 'Unknown'}</p>
                 </div>
 
-                {aiData.aiTags && aiData.aiTags.length > 0 && (
+                <div>
+                  <Label className="text-xs text-muted-foreground">Size</Label>
+                  <p className="text-sm">{Math.round((selectedPhoto?.fileSize || 0) / 1024 / 1024 * 100) / 100} MB</p>
+                </div>
+
+                {filenamePreview && (
                   <div>
-                    <Label className="text-xs text-muted-foreground">AI Tags</Label>
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {aiData.aiTags.map((tag: string, index: number) => (
-                        <Badge key={index} variant="secondary" className="text-xs">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
+                    <Label className="text-xs text-muted-foreground">Filename After Promotion</Label>
+                    <p className="text-sm font-mono break-all text-green-600 dark:text-green-400">
+                      {filenamePreview.filename}
+                    </p>
                   </div>
                 )}
 
-                {aiData.detectedObjects && aiData.detectedObjects.length > 0 && (
+                <div>
+                  <Label className="text-xs text-muted-foreground">Processing State</Label>
+                  <Badge variant={selectedPhoto?.processingState === 'promoted' ? 'default' : 'secondary'}>
+                    {selectedPhoto?.processingState || 'processed'}
+                  </Badge>
+                </div>
+
+                <div>
+                  <Label className="text-xs text-muted-foreground">Date Taken</Label>
+                  <p className="text-sm">
+                    {selectedPhoto?.metadata?.exif?.dateTimeOriginal 
+                      ? new Date(selectedPhoto.metadata.exif.dateTimeOriginal).toLocaleString()
+                      : new Date(selectedPhoto?.createdAt || '').toLocaleDateString()
+                    }
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* AI Analysis */}
+            {aiData.shortDescription && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-sm">
+                    <Sparkles className="h-4 w-4" />
+                    AI Analysis
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
                   <div>
-                    <Label className="text-xs text-muted-foreground">Detected Objects</Label>
-                    <div className="space-y-1 mt-1">
-                      {aiData.detectedObjects.map((obj: any, index: number) => (
-                        <div key={index} className="flex justify-between text-xs">
-                          <span>{obj.name}</span>
-                          <span className="text-muted-foreground">{Math.round(obj.confidence * 100)}%</span>
+                    <Label className="text-xs text-muted-foreground">AI Description</Label>
+                    <p className="text-sm font-semibold">{aiData.shortDescription}</p>
+                  </div>
+
+                  {aiData.longDescription && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Detailed Description</Label>
+                      <p className="text-sm">{aiData.longDescription}</p>
+                    </div>
+                  )}
+
+                  {aiData.aiTags && aiData.aiTags.length > 0 && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground">AI Tags</Label>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {aiData.aiTags.map((tag: string, index: number) => (
+                          <Badge key={index} variant="secondary" className="text-xs">
+                            {tag}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Detected People */}
+            {facesData && facesData.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-sm">
+                    <Users className="h-4 w-4" />
+                    Detected People ({facesData.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {facesData.map((face: any) => (
+                    <div key={face.id} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
+                          {face.personId ? (
+                            <User className="h-5 w-5" />
+                          ) : (
+                            <AlertCircle className="h-5 w-5 text-amber-500" />
+                          )}
+                        </div>
+                        <span className="text-sm">
+                          {face.personId ? face.person?.name || 'Unknown Person' : 'Unassigned'}
+                        </span>
+                      </div>
+                      <Badge variant="outline" className="text-xs">
+                        {face.confidence}%
+                      </Badge>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Location */}
+            {(aiData.gpsCoordinates || exifData.gpsLatitude) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-sm">
+                    <Globe className="h-4 w-4" />
+                    Location
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {aiData.placeName && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Place</Label>
+                      <p className="text-sm">{aiData.placeName}</p>
+                    </div>
+                  )}
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Coordinates</Label>
+                    <p className="text-sm font-mono">
+                      {aiData.gpsCoordinates
+                        ? `${aiData.gpsCoordinates.latitude.toFixed(6)}, ${aiData.gpsCoordinates.longitude.toFixed(6)}`
+                        : `${exifData.gpsLatitude?.toFixed(6)}, ${exifData.gpsLongitude?.toFixed(6)}`
+                      }
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Events */}
+            {(selectedPhoto?.eventType || aiData.detectedEvents?.length > 0) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-sm">
+                    <Calendar className="h-4 w-4" />
+                    Events
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {selectedPhoto?.eventType && (
+                    <div>
+                      <Badge className="capitalize">
+                        {selectedPhoto.eventType}
+                        {selectedPhoto.eventName && `: ${selectedPhoto.eventName}`}
+                      </Badge>
+                    </div>
+                  )}
+                  {aiData.detectedEvents?.map((event: any, index: number) => (
+                    <div key={index} className="flex justify-between text-sm">
+                      <span>{event.eventName} ({event.eventType})</span>
+                      <span className="text-muted-foreground">{event.confidence}%</span>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Rating */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-sm">
+                  <Star className="h-4 w-4" />
+                  Rating
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <RatingSystem
+                  rating={selectedPhoto?.rating || 0}
+                  onRatingChange={updateRating}
+                  size="lg"
+                />
+              </CardContent>
+            </Card>
+
+            {/* Photo History */}
+            {photoHistory && photoHistory.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-sm">
+                    <History className="h-4 w-4" />
+                    History
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ScrollArea className="h-32">
+                    <div className="space-y-2">
+                      {photoHistory.map((event: any, index: number) => (
+                        <div key={index} className="text-sm">
+                          <div className="flex justify-between">
+                            <span className="font-medium">{event.action}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(event.timestamp).toLocaleString()}
+                            </span>
+                          </div>
+                          {event.details && (
+                            <p className="text-xs text-muted-foreground mt-1">{event.details}</p>
+                          )}
                         </div>
                       ))}
                     </div>
-                  </div>
-                )}
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
 
-                {aiData.aiConfidenceScores && (
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Confidence</Label>
-                    <div className="text-xs space-y-1">
-                      <div className="flex justify-between">
-                        <span>Tags:</span>
-                        <span>{Math.round((aiData.aiConfidenceScores.tags || 0) * 100)}%</span>
+          <TabsContent value="metadata" className="space-y-4">
+            {/* Complete EXIF Data */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-sm">
+                  <Camera className="h-4 w-4" />
+                  EXIF Metadata
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-96">
+                  <div className="space-y-2 text-xs">
+                    {Object.entries(exifData).map(([key, value]) => (
+                      <div key={key} className="flex justify-between py-1">
+                        <span className="text-muted-foreground capitalize">
+                          {key.replace(/([A-Z])/g, ' $1').trim()}:
+                        </span>
+                        <span className="font-mono">{String(value)}</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span>Description:</span>
-                        <span>{Math.round((aiData.aiConfidenceScores.description || 0) * 100)}%</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Objects:</span>
-                        <span>{Math.round((aiData.aiConfidenceScores.objects || 0) * 100)}%</span>
-                      </div>
-                    </div>
+                    ))}
+                    {Object.keys(exifData).length === 0 && (
+                      <p className="text-muted-foreground">No EXIF data available</p>
+                    )}
                   </div>
-                )}
+                </ScrollArea>
               </CardContent>
             </Card>
-          )}
 
-          {/* Manual metadata */}
-          <Card>
+            {/* AI Generated Metadata */}
+            {aiData && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-sm">
+                    <Sparkles className="h-4 w-4" />
+                    AI Generated Metadata
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ScrollArea className="h-96">
+                    <div className="space-y-3 text-sm">
+                      {aiData.shortDescription && (
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Short Description</Label>
+                          <p className="font-semibold">{aiData.shortDescription}</p>
+                        </div>
+                      )}
+                      {aiData.longDescription && (
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Long Description</Label>
+                          <p>{aiData.longDescription}</p>
+                        </div>
+                      )}
+                      {aiData.aiTags && aiData.aiTags.length > 0 && (
+                        <div>
+                          <Label className="text-xs text-muted-foreground">AI Tags</Label>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {aiData.aiTags.map((tag: string, index: number) => (
+                              <Badge key={index} variant="secondary" className="text-xs">
+                                {tag}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {aiData.detectedObjects && aiData.detectedObjects.length > 0 && (
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Detected Objects</Label>
+                          <div className="space-y-1 mt-1">
+                            {aiData.detectedObjects.map((obj: any, index: number) => (
+                              <div key={index} className="flex justify-between">
+                                <span>{obj.name}</span>
+                                <span className="text-muted-foreground">{Math.round(obj.confidence * 100)}%</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {aiData.aiConfidenceScores && (
+                        <div>
+                          <Label className="text-xs text-muted-foreground">AI Confidence Scores</Label>
+                          <div className="space-y-1 mt-1">
+                            {Object.entries(aiData.aiConfidenceScores).map(([key, value]: [string, any]) => (
+                              <div key={key} className="flex justify-between">
+                                <span className="capitalize">{key}:</span>
+                                <span>{Math.round(value * 100)}%</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          <TabsContent value="analysis" className="space-y-4">
+            {/* Manual metadata */}
+            <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Tag className="h-4 w-4" />
@@ -692,46 +992,47 @@ export default function SilverReview() {
             </Card>
           )}
 
-          {/* Photo thumbnails */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm">Photo Navigation</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-3 gap-2 max-h-40 overflow-y-auto">
-                {photos.slice(Math.max(0, selectedPhotoIndex - 6), selectedPhotoIndex + 6).map((photo, index) => {
-                  const actualIndex = Math.max(0, selectedPhotoIndex - 6) + index;
-                  return (
-                    <div
-                      key={photo.id}
-                      className={`relative cursor-pointer border-2 rounded ${
-                        actualIndex === selectedPhotoIndex ? 'border-blue-500' : 'border-transparent'
-                      }`}
-                      onClick={() => setSelectedPhotoIndex(actualIndex)}
-                    >
-                      <img
-                        src={`/api/files/${photo.filePath}`}
-                        alt={photo.mediaAsset?.originalFilename || 'Photo'}
-                        className="w-full h-16 object-cover rounded"
-                        onError={(e) => {
-                          e.currentTarget.src = '/placeholder-image.svg';
-                        }}
-                      />
-                      {!photo.isReviewed && (
-                        <div className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></div>
-                      )}
-                      {selectedPhotos.has(photo.id) && (
-                        <div className="absolute top-1 left-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
-                          <span className="text-white text-xs">✓</span>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+            {/* Photo thumbnails */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Photo Navigation</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-3 gap-2 max-h-40 overflow-y-auto">
+                  {photos.slice(Math.max(0, selectedPhotoIndex - 6), selectedPhotoIndex + 6).map((photo, index) => {
+                    const actualIndex = Math.max(0, selectedPhotoIndex - 6) + index;
+                    return (
+                      <div
+                        key={photo.id}
+                        className={`relative cursor-pointer border-2 rounded ${
+                          actualIndex === selectedPhotoIndex ? 'border-blue-500' : 'border-transparent'
+                        }`}
+                        onClick={() => setSelectedPhotoIndex(actualIndex)}
+                      >
+                        <img
+                          src={`/api/files/${photo.filePath}`}
+                          alt={photo.mediaAsset?.originalFilename || 'Photo'}
+                          className="w-full h-16 object-cover rounded"
+                          onError={(e) => {
+                            e.currentTarget.src = '/placeholder-image.svg';
+                          }}
+                        />
+                        {!photo.isReviewed && (
+                          <div className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></div>
+                        )}
+                        {selectedPhotos.has(photo.id) && (
+                          <div className="absolute top-1 left-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
+                            <span className="text-white text-xs">✓</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
