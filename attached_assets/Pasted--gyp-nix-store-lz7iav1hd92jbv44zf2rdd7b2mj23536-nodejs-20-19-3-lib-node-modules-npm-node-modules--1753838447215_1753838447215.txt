@@ -1,0 +1,50 @@
+_gyp":"/nix/store/lz7iav1hd92jbv44zf2rdd7b2mj23536-nodejs-20.19.3/lib/node_modules/npm/node_modules/node-gyp/bin/node-gyp.js","DOCKER_CONFIG":"/home/runner/workspace/.config/docker","HISTFILESIZE":"100000","CFLAGS":"-isystem /nix/store/n5chc8i5za5jrr4biwwgx7a96p0a7aq9-jq-1.7.1-dev/include","npm_config_global_prefix":"/home/runner/workspace/.config/npm/node_global","GLIBC_TUNABLES":"glibc.rtld.optional_static_tls=10000","REPL_PUBKEYS":"{\"crosis-ci\":\"7YlpcYh82oR9NSTtSYtR5jDL4onNzCGJGq6b+9CuZII=\",\"crosis-ci:1\":\"7YlpcYh82oR9NSTtSYtR5jDL4onNzCGJGq6b+9CuZII=\",\"crosis-ci:latest\":\"7YlpcYh82oR9NSTtSYtR5jDL4onNzCGJGq6b+9CuZII=\",\"prod\":\"tGsjlu/BJvWTgvMaX7acuUb7AO1dXOrRiuk7y083RFE=\",\"prod:1\":\"tGsjlu/BJvWTgvMaX7acuUb7AO1dXOrRiuk7y083RFE=\",\"prod:2\":\"8uGN+vfszlnV93/HCSHlVLG0xddMlPkir1Ni4JKT4+w=\",\"prod:3\":\"9+MCOSHQSQlcodXoot8dC8NLhc862nLkx1/VMsbY2h8=\",\"prod:4\":\"8uGN+vfszlnV93/HCSHlVLG0xddMlPkir1Ni4JKT4+w=\",\"prod:5\":\"9+MCOSHQSQlcodXoot8dC8NLhc862nLkx1/VMsbY2h8=\",\"prod:latest\":\"tGsjlu/BJvWTgvMaX7acuUb7AO1dXOrRiuk7y083RFE=\",\"vault-goval-token\":\"D5jJoMx1Ml54HM92NLgXl+MzptwDqbSsfyFG6f52g9E=\",\"vault-goval-token:1\":\"D5jJoMx1Ml54HM92NLgXl+MzptwDqbSsfyFG6f52g9E=\",\"vault-goval-token:latest\":\"D5jJoMx1Ml54HM92NLgXl+MzptwDqbSsfyFG6f52g9E=\"}","npm_node_execpath":"/nix/store/lz7iav1hd92jbv44zf2rdd7b2mj23536-nodejs-20.19.3/bin/node","REPL_SLUG":"workspace","NIX_LDFLAGS":"-L/nix/store/bjf63mfkn3r6svmb4qlsy1v8bff4dwa9-jq-1.7.1-lib/lib -L/nix/store/n5chc8i5za5jrr4biwwgx7a96p0a7aq9-jq-1.7.1-dev/lib"},"shell":false}
+gyp sill find Python execFile: threw:
+gyp sill find Python TypeError [ERR_INVALID_ARG_VALUE]: The argument 'file' cannot be empty. Received ''
+gyp sill find Python at normalizeSpawnArguments (node:child_process:552:11)
+gyp sill find Python at spawn (node:child_process:755:13)
+gyp sill find Python at Object.execFile (node:child_process:351:17)
+gyp sill find Python at /home/runner/workspace/node_modules/@electron/node-gyp/lib/util.js:9:20
+gyp sill find Python at new Promise (<anonymous>)
+gyp sill find Python at PythonFinder.execFile (/home/runner/workspace/node_modules/@electron/node-gyp/lib/util.js:8:37)
+gyp sill find Python at PythonFinder.run (/home/runner/workspace/node_modules/@electron/node-gyp/lib/find-python.js:265:48)
+gyp sill find Python at PythonFinder.checkExecPath (/home/runner/workspace/node_modules/@electron/node-gyp/lib/find-python.js:230:34)
+gyp sill find Python at PythonFinder.checkCommand (/home/runner/workspace/node_modules/@electron/node-gyp/lib/find-python.js:189:19)
+gyp sill find Python at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+gyp verb find Python - "" could not be run
+gyp sill find Python runChecks: err = "TypeError [ERR_INVALID_ARG_VALUE]: The argument 'file' cannot be empty. Received ''\n    at normalizeSpawnArguments (node:child_process:552:11)\n    at spawn (node:child_process:755:13)\n    at Object.execFile (node:child_process:351:17)\n    at /home/runner/workspace/node_modules/@electron/node-gyp/lib/util.js:9:20\n    at new Promise (<anonymous>)\n    at PythonFinder.execFile (/home/runner/workspace/node_modules/@electron/node-gyp/lib/util.js:8:37)\n    at PythonFinder.run (/home/runner/workspace/node_modules/@electron/node-gyp/lib/find-python.js:265:48)\n    at PythonFinder.checkExecPath (/home/runner/workspace/node_modules/@electron/node-gyp/lib/find-python.js:230:34)\n    at PythonFinder.checkCommand (/home/runner/workspace/node_modules/@electron/node-gyp/lib/find-python.js:189:19)\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)"
+gyp ERR! find Python 
+gyp ERR! find Python Python is not set from command line or npm configuration
+gyp ERR! find Python Python is not set from environment variable PYTHON
+gyp ERR! find Python checking if "python3" can be used
+gyp ERR! find Python - executable path is ""
+gyp ERR! find Python - "" could not be run
+gyp ERR! find Python checking if "python" can be used
+gyp ERR! find Python - executable path is ""
+gyp ERR! find Python - "" could not be run
+gyp ERR! find Python 
+gyp ERR! find Python **********************************************************
+gyp ERR! find Python You need to install the latest version of Python.
+gyp ERR! find Python Node-gyp should be able to find and use Python. If not,
+gyp ERR! find Python you can try one of the following options:
+gyp ERR! find Python - Use the switch --python="/path/to/pythonexecutable"
+gyp ERR! find Python (accepted by both node-gyp and npm)
+gyp ERR! find Python - Set the environment variable PYTHON
+gyp ERR! find Python - Set the npm configuration variable python:
+gyp ERR! find Python npm config set python "/path/to/pythonexecutable"
+gyp ERR! find Python For more information consult the documentation at:
+gyp ERR! find Python https://github.com/nodejs/node-gyp#installation
+gyp ERR! find Python **********************************************************
+gyp ERR! find Python 
+Error: Could not find any Python installation to use
+    at PythonFinder.fail (/home/runner/workspace/node_modules/@electron/node-gyp/lib/find-python.js:306:11)
+    at PythonFinder.findPython (/home/runner/workspace/node_modules/@electron/node-gyp/lib/find-python.js:164:17)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async configure (/home/runner/workspace/node_modules/@electron/node-gyp/lib/configure.js:27:18)
+    at async process.<anonymous> (/home/runner/workspace/node_modules/@electron/rebuild/lib/module-type/node-gyp/worker.js:27:13)
+
+
+  ⨯ node-gyp failed to rebuild '/home/runner/workspace/node_modules/bufferutil'  failedTask=build stackTrace=Error: node-gyp failed to rebuild '/home/runner/workspace/node_modules/bufferutil'
+    at ChildProcess.<anonymous> (/home/runner/workspace/node_modules/@electron/rebuild/lib/module-type/node-gyp/node-gyp.js:121:24)
+    at ChildProcess.emit (node:events:524:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12)
