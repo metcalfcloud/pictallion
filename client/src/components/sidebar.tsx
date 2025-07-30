@@ -10,7 +10,7 @@ import {
   Search,
   Bell,
   Users,
-
+  Star,
   Zap,
   Sparkles,
   EyeOff,
@@ -26,6 +26,7 @@ const navigationItems = [
   { path: "/dashboard", label: "Home", icon: ChartLine },
   { path: "/gallery", label: "Photos", icon: Images },
   { path: "/upload", label: "Upload", icon: Upload },
+  { path: "/silver-review", label: "Silver Review", icon: Star },
   { path: "/collections", label: "Collections", icon: Images },
   { path: "/people", label: "People", icon: Users },
   { path: "/events", label: "Events", icon: Calendar },
