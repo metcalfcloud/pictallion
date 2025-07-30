@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -205,6 +205,7 @@ export default function PhotoDetailModal({
       <DialogContent className="max-w-4xl max-h-[85vh] w-[90vw] p-0">
         <DialogHeader className="sr-only">
           <DialogTitle>Photo Details</DialogTitle>
+          <DialogDescription>View and edit photo metadata, EXIF data, and AI-generated information</DialogDescription>
         </DialogHeader>
         <div className="flex h-full">
           {/* Fullscreen Image Overlay */}
@@ -234,10 +235,10 @@ export default function PhotoDetailModal({
 
           {/* Metadata Panel with Pinned Polaroid Photo */}
           <div className="flex-1 bg-card dark:bg-gray-900 flex flex-col">
-            <div className="flex-1 overflow-y-auto p-4">
-              <div className="flex gap-6">
-                {/* Pinned Polaroid Photo */}
-                <div className="flex-shrink-0 relative">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {/* Pinned Polaroid Photo */}
+              <div className="flex justify-center">
+                <div className="relative">
                   <div 
                     className="bg-white p-2 pb-4 shadow-lg transform rotate-3 hover:rotate-0 transition-transform duration-200 cursor-pointer relative"
                     onClick={() => setIsImageFullscreen(true)}
@@ -254,182 +255,147 @@ export default function PhotoDetailModal({
                     <div className="absolute -top-1 -left-1 w-3 h-3 bg-red-500 rounded-full shadow-sm border border-red-600"></div>
                   </div>
                 </div>
+              </div>
 
-                {/* Metadata Content */}
-                <div className="flex-1 space-y-4">
-                  {/* AI Description - Top Priority */}
-                  {photo.metadata?.ai?.longDescription && (
-                    <div>
-                      <h4 className="text-sm font-semibold text-card-foreground mb-2">Description</h4>
-                      <p className="text-sm text-muted-foreground">
-                        {photo.metadata.ai.longDescription}
-                      </p>
+              {/* AI Description */}
+              {photo.metadata?.ai?.longDescription && (
+                <div>
+                  <h4 className="text-sm font-semibold text-card-foreground mb-2">Description</h4>
+                  <p className="text-sm text-muted-foreground">
+                    {photo.metadata.ai.longDescription}
+                  </p>
+                </div>
+              )}
+
+              {/* AI Tags */}
+              {photo.metadata?.ai?.aiTags && (
+                <div>
+                  <h4 className="text-sm font-semibold text-card-foreground mb-2">AI Generated Tags</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {photo.metadata.ai.aiTags.map((tag: string, index: number) => (
+                      <span 
+                        key={index} 
+                        className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Two Column Metadata Layout */}
+              <div className="grid grid-cols-2 gap-4 text-sm">
+
+                {/* Left Column */}
+                <div className="space-y-3">
+                  <h4 className="text-sm font-semibold text-card-foreground">File Information</h4>
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-muted-foreground">Filename</span>
+                      <span className="text-card-foreground font-mono truncate ml-2">{photo.mediaAsset?.originalFilename}</span>
                     </div>
-                  )}
-
-                  {/* AI Tags */}
-                  {photo.metadata?.ai?.aiTags && (
-                    <div>
-                      <h4 className="text-sm font-semibold text-card-foreground mb-2">AI Generated Tags</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {photo.metadata.ai.aiTags.map((tag: string, index: number) => (
-                          <span 
-                            key={index} 
-                            className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs"
-                          >
-                            {tag}
-                          </span>
-                        ))}
+                    {photo.fileSize && (
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">Size</span>
+                        <span className="text-card-foreground">{Math.round(photo.fileSize / 1024)} KB</span>
                       </div>
-                    </div>
-                  )}
+                    )}
+                    {photo.metadata?.exif?.imageWidth && photo.metadata?.exif?.imageHeight && (
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">Dimensions</span>
+                        <span className="text-card-foreground">{photo.metadata.exif.imageWidth} x {photo.metadata.exif.imageHeight}</span>
+                      </div>
+                    )}
+                  </div>
 
-                  {/* Tier Badge */}
-                  <div>
-                    <Badge className={cn("text-sm", getTierBadgeClass(photo.tier))}>
-                      <span className="capitalize">{photo.tier} Tier</span>
-                    </Badge>
-                    {photo.tier === 'silver' && !photo.isReviewed && (
-                      <Badge variant="outline" className="ml-2 text-yellow-600 border-yellow-600">
-                        <Eye className="w-3 h-3 mr-1" />
-                        Needs Review
+                  <h4 className="text-sm font-semibold text-card-foreground pt-2">Camera Settings</h4>
+                  <div className="space-y-1">
+                    {photo.metadata?.exif?.camera && (
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">Camera</span>
+                        <span className="text-card-foreground truncate ml-2">{photo.metadata.exif.camera}</span>
+                      </div>
+                    )}
+                    {photo.metadata?.exif?.lens && (
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">Lens</span>
+                        <span className="text-card-foreground truncate ml-2">{photo.metadata.exif.lens}</span>
+                      </div>
+                    )}
+                    {photo.metadata?.exif?.aperture && (
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">Aperture</span>
+                        <span className="text-card-foreground">{photo.metadata.exif.aperture}</span>
+                      </div>
+                    )}
+                    {photo.metadata?.exif?.shutter && (
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">Shutter</span>
+                        <span className="text-card-foreground">{photo.metadata.exif.shutter}</span>
+                      </div>
+                    )}
+                    {photo.metadata?.exif?.iso && (
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">ISO</span>
+                        <span className="text-card-foreground">{photo.metadata.exif.iso}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Right Column */}
+                <div className="space-y-3">
+                  <h4 className="text-sm font-semibold text-card-foreground">Date Information</h4>
+                  <div className="space-y-1">
+                    {photo.createdAt && (
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">Processed</span>
+                        <span className="text-card-foreground">{new Date(photo.createdAt).toLocaleDateString()}</span>
+                      </div>
+                    )}
+                    {photo.metadata?.exif?.dateTimeOriginal && (
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">Date Taken</span>
+                        <span className="text-card-foreground">{new Date(photo.metadata.exif.dateTimeOriginal).toLocaleDateString()}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <h4 className="text-sm font-semibold text-card-foreground pt-2">Status</h4>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Badge className={cn("text-xs", getTierBadgeClass(photo.tier))}>
+                        <span className="capitalize">{photo.tier}</span>
                       </Badge>
-                    )}
+                      {photo.tier === 'silver' && !photo.isReviewed && (
+                        <Badge variant="outline" className="text-xs text-yellow-600 border-yellow-600">
+                          <Eye className="w-3 h-3 mr-1" />
+                          Needs Review
+                        </Badge>
+                      )}
+                    </div>
                   </div>
 
-              {/* File Information */}
-              <div className="mb-6">
-                <h4 className="text-sm font-semibold text-card-foreground mb-3">File Information</h4>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Filename</span>
-                    <span className="text-sm text-card-foreground font-mono text-xs">{photo.mediaAsset?.originalFilename}</span>
-                  </div>
-                  {photo.filePath && (
-                    <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">File Path</span>
-                      <span className="text-sm text-card-foreground font-mono text-xs">{photo.filePath}</span>
-                    </div>
-                  )}
-                  {photo.fileSize && (
-                    <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">File Size</span>
-                      <span className="text-sm text-card-foreground">{Math.round(photo.fileSize / 1024)} KB</span>
-                    </div>
-                  )}
-                  {photo.metadata?.exif?.imageWidth && photo.metadata?.exif?.imageHeight && (
-                    <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Dimensions</span>
-                      <span className="text-sm text-card-foreground">{photo.metadata.exif.imageWidth} x {photo.metadata.exif.imageHeight}</span>
-                    </div>
+                  {/* GPS Information */}
+                  {photo.metadata?.exif?.gps && (
+                    <>
+                      <h4 className="text-sm font-semibold text-card-foreground pt-2">Location</h4>
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-muted-foreground">Latitude</span>
+                          <span className="text-card-foreground font-mono">{photo.metadata.exif.gps.latitude}</span>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                          <span className="text-muted-foreground">Longitude</span>
+                          <span className="text-card-foreground font-mono">{photo.metadata.exif.gps.longitude}</span>
+                        </div>
+                      </div>
+                    </>
                   )}
                 </div>
+
               </div>
-
-              {/* Date Information */}
-              <div className="mb-6">
-                <h4 className="text-sm font-semibold text-card-foreground mb-3">Date Information</h4>
-                <div className="space-y-2">
-                  {photo.createdAt && (
-                    <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Date Processed</span>
-                      <span className="text-sm text-card-foreground">{new Date(photo.createdAt).toLocaleString()}</span>
-                    </div>
-                  )}
-                  {photo.metadata?.exif?.dateTimeOriginal && (
-                    <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Date Taken</span>
-                      <span className="text-sm text-card-foreground">{new Date(photo.metadata.exif.dateTimeOriginal).toLocaleString()}</span>
-                    </div>
-                  )}
-                  {photo.metadata?.exif?.createDate && (
-                    <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Created</span>
-                      <span className="text-sm text-card-foreground">{new Date(photo.metadata.exif.createDate).toLocaleString()}</span>
-                    </div>
-                  )}
-                  {photo.metadata?.exif?.modifyDate && (
-                    <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Modified</span>
-                      <span className="text-sm text-card-foreground">{new Date(photo.metadata.exif.modifyDate).toLocaleString()}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* EXIF Data */}
-              {photo.metadata?.exif && (
-                <div className="mb-6">
-                  <h4 className="text-sm font-semibold text-card-foreground mb-3">Camera Settings</h4>
-                  <div className="space-y-2">
-                    {photo.metadata.exif.camera && (
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Camera</span>
-                        <span className="text-sm text-card-foreground">{photo.metadata.exif.camera}</span>
-                      </div>
-                    )}
-                    {photo.metadata.exif.lens && (
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Lens</span>
-                        <span className="text-sm text-card-foreground">{photo.metadata.exif.lens}</span>
-                      </div>
-                    )}
-                    {photo.metadata.exif.aperture && (
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Aperture</span>
-                        <span className="text-sm text-card-foreground">{photo.metadata.exif.aperture}</span>
-                      </div>
-                    )}
-                    {photo.metadata.exif.shutter && (
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Shutter</span>
-                        <span className="text-sm text-card-foreground">{photo.metadata.exif.shutter}</span>
-                      </div>
-                    )}
-                    {photo.metadata.exif.iso && (
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">ISO</span>
-                        <span className="text-sm text-card-foreground">{photo.metadata.exif.iso}</span>
-                      </div>
-                    )}
-                    {photo.metadata.exif.focalLength && (
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Focal Length</span>
-                        <span className="text-sm text-card-foreground">{photo.metadata.exif.focalLength}</span>
-                      </div>
-                    )}
-                    {photo.metadata.exif.flash && (
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Flash</span>
-                        <span className="text-sm text-card-foreground">{photo.metadata.exif.flash}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* GPS Information */}
-              {photo.metadata?.exif?.gps && (
-                <div className="mb-6">
-                  <h4 className="text-sm font-semibold text-card-foreground mb-3">GPS Information</h4>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Latitude</span>
-                      <span className="text-sm text-card-foreground font-mono">{photo.metadata.exif.gps.latitude}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Longitude</span>
-                      <span className="text-sm text-card-foreground font-mono">{photo.metadata.exif.gps.longitude}</span>
-                    </div>
-                    {photo.metadata.exif.gps.altitude && (
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Altitude</span>
-                        <span className="text-sm text-card-foreground">{photo.metadata.exif.gps.altitude}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
 
               {/* Location */}
               {photo.metadata?.ai?.placeName && (
@@ -463,11 +429,11 @@ export default function PhotoDetailModal({
 
               {/* Editable Metadata */}
               {isEditing ? (
-                <div className="flex flex-col flex-1">
-                  <h4 className="text-sm font-semibold text-card-foreground mb-4">Edit Metadata</h4>
+                <div className="border-t pt-4">
+                  <h4 className="text-sm font-semibold text-card-foreground mb-3">Edit Metadata</h4>
                   
-                  {/* Scrollable Form Content */}
-                  <div className="flex-1 overflow-y-auto space-y-4">
+                  {/* Compact Form Content */}
+                  <div className="space-y-3 max-h-60 overflow-y-auto">
                     <div>
                       <Label htmlFor="keywords" className="text-xs">Keywords (comma-separated)</Label>
                       <Input
@@ -544,32 +510,26 @@ export default function PhotoDetailModal({
                   </div>
 
                   {/* Always Visible Action Buttons */}
-                  <div className="flex-shrink-0 border-t pt-3 mt-3 bg-card space-y-2">
-                    <div className="flex gap-2">
-                      <Button 
-                        onClick={handleSaveMetadata}
-                        disabled={updateMetadataMutation.isPending}
-                        className="flex-1"
-                        size="sm"
-                      >
-                        <Save className="w-4 h-4 mr-2" />
-                        {updateMetadataMutation.isPending ? 'Saving...' : 'Save'}
-                      </Button>
-                      <Button 
-                        variant="outline"
-                        onClick={resetMetadata}
-                        className="flex-1"
-                        size="sm"
-                      >
-                        <RotateCcw className="w-4 h-4 mr-2" />
-                        Reset
-                      </Button>
-                    </div>
-
+                  <div className="flex gap-2 pt-3 mt-3 border-t">
+                    <Button 
+                      onClick={handleSaveMetadata}
+                      disabled={updateMetadataMutation.isPending}
+                      className="flex-1"
+                      size="sm"
+                    >
+                      <Save className="w-4 h-4 mr-1" />
+                      {updateMetadataMutation.isPending ? 'Saving...' : 'Save'}
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      onClick={resetMetadata}
+                      size="sm"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                    </Button>
                     <Button 
                       variant="ghost"
                       onClick={() => setIsEditing(false)}
-                      className="w-full"
                       size="sm"
                     >
                       Cancel
@@ -686,51 +646,46 @@ export default function PhotoDetailModal({
 
               {/* Actions - Only show when not editing */}
               {!isEditing && (
-                <div className="space-y-3 border-t pt-4 mt-auto">
-                  {canProcess && (
-                    <Button 
-                      className="w-full"
-                      onClick={() => onProcessPhoto!(photo.id)}
-                      disabled={isProcessing}
-                    >
-                      <Bot className="w-4 h-4 mr-2" />
-                      {isProcessing ? 'Processing...' : 'Process with AI'}
-                    </Button>
-                  )}
-
+                <div className="flex gap-2 border-t pt-3 mt-4">
                   <Button 
                     variant="outline" 
-                    className="w-full"
+                    className="flex-1"
                     onClick={() => setIsEditing(!isEditing)}
+                    size="sm"
                   >
-                    <Edit className="w-4 h-4 mr-2" />
-                    Edit Metadata
+                    <Edit className="w-4 h-4 mr-1" />
+                    Edit
                   </Button>
-
+                  {canProcess && (
+                    <Button 
+                      className="flex-1"
+                      onClick={() => onProcessPhoto!(photo.id)}
+                      disabled={isProcessing}
+                      size="sm"
+                    >
+                      <Bot className="w-4 h-4 mr-1" />
+                      {isProcessing ? 'Processing...' : 'Process'}
+                    </Button>
+                  )}
                   {canPromoteToGold && (
                     <Button 
                       variant="outline" 
-                      className="w-full"
                       onClick={() => promoteToGoldMutation.mutate()}
                       disabled={promoteToGoldMutation.isPending}
+                      size="sm"
                     >
-                      <Star className="w-4 h-4 mr-2" />
-                      {promoteToGoldMutation.isPending ? 'Promoting...' : 'Promote to Gold'}
+                      <Star className="w-4 h-4" />
                     </Button>
                   )}
-
                   <Button 
                     variant="outline" 
-                    className="w-full"
                     onClick={handleDownload}
+                    size="sm"
                   >
-                    <Download className="w-4 h-4 mr-2" />
-                    Download
+                    <Download className="w-4 h-4" />
                   </Button>
                 </div>
               )}
-                </div>
-              </div>
             </div>
           </div>
         </div>
