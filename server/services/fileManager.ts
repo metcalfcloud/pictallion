@@ -123,7 +123,25 @@ class FileManager {
     }
 
     const filename = newFilename || path.basename(bronzePath);
-    const silverPath = path.join(silverDir, filename);
+    let silverPath = path.join(silverDir, filename);
+    
+    // Check if file already exists and generate unique filename if needed
+    let counter = 1;
+    const ext = path.extname(filename);
+    const nameWithoutExt = path.basename(filename, ext);
+    
+    while (true) {
+      try {
+        await fs.access(silverPath);
+        // File exists, generate new name
+        const uniqueFilename = `${nameWithoutExt}_${counter}${ext}`;
+        silverPath = path.join(silverDir, uniqueFilename);
+        counter++;
+      } catch {
+        // File doesn't exist, we can use this path
+        break;
+      }
+    }
     
     await fs.copyFile(fullBronzePath, silverPath);
     
@@ -145,7 +163,25 @@ class FileManager {
     }
 
     const filename = path.basename(silverPath);
-    const goldPath = path.join(goldDir, filename);
+    let goldPath = path.join(goldDir, filename);
+    
+    // Check if file already exists and generate unique filename if needed
+    let counter = 1;
+    const ext = path.extname(filename);
+    const nameWithoutExt = path.basename(filename, ext);
+    
+    while (true) {
+      try {
+        await fs.access(goldPath);
+        // File exists, generate new name
+        const uniqueFilename = `${nameWithoutExt}_${counter}${ext}`;
+        goldPath = path.join(goldDir, uniqueFilename);
+        counter++;
+      } catch {
+        // File doesn't exist, we can use this path
+        break;
+      }
+    }
     
     await fs.copyFile(fullSilverPath, goldPath);
     

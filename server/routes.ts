@@ -21,12 +21,48 @@ import { db } from "./db";
 // Helper function to extract photo date from metadata or filename
 function extractPhotoDate(photo: any): Date | undefined {
   try {
-    // First try EXIF datetime fields
-    if (photo.metadata?.exif?.dateTime) {
-      return new Date(photo.metadata.exif.dateTime);
-    }
-    if (photo.metadata?.exif?.dateTimeOriginal) {
-      return new Date(photo.metadata.exif.dateTimeOriginal);
+    // Debug: Log the photo metadata structure for investigation
+    console.log('Photo metadata structure:', JSON.stringify({
+      hasMetadata: !!photo.metadata,
+      metadataType: typeof photo.metadata,
+      metadataKeys: photo.metadata ? Object.keys(photo.metadata) : [],
+      hasExif: !!(photo.metadata?.exif),
+      exifKeys: photo.metadata?.exif ? Object.keys(photo.metadata.exif) : [],
+      hasMediaAsset: !!photo.mediaAsset,
+      originalFilename: photo.mediaAsset?.originalFilename,
+      createdAt: photo.createdAt
+    }, null, 2));
+
+    // First try EXIF datetime fields with various formats
+    if (photo.metadata?.exif) {
+      const exif = photo.metadata.exif;
+      
+      // Try DateTimeOriginal first (most accurate)
+      if (exif.dateTimeOriginal) {
+        const date = new Date(exif.dateTimeOriginal);
+        if (!isNaN(date.getTime())) {
+          console.log('Using EXIF DateTimeOriginal:', date.toISOString());
+          return date;
+        }
+      }
+      
+      // Try CreateDate
+      if (exif.createDate) {
+        const date = new Date(exif.createDate);
+        if (!isNaN(date.getTime())) {
+          console.log('Using EXIF CreateDate:', date.toISOString());
+          return date;
+        }
+      }
+      
+      // Try DateTime
+      if (exif.dateTime) {
+        const date = new Date(exif.dateTime);
+        if (!isNaN(date.getTime())) {
+          console.log('Using EXIF DateTime:', date.toISOString());
+          return date;
+        }
+      }
     }
 
     // Try to extract from filename if it has timestamp format (YYYYMMDD_HHMMSS)
@@ -44,15 +80,21 @@ function extractPhotoDate(photo: any): Date | undefined {
 
       const extractedDate = new Date(year, month, day, hour, minute, second);
       if (!isNaN(extractedDate.getTime())) {
+        console.log('Using filename timestamp:', extractedDate.toISOString());
         return extractedDate;
       }
     }
 
     // Fall back to file creation time
     if (photo.createdAt) {
-      return new Date(photo.createdAt);
+      const date = new Date(photo.createdAt);
+      if (!isNaN(date.getTime())) {
+        console.log('Using createdAt:', date.toISOString());
+        return date;
+      }
     }
 
+    console.log('No valid date found, returning undefined');
     return undefined;
   } catch (error) {
     console.error('Error extracting photo date:', error);
