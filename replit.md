@@ -62,7 +62,7 @@ The application uses a relational database with four main tables:
 ### File Management
 - **Directory Structure**: Automated creation of required media directories
 - **Batch Organization**: Bronze tier files organized in dated batches (max 500 files)
-- **Duplicate Detection**: Perceptual hash-based duplicate identification (Gold tier only)
+- **Duplicate Detection**: Handled during ingestion to prevent duplicates from entering the system
 - **Burst Photo Grouping**: 95%+ similarity detection within ±1 minute time windows
 - **File Validation**: MIME type checking and size limits (50MB)
 
@@ -72,7 +72,7 @@ The application uses a relational database with four main tables:
 - **Upload**: Consolidated upload system with drag-and-drop interface, progress tracking, and advanced conflict resolution
 - **Burst Photos**: Intelligent grouping and selection interface for burst sequences
 - **People**: Face detection and person management
-- **Duplicates**: Gold tier duplicate detection and resolution
+
 - **Photo Detail Modal**: Comprehensive metadata display, editing, and event detection
 - **Events Page**: Browse photos by detected events and celebrations
 - **Event Settings**: Configure holiday detection for different countries
@@ -84,7 +84,7 @@ The application uses a relational database with four main tables:
 3. **AI Processing**: Selected Bronze photos → Silver tier with AI analysis and metadata enrichment
 4. **Human Review**: Silver tier metadata validation and editing
 5. **Final Curation**: Silver → Gold tier for finalized media
-6. **Duplicate Detection**: Gold tier photos scanned for duplicates using perceptual hashing
+
 
 ## Recent Changes
 

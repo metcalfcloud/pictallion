@@ -12,7 +12,7 @@ import Collections from "./pages/collections";
 import SilverReview from "./pages/silver-review";
 import { IgnoredFaces } from "./pages/ignored-faces";
 import People from "@/pages/people";
-import Duplicates from "@/pages/duplicates";
+
 import Events from "@/pages/events";
 import Settings from "@/pages/settings";
 import NotFound from "@/pages/not-found";
@@ -35,7 +35,7 @@ function Router() {
           <Route path="/burst-selection" component={BurstSelectionPage} />
           <Route path="/ignored-faces" component={IgnoredFaces} />
           <Route path="/people" component={People} />
-          <Route path="/duplicates" component={Duplicates} />
+
           <Route path="/events" component={Events} />
           <Route path="/settings" component={Settings} />
           <Route component={NotFound} />

@@ -10,7 +10,7 @@ import {
   Search,
   Bell,
   Users,
-  Copy,
+
   Zap,
   Sparkles,
   EyeOff,
@@ -30,7 +30,6 @@ const navigationItems = [
   { path: "/people", label: "People", icon: Users },
   { path: "/events", label: "Events", icon: Calendar },
   { path: "/burst-selection", label: "Burst Photos", icon: Zap },
-  { path: "/duplicates", label: "Duplicates", icon: Copy },
   { path: "/settings", label: "Settings", icon: Settings },
 ];
 
