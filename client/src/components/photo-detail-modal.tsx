@@ -344,109 +344,115 @@ export default function PhotoDetailModal({
 
               {/* Editable Metadata */}
               {isEditing ? (
-                <div className="space-y-4 mb-6 max-h-[60vh] overflow-y-auto">
-                  <h4 className="text-sm font-semibold text-card-foreground">Edit Metadata</h4>
+                <div className="flex flex-col">
+                  {/* Scrollable Form Content */}
+                  <div className="flex-1 overflow-y-auto max-h-[40vh] space-y-4 mb-4">
+                    <h4 className="text-sm font-semibold text-card-foreground">Edit Metadata</h4>
 
-                  <div>
-                    <Label htmlFor="keywords" className="text-xs">Keywords (comma-separated)</Label>
-                    <Input
-                      id="keywords"
-                      value={editedMetadata.keywords.join(', ')}
-                      onChange={(e) => {
-                        const keywords = e.target.value.split(',').map(k => k.trim()).filter(k => k);
-                        setEditedMetadata(prev => ({ ...prev, keywords }));
-                      }}
-                      placeholder="Add keywords..."
-                      className="mt-1"
-                    />
-                  </div>
+                    <div>
+                      <Label htmlFor="keywords" className="text-xs">Keywords (comma-separated)</Label>
+                      <Input
+                        id="keywords"
+                        value={editedMetadata.keywords.join(', ')}
+                        onChange={(e) => {
+                          const keywords = e.target.value.split(',').map(k => k.trim()).filter(k => k);
+                          setEditedMetadata(prev => ({ ...prev, keywords }));
+                        }}
+                        placeholder="Add keywords..."
+                        className="mt-1"
+                      />
+                    </div>
 
-                  <div>
-                    <Label htmlFor="location" className="text-xs">Location</Label>
-                    <Input
-                      id="location"
-                      value={editedMetadata.location}
-                      onChange={(e) => setEditedMetadata(prev => ({ ...prev, location: e.target.value }))}
-                      placeholder="Location..."
-                      className="mt-1"
-                    />
-                  </div>
+                    <div>
+                      <Label htmlFor="location" className="text-xs">Location</Label>
+                      <Input
+                        id="location"
+                        value={editedMetadata.location}
+                        onChange={(e) => setEditedMetadata(prev => ({ ...prev, location: e.target.value }))}
+                        placeholder="Location..."
+                        className="mt-1"
+                      />
+                    </div>
 
-                  <div>
-                    <Label htmlFor="eventType" className="text-xs">Event Type</Label>
-                    <Select
-                      value={editedMetadata.eventType || 'none'}
-                      onValueChange={(value) => setEditedMetadata(prev => ({ ...prev, eventType: value === 'none' ? '' : value }))}
-                    >
-                      <SelectTrigger className="mt-1">
-                        <SelectValue placeholder="Select event type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">None</SelectItem>
-                        <SelectItem value="holiday">Holiday</SelectItem>
-                        <SelectItem value="birthday">Birthday</SelectItem>
-                        <SelectItem value="wedding">Wedding</SelectItem>
-                        <SelectItem value="vacation">Vacation</SelectItem>
-                        <SelectItem value="party">Party</SelectItem>
-                        <SelectItem value="sports">Sports</SelectItem>
-                        <SelectItem value="concert">Concert</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                    <div>
+                      <Label htmlFor="eventType" className="text-xs">Event Type</Label>
+                      <Select
+                        value={editedMetadata.eventType || 'none'}
+                        onValueChange={(value) => setEditedMetadata(prev => ({ ...prev, eventType: value === 'none' ? '' : value }))}
+                      >
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Select event type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">None</SelectItem>
+                          <SelectItem value="holiday">Holiday</SelectItem>
+                          <SelectItem value="birthday">Birthday</SelectItem>
+                          <SelectItem value="wedding">Wedding</SelectItem>
+                          <SelectItem value="vacation">Vacation</SelectItem>
+                          <SelectItem value="party">Party</SelectItem>
+                          <SelectItem value="sports">Sports</SelectItem>
+                          <SelectItem value="concert">Concert</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                  <div>
-                    <Label htmlFor="eventName" className="text-xs">Event Name</Label>
-                    <Input
-                      id="eventName"
-                      value={editedMetadata.eventName}
-                      onChange={(e) => setEditedMetadata(prev => ({ ...prev, eventName: e.target.value }))}
-                      placeholder="Event name..."
-                      className="mt-1"
-                    />
-                  </div>
+                    <div>
+                      <Label htmlFor="eventName" className="text-xs">Event Name</Label>
+                      <Input
+                        id="eventName"
+                        value={editedMetadata.eventName}
+                        onChange={(e) => setEditedMetadata(prev => ({ ...prev, eventName: e.target.value }))}
+                        placeholder="Event name..."
+                        className="mt-1"
+                      />
+                    </div>
 
-                  <div>
-                    <Label className="text-xs">Rating</Label>
-                    <div className="flex items-center gap-1 mt-1">
-                      {[1, 2, 3, 4, 5].map((starValue) => (
-                        <button
-                          key={starValue}
-                          type="button"
-                          onClick={() => setEditedMetadata(prev => ({ ...prev, rating: starValue }))}
-                          className={`p-1 rounded ${editedMetadata.rating >= starValue ? 'text-yellow-400' : 'text-muted-foreground'}`}
-                        >
-                          <Star className="w-4 h-4 fill-current" />
-                        </button>
-                      ))}
+                    <div>
+                      <Label className="text-xs">Rating</Label>
+                      <div className="flex items-center gap-1 mt-1">
+                        {[1, 2, 3, 4, 5].map((starValue) => (
+                          <button
+                            key={starValue}
+                            type="button"
+                            onClick={() => setEditedMetadata(prev => ({ ...prev, rating: starValue }))}
+                            className={`p-1 rounded ${editedMetadata.rating >= starValue ? 'text-yellow-400' : 'text-muted-foreground'}`}
+                          >
+                            <Star className="w-4 h-4 fill-current" />
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
 
-                  <div className="flex gap-2">
+                  {/* Fixed Action Buttons */}
+                  <div className="space-y-2 border-t pt-4">
+                    <div className="flex gap-2">
+                      <Button 
+                        onClick={handleSaveMetadata}
+                        disabled={updateMetadataMutation.isPending}
+                        className="flex-1"
+                      >
+                        <Save className="w-4 h-4 mr-2" />
+                        {updateMetadataMutation.isPending ? 'Saving...' : 'Save'}
+                      </Button>
+                      <Button 
+                        variant="outline"
+                        onClick={resetMetadata}
+                        className="flex-1"
+                      >
+                        <RotateCcw className="w-4 h-4 mr-2" />
+                        Reset
+                      </Button>
+                    </div>
+
                     <Button 
-                      onClick={handleSaveMetadata}
-                      disabled={updateMetadataMutation.isPending}
-                      className="flex-1"
+                      variant="ghost"
+                      onClick={() => setIsEditing(false)}
+                      className="w-full"
                     >
-                      <Save className="w-4 h-4 mr-2" />
-                      {updateMetadataMutation.isPending ? 'Saving...' : 'Save'}
-                    </Button>
-                    <Button 
-                      variant="outline"
-                      onClick={resetMetadata}
-                      className="flex-1"
-                    >
-                      <RotateCcw className="w-4 h-4 mr-2" />
-                      Reset
+                      Cancel
                     </Button>
                   </div>
-
-                  <Button 
-                    variant="ghost"
-                    onClick={() => setIsEditing(false)}
-                    className="w-full"
-                  >
-                    Cancel
-                  </Button>
                 </div>
               ) : (
                 /* Current metadata display */
