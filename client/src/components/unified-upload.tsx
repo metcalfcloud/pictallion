@@ -160,16 +160,49 @@ export function UnifiedUpload({
             formData.append('files', file.file);
         });
 
-        const response = await fetch('/api/upload', {
-            method: 'POST',
-            body: formData,
+        // Use XMLHttpRequest for progress tracking
+        const xhr = new XMLHttpRequest();
+        
+        // Track upload progress
+        xhr.upload.addEventListener('progress', (event) => {
+          if (event.lengthComputable) {
+            const percentComplete = Math.round((event.loaded / event.total) * 100);
+            
+            // Update progress for all uploading files
+            setUploadFiles(current => 
+              current.map(file => 
+                file.status === 'uploading' 
+                  ? { ...file, progress: percentComplete }
+                  : file
+              )
+            );
+          }
         });
 
-        if (!response.ok) {
-            throw new Error('Upload failed');
-        }
+        // Handle completion
+        const uploadPromise = new Promise<any>((resolve, reject) => {
+          xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              try {
+                const data = JSON.parse(xhr.responseText);
+                resolve(data);
+              } catch (e) {
+                reject(new Error('Invalid response format'));
+              }
+            } else {
+              reject(new Error(`Upload failed with status ${xhr.status}`));
+            }
+          };
+          
+          xhr.onerror = () => reject(new Error('Upload failed'));
+          xhr.ontimeout = () => reject(new Error('Upload timed out'));
+        });
 
-        const data = await response.json();
+        // Send the request
+        xhr.open('POST', '/api/upload');
+        xhr.send(formData);
+
+        const data = await uploadPromise;
 
         // Update upload files with results
         setUploadFiles(current =>
