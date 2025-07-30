@@ -415,16 +415,9 @@ const resolveMutation = {
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h4 className="font-medium">Upload Queue ({uploadFiles.length} files)</h4>
-            <div className="flex space-x-2">
-              {uploadFiles.some(f => f.status === 'success' || f.status === 'error' || f.status === 'conflict' || f.status === 'skipped') && (
-                <Button variant="outline" size="sm" onClick={clearCompletedFiles}>
-                  Clear Completed
-                </Button>
-              )}
-              <Button variant="outline" size="sm" onClick={clearAll}>
-                Clear All
-              </Button>
-            </div>
+            <Button variant="outline" size="sm" onClick={clearAll}>
+              Clear Queue
+            </Button>
           </div>
 
           <div className="space-y-2 max-h-48 overflow-y-auto">
@@ -467,30 +460,44 @@ const resolveMutation = {
   );
 
   // Action buttons
-  const ActionButtons = () => (
-    <div className="flex justify-end space-x-3 pt-4 border-t">
-      <Button variant="outline" onClick={mode === 'modal' ? closeModal : clearCompletedFiles}>
-        {uploadFiles.some(f => f.status === 'success') ? 'Done' : mode === 'modal' ? 'Cancel' : 'Close'}
-      </Button>
-      {uploadFiles.some(f => f.status === 'conflict') && (
-        <Button 
-          onClick={() => setShowConflicts(true)}
-          variant="outline"
-          className="border-orange-300 dark:border-orange-700 text-orange-700 dark:text-orange-300 hover:bg-orange-50 dark:hover:bg-orange-950"
-        >
-          Resolve Conflicts ({uploadFiles.filter(f => f.status === 'conflict').length})
-        </Button>
-      )}
-      {uploadFiles.length > 0 && uploadFiles.some(f => f.status === 'pending') && (
-        <Button 
-          onClick={handleUpload}
-          disabled={uploadFiles.some(f => f.status === 'uploading')}
-        >
-          {uploadFiles.some(f => f.status === 'uploading') ? 'Uploading...' : 'Start Upload'}
-        </Button>
-      )}
-    </div>
-  );
+  const ActionButtons = () => {
+    const hasCompleted = uploadFiles.some(f => ['success', 'error', 'conflict', 'skipped'].includes(f.status));
+    const hasPending = uploadFiles.some(f => f.status === 'pending');
+    const isUploading = uploadFiles.some(f => f.status === 'uploading');
+    
+    return (
+      <div className="flex justify-end space-x-3 pt-4 border-t">
+        {/* Primary action button */}
+        {hasPending ? (
+          <Button 
+            onClick={handleUpload}
+            disabled={isUploading}
+          >
+            {isUploading ? 'Uploading...' : 'Start Upload'}
+          </Button>
+        ) : hasCompleted ? (
+          <Button onClick={clearCompletedFiles}>
+            Done
+          </Button>
+        ) : (
+          <Button variant="outline" onClick={mode === 'modal' ? closeModal : () => {}}>
+            {mode === 'modal' ? 'Close' : 'Ready'}
+          </Button>
+        )}
+        
+        {/* Secondary actions */}
+        {uploadFiles.some(f => f.status === 'conflict') && (
+          <Button 
+            onClick={() => setShowConflicts(true)}
+            variant="outline"
+            className="border-orange-300 dark:border-orange-700 text-orange-700 dark:text-orange-300 hover:bg-orange-50 dark:hover:bg-orange-950"
+          >
+            Resolve Conflicts ({uploadFiles.filter(f => f.status === 'conflict').length})
+          </Button>
+        )}
+      </div>
+    );
+  };
 
   // Advanced conflict resolution dialog with detailed EXIF metadata
   const ConflictResolutionDialog = () => (
