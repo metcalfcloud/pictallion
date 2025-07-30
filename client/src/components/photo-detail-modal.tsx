@@ -207,55 +207,49 @@ export default function PhotoDetailModal({
           <DialogTitle>Photo Details</DialogTitle>
         </DialogHeader>
         <div className="flex h-full">
-          {/* Image Display */}
-          <div className={`${isImageFullscreen ? 'flex-1' : 'w-96'} flex flex-col items-center justify-center p-4 bg-black relative`}>
-            <div className="relative flex-1 flex items-center justify-center w-full">
+          {/* Fullscreen Image Overlay */}
+          {isImageFullscreen && (
+            <div className="fixed inset-0 z-50 bg-black flex items-center justify-center" onClick={() => setIsImageFullscreen(false)}>
               <img 
                 src={`/api/files/${photo.filePath}`}
                 alt={photo.mediaAsset?.originalFilename || 'Photo'}
-                className={`${isImageFullscreen ? 'max-w-full max-h-full' : 'max-w-full max-h-[70vh]'} object-contain rounded-lg shadow-2xl`}
+                className="max-w-full max-h-full object-contain"
                 onError={(e) => {
                   e.currentTarget.src = '/placeholder-image.svg';
                 }}
               />
-              
-              {/* Fullscreen Toggle Button */}
               <Button
                 variant="secondary"
                 size="sm"
-                className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white border-none"
-                onClick={() => setIsImageFullscreen(!isImageFullscreen)}
+                className="absolute top-4 right-4 bg-black/50 hover:bg-black/70 text-white border-none"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsImageFullscreen(false);
+                }}
               >
-                {isImageFullscreen ? (
-                  <Minimize2 className="w-4 h-4" />
-                ) : (
-                  <Maximize2 className="w-4 h-4" />
-                )}
+                <X className="w-4 h-4" />
               </Button>
             </div>
-            
-            {/* Image Info */}
-            <div className="text-center mt-2 text-white/80 text-sm">
-              {photo.mediaAsset?.originalFilename}
-            </div>
-          </div>
+          )}
 
-          {/* Metadata Panel - Hide when image is fullscreen */}
-          {!isImageFullscreen && (
-            <div className="flex-1 bg-card dark:bg-gray-900 flex flex-col">
-              <div className="flex-1 overflow-y-auto p-6">
-              {/* Header */}
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-card-foreground truncate">
-                  {photo.mediaAsset.originalFilename}
-                </h3>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => onOpenChange(false)}
+          {/* Metadata Panel with Polaroid Photo */}
+          <div className="flex-1 bg-card dark:bg-gray-900 flex flex-col">
+            <div className="flex-1 overflow-y-auto p-6">
+              {/* Polaroid Photo */}
+              <div className="mb-6 flex justify-center">
+                <div 
+                  className="bg-white p-2 pb-4 shadow-lg transform rotate-3 hover:rotate-0 transition-transform duration-200 cursor-pointer"
+                  onClick={() => setIsImageFullscreen(true)}
                 >
-                  <X className="w-4 h-4" />
-                </Button>
+                  <img 
+                    src={`/api/files/${photo.filePath}`}
+                    alt={photo.mediaAsset?.originalFilename || 'Photo'}
+                    className="w-32 h-32 object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = '/placeholder-image.svg';
+                    }}
+                  />
+                </div>
               </div>
 
               {/* Tier Badge */}
@@ -298,6 +292,66 @@ export default function PhotoDetailModal({
                 </div>
               )}
 
+              {/* File Information */}
+              <div className="mb-6">
+                <h4 className="text-sm font-semibold text-card-foreground mb-3">File Information</h4>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Filename</span>
+                    <span className="text-sm text-card-foreground font-mono text-xs">{photo.mediaAsset?.originalFilename}</span>
+                  </div>
+                  {photo.filePath && (
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">File Path</span>
+                      <span className="text-sm text-card-foreground font-mono text-xs">{photo.filePath}</span>
+                    </div>
+                  )}
+                  {photo.fileSize && (
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">File Size</span>
+                      <span className="text-sm text-card-foreground">{Math.round(photo.fileSize / 1024)} KB</span>
+                    </div>
+                  )}
+                  {photo.dimensions && (
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">Dimensions</span>
+                      <span className="text-sm text-card-foreground">{photo.dimensions}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Date Information */}
+              <div className="mb-6">
+                <h4 className="text-sm font-semibold text-card-foreground mb-3">Date Information</h4>
+                <div className="space-y-2">
+                  {photo.dateTime && (
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">Date Processed</span>
+                      <span className="text-sm text-card-foreground">{new Date(photo.dateTime).toLocaleString()}</span>
+                    </div>
+                  )}
+                  {photo.metadata?.exif?.dateTimeOriginal && (
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">Date Taken</span>
+                      <span className="text-sm text-card-foreground">{new Date(photo.metadata.exif.dateTimeOriginal).toLocaleString()}</span>
+                    </div>
+                  )}
+                  {photo.metadata?.exif?.createDate && (
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">Created</span>
+                      <span className="text-sm text-card-foreground">{new Date(photo.metadata.exif.createDate).toLocaleString()}</span>
+                    </div>
+                  )}
+                  {photo.metadata?.exif?.modifyDate && (
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">Modified</span>
+                      <span className="text-sm text-card-foreground">{new Date(photo.metadata.exif.modifyDate).toLocaleString()}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* EXIF Data */}
               {photo.metadata?.exif && (
                 <div className="mb-6">
@@ -331,6 +385,41 @@ export default function PhotoDetailModal({
                       <div className="flex justify-between">
                         <span className="text-sm text-muted-foreground">ISO</span>
                         <span className="text-sm text-card-foreground">{photo.metadata.exif.iso}</span>
+                      </div>
+                    )}
+                    {photo.metadata.exif.focalLength && (
+                      <div className="flex justify-between">
+                        <span className="text-sm text-muted-foreground">Focal Length</span>
+                        <span className="text-sm text-card-foreground">{photo.metadata.exif.focalLength}</span>
+                      </div>
+                    )}
+                    {photo.metadata.exif.flash && (
+                      <div className="flex justify-between">
+                        <span className="text-sm text-muted-foreground">Flash</span>
+                        <span className="text-sm text-card-foreground">{photo.metadata.exif.flash}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* GPS Information */}
+              {photo.metadata?.exif?.gps && (
+                <div className="mb-6">
+                  <h4 className="text-sm font-semibold text-card-foreground mb-3">GPS Information</h4>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">Latitude</span>
+                      <span className="text-sm text-card-foreground font-mono">{photo.metadata.exif.gps.latitude}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">Longitude</span>
+                      <span className="text-sm text-card-foreground font-mono">{photo.metadata.exif.gps.longitude}</span>
+                    </div>
+                    {photo.metadata.exif.gps.altitude && (
+                      <div className="flex justify-between">
+                        <span className="text-sm text-muted-foreground">Altitude</span>
+                        <span className="text-sm text-card-foreground">{photo.metadata.exif.gps.altitude}</span>
                       </div>
                     )}
                   </div>
@@ -637,7 +726,6 @@ export default function PhotoDetailModal({
               )}
               </div>
             </div>
-          )}
         </div>
       </DialogContent>
     </Dialog>
