@@ -18,7 +18,9 @@ import {
   Eye,
   Save,
   RotateCcw,
-  Tag
+  Tag,
+  Maximize2,
+  Minimize2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
@@ -43,6 +45,7 @@ export default function PhotoDetailModal({
   isProcessing = false 
 }: PhotoDetailModalProps) {
   const [isEditing, setIsEditing] = useState(false);
+  const [isImageFullscreen, setIsImageFullscreen] = useState(false);
   const [editedMetadata, setEditedMetadata] = useState({
     keywords: [] as string[],
     location: '',
@@ -205,20 +208,42 @@ export default function PhotoDetailModal({
         </DialogHeader>
         <div className="flex h-full">
           {/* Image Display */}
-          <div className="flex-1 flex items-center justify-center p-8 bg-black">
-            <img 
-              src={`/api/files/${photo.filePath}`}
-              alt={photo.mediaAsset?.originalFilename || 'Photo'}
-              className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
-              onError={(e) => {
-                e.currentTarget.src = '/placeholder-image.svg';
-              }}
-            />
+          <div className={`${isImageFullscreen ? 'flex-1' : 'w-96'} flex flex-col items-center justify-center p-4 bg-black relative`}>
+            <div className="relative flex-1 flex items-center justify-center w-full">
+              <img 
+                src={`/api/files/${photo.filePath}`}
+                alt={photo.mediaAsset?.originalFilename || 'Photo'}
+                className={`${isImageFullscreen ? 'max-w-full max-h-full' : 'max-w-full max-h-[70vh]'} object-contain rounded-lg shadow-2xl`}
+                onError={(e) => {
+                  e.currentTarget.src = '/placeholder-image.svg';
+                }}
+              />
+              
+              {/* Fullscreen Toggle Button */}
+              <Button
+                variant="secondary"
+                size="sm"
+                className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white border-none"
+                onClick={() => setIsImageFullscreen(!isImageFullscreen)}
+              >
+                {isImageFullscreen ? (
+                  <Minimize2 className="w-4 h-4" />
+                ) : (
+                  <Maximize2 className="w-4 h-4" />
+                )}
+              </Button>
+            </div>
+            
+            {/* Image Info */}
+            <div className="text-center mt-2 text-white/80 text-sm">
+              {photo.mediaAsset?.originalFilename}
+            </div>
           </div>
 
-          {/* Metadata Panel */}
-          <div className="w-80 bg-card dark:bg-gray-900 flex flex-col min-h-0">
-            <div className="flex-1 overflow-y-auto p-6 min-h-0">
+          {/* Metadata Panel - Hide when image is fullscreen */}
+          {!isImageFullscreen && (
+            <div className="w-96 bg-card dark:bg-gray-900 flex flex-col min-h-0">
+              <div className="flex-1 overflow-y-auto p-6 min-h-0">
               {/* Header */}
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-lg font-semibold text-card-foreground truncate">
@@ -607,8 +632,9 @@ export default function PhotoDetailModal({
                   </Button>
                 </div>
               )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
