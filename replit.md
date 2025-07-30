@@ -87,6 +87,14 @@ The application uses a relational database with four main tables:
 
 ## Recent Changes
 
+### July 30, 2025 - Silver File Immutability Policy
+- **Implemented Silver File Immutability** - Silver tier files are now completely immutable and cannot be renamed or moved during reprocessing
+- **Fixed Duplicate Creation Issue** - Resolved bug where reprocessing silver photos created duplicates with renamed files
+- **Metadata-Only Updates** - Silver photo reprocessing now only updates AI analysis, face detection, and event metadata without touching files
+- **Preserved Renaming for Promotion** - File renaming settings now only apply when promoting photos TO silver tier, not when reprocessing existing silver photos
+- **Enhanced Burst Processing** - Updated burst photo processing to respect silver file immutability while maintaining AI enhancement capabilities
+- **Architecture Clarification** - Silver tier is the first immutable tier; naming patterns only affect initial upload-to-silver processing and silver-to-gold promotion
+
 ### July 30, 2025 - Complete Bronze Tier Architecture Redesign
 - **Eliminated Bronze as tracked database tier** - Bronze is now just a temporary upload staging area, not stored in database
 - **Updated to Silver/Gold only architecture** - Files process directly from upload to Silver tier with AI analysis

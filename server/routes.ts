@@ -1539,11 +1539,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
         for (const photoId of selectedPhotoIds) {
           try {
             const photo = await storage.getFileVersion(photoId);
-            if (!photo || photo.tier !== 'silver') {
+            if (!photo) {
               continue;
             }
 
-            // Process the selected photo to silver tier (same as existing process route)
+            // For silver photos: only update metadata (keep files immutable)
+            if (photo.tier === 'silver') {
+              if (!photo.mimeType.startsWith('image/')) {
+                continue;
+              }
+
+              // Run AI analysis for metadata update only
+              const aiMetadata = await aiService.analyzeImage(photo.filePath, "openai");
+              const enhancedMetadata = await aiService.enhanceMetadataWithShortDescription(aiMetadata, photo.filePath);
+
+              // Detect faces
+              const detectedFaces = await faceDetectionService.detectFaces(photo.filePath);
+
+              // Get media asset for event detection
+              const mediaAsset = await storage.getMediaAsset(photo.mediaAssetId);
+              const photoWithAsset = { ...photo, mediaAsset: mediaAsset };
+              const photoDate = extractPhotoDate(photoWithAsset);
+
+              // Detect events based on photo date
+              let eventType: string | undefined;
+              let eventName: string | undefined;
+              if (photoDate) {
+                try {
+                  const detectedEvents = await eventDetectionService.detectEvents(photoDate);
+                  if (detectedEvents.length > 0) {
+                    const bestEvent = detectedEvents.reduce((max, event) => 
+                      event.confidence > max.confidence ? event : max
+                    );
+                    if (bestEvent.confidence >= 80) {
+                      eventType = bestEvent.eventType;
+                      eventName = bestEvent.eventName;
+                    }
+                  }
+                } catch (error) {
+                  console.error('Event detection failed for photo:', photoId, error);
+                }
+              }
+
+              // Update metadata only (no file operations)
+              const combinedMetadata = {
+                ...(photo.metadata || {}),
+                ai: enhancedMetadata,
+              };
+
+              await storage.updateFileVersion(photo.id, {
+                metadata: combinedMetadata as any,
+                aiShortDescription: enhancedMetadata.shortDescription,
+                eventType: eventType || undefined,
+                eventName: eventName || undefined,
+                isReviewed: false, // Reset review status
+              });
+
+              // Update faces
+              await storage.deleteFacesByPhoto(photo.id);
+              for (const face of detectedFaces) {
+                await storage.createFace({
+                  photoId: photo.id,
+                  boundingBox: face.boundingBox,
+                  confidence: face.confidence,
+                  embedding: face.embedding,
+                  personId: face.personId || null,
+                });
+              }
+
+              processed++;
+              continue;
+            }
+
+            // For non-silver photos: process to silver tier (original logic)
+            if (photo.tier === 'silver') {
+              continue; // Already handled above
+            }
+
             if (!photo.mimeType.startsWith('image/')) {
               continue;
             }
