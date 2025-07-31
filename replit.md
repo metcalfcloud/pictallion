@@ -87,6 +87,15 @@ The application uses a relational database with four main tables:
 
 ## Recent Changes
 
+### July 31, 2025 - Fixed AI Reprocess Functionality with Enhanced People Context
+- **Fixed Duplicate File Creation Bug**: Removed duplicate `/api/photos/:id/reprocess` endpoint that was creating new Silver files instead of updating existing ones
+- **Enhanced People Context Integration**: AI reprocess now properly considers detected people, their ages, and relationships when reanalyzing images
+- **Improved Fallback Processing**: When OpenAI API quota is exceeded, fallback metadata generation now uses people context to create meaningful descriptions (e.g., "Photo with Chloe (age 7)")
+- **Better Error Handling**: Comprehensive quota limit handling with graceful fallbacks that maintain people-aware functionality
+- **Face Detection Preservation**: Face-API.js neural network detection continues working properly during reprocessing (detecting 3 faces correctly)
+- **No More Duplicates**: AI reprocess now updates existing photos in-place rather than creating new file versions
+- **Enhanced Metadata Quality**: Fallback descriptions include family relationships, age information, and context-aware tagging
+
 ### July 31, 2025 - Enhanced Family Relationship UI with Directional Clarity
 - **Improved Relationship Direction Display**: Updated RelationshipManager to show clear directional relationships (e.g., "Parent of John Smith" instead of "John Smith [Parent]")
 - **Enhanced Add Relationship Dialog**: Added explanatory text to clarify that selecting "Parent of" means the current person is the parent of the selected person
