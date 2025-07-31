@@ -182,7 +182,11 @@ export default function PhotoDetailModal({
     aiTags: [] as string[],
     aiDescription: ''
   });
-  const [hoveredFace, setHoveredFace] = useState<any>(null);
+  const [selectedTab, setSelectedTab] = useState("details");
+  const [imageError, setImageError] = useState(false);
+  const [imageWidth, setImageWidth] = useState(0);
+  const [imageHeight, setImageHeight] = useState(0);
+  const [hoveredFace, setHoveredFace] = useState<string | null>(null);
   const [assignFace, setAssignFace] = useState<any>(null);
   const [newPersonName, setNewPersonName] = useState('');
   const imageRef = useRef<HTMLImageElement>(null);
@@ -273,13 +277,13 @@ export default function PhotoDetailModal({
     enabled: !!photoDate,
   });
 
-  // Query detected faces for this photo
-  const { data: detectedFaces = [] } = useQuery({
-    queryKey: ['/api/faces/photo', photo.id],
-    queryFn: async () => {
-      const response = await apiRequest('GET', `/api/faces/photo/${photo.id}`);
-      return await response.json();
-    },
+    // Query detected faces for this photo
+    const { data: detectedFaces = [] } = useQuery({
+      queryKey: ['/api/faces/photo', photo.id],
+      queryFn: async () => {
+          const response = await apiRequest('GET', `/api/faces/photo/${photo.id}`);
+          return await response.json();
+      },
   });
 
   // Query people for face assignment
@@ -544,6 +548,8 @@ export default function PhotoDetailModal({
     );
   };
 
+    const facesData = detectedFaces || [];
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl max-h-[90vh] w-[95vw] p-0 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
@@ -604,7 +610,12 @@ export default function PhotoDetailModal({
             </div>
 
             {/* Main Image */}
-            <div className="flex-1 flex items-center justify-center bg-gray-50 dark:bg-gray-800 rounded-lg overflow-hidden relative">
+            <div className="flex-1 flex items-center justify-center bg-gray-50 dark:bg-gray-800 rounded-lg overflow-hidden relative"
+             onLoad={(e) => {
+              setImageWidth(e.currentTarget.offsetWidth);
+              setImageHeight(e.currentTarget.offsetHeight);
+            }}
+            onError={() => setImageError(true)}>
               <img 
                 ref={imageRef}
                 src={`/api/files/${photo.filePath}`}
@@ -616,15 +627,39 @@ export default function PhotoDetailModal({
                 }}
               />
 
-              {/* Face Hover Overlay */}
-              {hoveredFace && imageRef.current && (
-                <FaceOverlay 
-                  face={hoveredFace}
-                  imageElement={imageRef.current}
-                  originalImageWidth={photo.metadata?.exif?.imageWidth || imageRef.current.naturalWidth}
-                  originalImageHeight={photo.metadata?.exif?.imageHeight || imageRef.current.naturalHeight}
-                />
-              )}
+              {/* Face Overlays */}
+        {facesData && facesData.length > 0 && (
+          <>
+            {facesData.map((face: any) => {
+              const [x, y, width, height] = face.boundingBox || [0, 0, 0, 0];
+              const scaleX = imageWidth / (photo.metadata?.exif?.imageWidth || imageWidth);
+              const scaleY = imageHeight / (photo.metadata?.exif?.imageHeight || imageHeight);
+
+              return (
+                <div
+                  key={face.id}
+                  className={`absolute border-2 ${
+                    face.personId ? 'border-green-400' : 'border-yellow-400'
+                  } bg-black/20 transition-all duration-200`}
+                  style={{
+                    left: `${(x * scaleX)}px`,
+                    top: `${(y * scaleY)}px`,
+                    width: `${(width * scaleX)}px`,
+                    height: `${(height * scaleY)}px`,
+                  }}
+                  title={face.personId ? `${face.person?.name || 'Unknown'} (${Math.round(face.confidence)}%)` : `Unassigned face (${Math.round(face.confidence)}%)`}
+                >
+                  {face.personId && (
+                    <div className="absolute -top-6 left-0 bg-green-600 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+                      {face.person?.name || 'Unknown'}
+                      {face.ageInPhoto && ` (${face.ageInPhoto})`}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </>
+        )}
             </div>
 
             {/* Image Info */}
@@ -912,62 +947,30 @@ export default function PhotoDetailModal({
                     <Users className="w-5 h-5 mr-2" />
                     Detected Faces ({detectedFaces.length})
                   </h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    {detectedFaces.map((face: any, index: number) => (
-                      <div 
-                        key={face.id}
-                        className="bg-white dark:bg-cyan-900/50 rounded-lg border p-3 space-y-2 cursor-pointer hover:border-cyan-300 dark:hover:border-cyan-600 transition-colors"
-                        onMouseEnter={() => setHoveredFace(face)}
-                        onMouseLeave={() => setHoveredFace(null)}
-                      >
-                        <div className="flex items-center gap-2">
-                          {face.faceCropUrl ? (
-                            <img 
-                              src={`/api/files/${face.faceCropUrl}`} 
-                              alt={face.person?.name || 'Unknown face'}
-                              className="w-10 h-10 rounded-full object-cover border-2 border-cyan-200 dark:border-cyan-700"
-                            />
-                          ) : (
-                            <div className="w-10 h-10 bg-cyan-100 dark:bg-cyan-800 rounded-full flex items-center justify-center border-2 border-cyan-200 dark:border-cyan-700">
-                              <Users className="w-5 h-5 text-cyan-600 dark:text-cyan-300" />
-                            </div>
-                          )}
-
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium text-cyan-800 dark:text-cyan-200 truncate">
-                              {face.personId && face.person ? face.person.name : 'Unknown'}
-                            </div>
-                            {face.ageInPhoto !== null && face.ageInPhoto !== undefined && (
-                              <div className="text-xs text-cyan-600 dark:text-cyan-400 mb-1">
-                                Age: {face.ageInPhoto}
-                              </div>
-                            )}
-                            <Badge 
-                              variant={face.confidence >= 95 ? "default" : face.confidence >= 80 ? "secondary" : "outline"}
-                              className="text-xs"
-                            >
-                              {face.confidence}%
-                            </Badge>
-                          </div>
-                        </div>
-
-                        {!face.personId && (
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            className="w-full text-xs h-7"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setAssignFace(face);
-                            }}
-                          >
-                            <Users className="w-3 h-3 mr-1" />
-                            Assign to Person
-                          </Button>
-                        )}
+                  {facesData && facesData.length > 0 && (
+              <div className="grid grid-cols-2 gap-2">
+                {facesData.map((face: any) => (
+                  <div key={face.id} className="flex items-center gap-2 p-2 border rounded">
+                    {face.faceCropUrl && (
+                      <img 
+                        src={`/api/files/${face.faceCropUrl}`}
+                        alt="Face crop"
+                        className="w-12 h-12 rounded-full object-cover"
+                      />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium truncate">
+                        {face.personId ? face.person?.name || 'Unknown Person' : 'Unassigned'}
                       </div>
-                    ))}
+                      <div className="text-xs text-muted-foreground">
+                        {Math.round(face.confidence)}% confidence
+                        {face.ageInPhoto && ` • Age ${face.ageInPhoto}`}
+                      </div>
+                    </div>
                   </div>
+                ))}
+              </div>
+            )}
                 </div>
               )}
 
