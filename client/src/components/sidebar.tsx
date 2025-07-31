@@ -15,7 +15,8 @@ import {
   Sparkles,
   EyeOff,
   Calendar,
-  MapPin
+  MapPin,
+  Wand2
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
@@ -34,6 +35,7 @@ const navigationItems = [
   { path: "/locations", label: "Locations", icon: MapPin },
   { path: "/burst-selection", label: "Burst Photos", icon: Zap },
   { path: "/settings", label: "Settings", icon: Settings },
+  { path: "/smart-collections", label: "Smart Collections", icon: Wand2 },
 ];
 
 export default function Sidebar() {

@@ -1497,6 +1497,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const photo = await storage.getFileVersion(face.photoId);
       if (!photo) {
         return res.status(404).json({ message: "Photo not found" });
+
+
+// Smart Collections endpoints
+app.get("/api/smart-collections", async (req, res) => {
+  try {
+    const collections = await storage.getSmartCollections();
+    res.json(collections);
+  } catch (error) {
+    console.error("Failed to get smart collections:", error);
+    res.status(500).json({ message: "Failed to retrieve smart collections" });
+  }
+});
+
+app.post("/api/smart-collections", async (req, res) => {
+  try {
+    const { name, description, type, icon, color, rules } = req.body;
+    
+    const collection = await storage.createSmartCollection({
+      name,
+      description,
+      type: type || 'auto',
+      icon: icon || 'Camera',
+      color: color || 'blue',
+      rules: rules || [],
+      isActive: true
+    });
+    
+    res.json(collection);
+  } catch (error) {
+    console.error("Failed to create smart collection:", error);
+    res.status(500).json({ message: "Failed to create smart collection" });
+  }
+});
+
+app.patch("/api/smart-collections/:id/toggle", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isActive } = req.body;
+    
+    await storage.updateSmartCollection(id, { isActive });
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Failed to toggle smart collection:", error);
+    res.status(500).json({ message: "Failed to toggle smart collection" });
+  }
+});
+
+app.post("/api/smart-collections/organize", async (req, res) => {
+  try {
+    const { smartCollectionService } = await import("./services/smartCollectionService");
+    const result = await smartCollectionService.organizeAllPhotos();
+    res.json(result);
+  } catch (error) {
+    console.error("Failed to organize photos:", error);
+    res.status(500).json({ message: "Failed to organize photos" });
+  }
+});
+
+app.get("/api/smart-collections/:id/photos", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { page = 1, limit = 50 } = req.query;
+    
+    const photos = await storage.getSmartCollectionPhotos(id, {
+      page: parseInt(page as string),
+      limit: parseInt(limit as string)
+    });
+    
+    res.json(photos);
+  } catch (error) {
+    console.error("Failed to get collection photos:", error);
+    res.status(500).json({ message: "Failed to retrieve collection photos" });
+  }
+});
+
       }
 
       const cropUrl = await faceDetectionService.generateFaceCrop(

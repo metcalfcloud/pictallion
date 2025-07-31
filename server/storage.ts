@@ -169,6 +169,14 @@ export interface IStorage {
 
   updatePhoto(id: string, updates: any): Promise<any>;
   getAllTags(): Promise<string[]>;
+
+  // Smart collection methods
+  createSmartCollection?(collection: InsertCollection): Promise<Collection>;
+  getSmartCollections?(): Promise<Collection[]>;
+  getSmartCollection?(id: string): Promise<Collection | undefined>;
+  deleteSmartCollection?(id: string): Promise<void>;
+  addPhotoToSmartCollection?(collectionId: string, photoId: string): Promise<void>;
+  getSmartCollectionPhotos?(collectionId: string): Promise<Array<FileVersion & { mediaAsset: MediaAsset }>>;
 }
 
 const globalTagLibrary = 'global_tag_library';
@@ -885,4 +893,4 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-export const storage = new DatabaseStorage();
+export conststorage = new DatabaseStorage();
