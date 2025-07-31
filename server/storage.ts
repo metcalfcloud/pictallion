@@ -362,6 +362,15 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(collections).orderBy(desc(collections.createdAt));
   }
 
+  async updateCollection(id: string, updates: Partial<Collection>): Promise<Collection> {
+    const [updatedCollection] = await db
+      .update(collections)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(collections.id, id))
+      .returning();
+    return updatedCollection;
+  }
+
   async getCollection(id: string): Promise<Collection | undefined> {
     const [collection] = await db.select().from(collections).where(eq(collections.id, id));
     return collection || undefined;

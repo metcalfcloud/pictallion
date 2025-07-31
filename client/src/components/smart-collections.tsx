@@ -31,7 +31,7 @@ import {
   Trash2
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
-import { toast } from './ui/toast';
+import { toast } from '@/hooks/use-toast';
 
 interface SmartCollection {
   id: string;
@@ -625,3 +625,5 @@ export function SmartCollections() {
     </div>
   );
 }
+
+export default SmartCollections;
