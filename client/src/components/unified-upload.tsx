@@ -74,7 +74,7 @@ export function UnifiedUpload({
   // File handling
   const handleFilesSelected = useCallback((files: File[]) => {
     const currentFilenames = new Set(uploadFiles.map(f => f.file.name));
-    
+
     // Filter out files that are already in the upload queue
     const uniqueFiles = files.filter(file => {
       if (currentFilenames.has(file.name)) {
@@ -127,7 +127,7 @@ export function UnifiedUpload({
     const validFiles = files.filter(file => 
       file.type.startsWith('image/') || file.type.startsWith('video/')
     );
-    
+
     if (validFiles.length > 0) {
       handleFilesSelected(validFiles);
     }
@@ -162,12 +162,12 @@ export function UnifiedUpload({
 
         // Use XMLHttpRequest for progress tracking
         const xhr = new XMLHttpRequest();
-        
+
         // Track upload progress
         xhr.upload.addEventListener('progress', (event) => {
           if (event.lengthComputable) {
             const percentComplete = Math.round((event.loaded / event.total) * 100);
-            
+
             // Update progress for all uploading files
             setUploadFiles(current => 
               current.map(file => 
@@ -193,7 +193,7 @@ export function UnifiedUpload({
               reject(new Error(`Upload failed with status ${xhr.status}`));
             }
           };
-          
+
           xhr.onerror = () => reject(new Error('Upload failed'));
           xhr.ontimeout = () => reject(new Error('Upload timed out'));
         });
@@ -235,6 +235,11 @@ export function UnifiedUpload({
         queryClient.invalidateQueries({ queryKey: ["/api/photos"] });
         queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
         queryClient.invalidateQueries({ queryKey: ["/api/activity"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/photos/recent"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/faces"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/faces/unassigned"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/faces/suggestions"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/people"] });
 
     } catch (error) {
         setUploadFiles(current =>
@@ -465,12 +470,12 @@ const resolveMutation = {
     const hasPending = uploadFiles.some(f => f.status === 'pending');
     const isUploading = uploadFiles.some(f => f.status === 'uploading');
     const hasConflicts = uploadFiles.some(f => f.status === 'conflict');
-    
+
     // Don't show action buttons if there are no files and no actions to take
     if (uploadFiles.length === 0) {
       return null;
     }
-    
+
     return (
       <div className="flex justify-end space-x-3 pt-4 border-t">
         {/* Primary action button */}
@@ -490,7 +495,7 @@ const resolveMutation = {
             Close
           </Button>
         ) : null}
-        
+
         {/* Secondary actions */}
         {hasConflicts && (
           <Button 
@@ -553,7 +558,7 @@ const resolveMutation = {
                             <p className="font-medium text-sm">{conflict.existingPhoto.mediaAsset.originalFilename}</p>
                             <p className="text-xs text-muted-foreground">File Hash: {conflict.existingPhoto.fileHash}</p>
                           </div>
-                          
+
                           <div className="grid grid-cols-2 gap-3 text-xs">
                             <div>
                               <p className="font-medium text-muted-foreground mb-1">File Info</p>
@@ -564,7 +569,7 @@ const resolveMutation = {
                                 Uploaded: {new Date(conflict.existingPhoto.createdAt).toLocaleDateString()}
                               </p>
                             </div>
-                            
+
                             {conflict.existingPhoto.metadata?.exif && (
                               <div>
                                 <p className="font-medium text-muted-foreground mb-1">Camera Info</p>
@@ -601,14 +606,14 @@ const resolveMutation = {
                             <p className="font-medium text-sm">{conflict.newFile.originalFilename}</p>
                             <p className="text-xs text-muted-foreground">File Hash: {conflict.newFile.fileHash}</p>
                           </div>
-                          
+
                           <div className="grid grid-cols-2 gap-3 text-xs">
                             <div>
                               <p className="font-medium text-muted-foreground mb-1">File Info</p>
                               <p>Size: {formatFileSize(conflict.newFile.fileSize)}</p>
                               <p>Status: Ready to upload</p>
                             </div>
-                            
+
                             {conflict.newFile.metadata?.exif && (
                               <div>
                                 <p className="font-medium text-muted-foreground mb-1">Camera Info</p>
@@ -631,7 +636,7 @@ const resolveMutation = {
                               </div>
                             )}
                           </div>
-                          
+
                           <div className="pt-2 border-t border-border">
                             <p className="text-xs text-muted-foreground">
                               {conflict.conflictType === 'identical_md5' ? 

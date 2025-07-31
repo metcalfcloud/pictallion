@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -93,16 +93,22 @@ export default function PeoplePage() {
 
   const { data: faces = [], isLoading: facesLoading } = useQuery<Face[]>({
     queryKey: ["/api/faces"],
+    staleTime: 30000, // Cache for 30 seconds
+    refetchOnWindowFocus: false,
   });
 
   const { data: personPhotos = [], isLoading: personPhotosLoading } = useQuery<any[]>({
     queryKey: ["/api/people", selectedPerson, "photos"],
     enabled: !!selectedPerson,
+    staleTime: 30000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: ignoredFaces = [], isLoading: ignoredFacesLoading } = useQuery<Face[]>({
     queryKey: ["/api/faces/ignored"],
     enabled: viewMode === 'ignored',
+    staleTime: 30000,
+    refetchOnWindowFocus: false,
   });
 
   // Create person mutation
@@ -234,15 +240,19 @@ export default function PeoplePage() {
     },
   });
 
-  const filteredPeople = people.filter(person => 
-    person.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredPeople = useMemo(() => 
+    people.filter(person => 
+      person.name.toLowerCase().includes(searchQuery.toLowerCase())
+    ), [people, searchQuery]
   );
 
-  const filteredFaces = faces.filter(face => {
-    if (filterUnassigned && face.personId) return false;
-    if (selectedPerson && face.personId !== selectedPerson) return false;
-    return true;
-  });
+  const filteredFaces = useMemo(() => 
+    faces.filter(face => {
+      if (filterUnassigned && face.personId) return false;
+      if (selectedPerson && face.personId !== selectedPerson) return false;
+      return true;
+    }), [faces, filterUnassigned, selectedPerson]
+  );
 
   const handleFaceSelection = (faceId: string) => {
     setSelectedFaces(prev => 
