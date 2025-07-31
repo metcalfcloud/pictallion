@@ -692,10 +692,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             originalFilename: file.originalname,
           });
 
-          // Process file directly to Silver tier with AI analysis
+          // Process file directly to Silver tier with basic processing only
           const silverPath = await fileManager.processToSilver(file.path, file.originalname);
 
-          // Extract basic EXIF metadata only (no AI processing)
+          // Extract basic EXIF metadata (no AI processing)
           const metadata = await fileManager.extractMetadata(silverPath);
 
           // Create Silver file version with basic metadata only
@@ -711,14 +711,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
             isReviewed: false,
           });
 
+          // Detect faces (non-LLM processing) if it's an image
+          if (file.mimetype.startsWith('image/')) {
+            try {
+              const detectedFaces = await faceDetectionService.detectFaces(silverPath);
+              
+              // Save detected faces to database
+              for (const face of detectedFaces) {
+                await storage.createFace({
+                  photoId: fileVersion.id,
+                  boundingBox: face.boundingBox,
+                  confidence: face.confidence,
+                  embedding: face.embedding,
+                  personId: null, // Faces start unassigned
+                });
+              }
+            } catch (faceError) {
+              console.error(`Face detection failed for ${file.originalname}:`, faceError);
+              // Continue processing even if face detection fails
+            }
+          }
+
           // Log ingestion
           await storage.createAssetHistory({
             mediaAssetId: mediaAsset.id,
             action: 'INGESTED',
-            details: `File uploaded to Silver tier: ${file.originalname}`,
+            details: `File uploaded to Silver tier with basic processing: ${file.originalname}`,
           });
 
-          console.log(`Successfully uploaded ${file.originalname} to Silver tier with asset ID: ${mediaAsset.id}`);
+          console.log(`Successfully uploaded ${file.originalname} to Silver tier with basic processing and face detection. Asset ID: ${mediaAsset.id}`);
 
           results.push({
             filename: file.originalname,
@@ -2338,6 +2359,258 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
     } catch (error) {
       console.error("Error promoting photo:", error);
       res.status(500).json({ message: "Failed to promote photo" });
+    }
+  });
+
+  // Manual AI processing for Silver tier photos
+  app.post("/api/photos/:id/process-ai", async (req, res) => {
+    try {
+      const photo = await storage.getFileVersion(req.params.id);
+      if (!photo) {
+        return res.status(404).json({ message: "Photo not found" });
+      }
+
+      if (photo.tier !== 'silver') {
+        return res.status(400).json({ message: "Only Silver tier photos can be AI processed" });
+      }
+
+      if (!photo.mimeType.startsWith('image/')) {
+        return res.status(400).json({ message: "AI processing only supports images" });
+      }
+
+      // Check if already has AI processing
+      const existingAI = (photo.metadata as any)?.ai;
+      if (existingAI?.shortDescription) {
+        return res.status(400).json({ message: "Photo already has AI processing" });
+      }
+
+      // Get existing faces and people information to provide context
+      const existingFaces = await storage.getFacesByPhoto(photo.id);
+      const peopleContext = [];
+
+      for (const face of existingFaces) {
+        if (face.personId) {
+          const person = await storage.getPerson(face.personId);
+          if (person) {
+            // Calculate age in photo if birthdate is available
+            let ageInPhoto = null;
+            const asset = await storage.getMediaAsset(photo.mediaAssetId);
+            const photoWithAsset = { ...photo, mediaAsset: asset };
+            const photoDate = extractPhotoDate(photoWithAsset);
+
+            if (person.birthdate && photoDate) {
+              ageInPhoto = eventDetectionService.calculateAgeInPhoto(new Date(person.birthdate), photoDate);
+            }
+
+            // Get relationships for this person
+            const relationships = await storage.getRelationshipsByPerson(person.id);
+            const relationshipInfo = relationships.map(rel => {
+              const otherPersonId = rel.person1Id === person.id ? rel.person2Id : rel.person1Id;
+              return {
+                type: rel.relationshipType,
+                otherPersonId: otherPersonId
+              };
+            });
+
+            peopleContext.push({
+              name: person.name,
+              ageInPhoto: ageInPhoto,
+              relationships: relationshipInfo,
+              boundingBox: face.boundingBox
+            });
+          }
+        }
+      }
+
+      // Run AI analysis with people context
+      const aiMetadata = await aiService.analyzeImageWithPeopleContext(
+        photo.filePath, 
+        "openai", 
+        peopleContext
+      );
+      const enhancedMetadata = await aiService.enhanceMetadataWithShortDescription(aiMetadata, photo.filePath);
+
+      // Detect events based on photo date
+      let eventType: string | undefined;
+      let eventName: string | undefined;
+      const asset = await storage.getMediaAsset(photo.mediaAssetId);
+      const photoWithAsset = { ...photo, mediaAsset: asset };
+      const photoDate = extractPhotoDate(photoWithAsset);
+      if (photoDate) {
+        try {
+          const detectedEvents = await eventDetectionService.detectEvents(photoDate);
+          if (detectedEvents.length > 0) {
+            const bestEvent = detectedEvents.reduce((max, event) => 
+              event.confidence > max.confidence ? event : max
+            );
+            if (bestEvent.confidence >= 80) {
+              eventType = bestEvent.eventType;
+              eventName = bestEvent.eventName;
+            }
+          }
+        } catch (error) {
+          console.error('Event detection failed during AI processing:', error);
+        }
+      }
+
+      // Update metadata with AI analysis
+      const combinedMetadata = {
+        ...(photo.metadata || {}),
+        ai: enhancedMetadata,
+      };
+
+      await storage.updateFileVersion(photo.id, {
+        metadata: combinedMetadata as any,
+        aiShortDescription: enhancedMetadata.shortDescription,
+        eventType: eventType || undefined,
+        eventName: eventName || undefined,
+        isReviewed: false, // Reset review status since we have new AI data
+      });
+
+      // Log AI processing
+      await storage.createAssetHistory({
+        mediaAssetId: photo.mediaAssetId,
+        action: 'AI_PROCESSED',
+        details: 'AI analysis completed with enhanced metadata and descriptions',
+      });
+
+      res.json({ 
+        success: true, 
+        message: "AI processing completed successfully",
+        aiMetadata: enhancedMetadata 
+      });
+    } catch (error) {
+      console.error("Error in AI processing:", error);
+      res.status(500).json({ message: "Failed to process photo with AI" });
+    }
+  });
+
+  // Batch AI processing for multiple Silver tier photos
+  app.post("/api/photos/batch-ai-process", async (req, res) => {
+    try {
+      const { photoIds } = req.body;
+
+      if (!Array.isArray(photoIds) || photoIds.length === 0) {
+        return res.status(400).json({ message: "photoIds array is required" });
+      }
+
+      let processed = 0;
+      const errors = [];
+
+      for (const photoId of photoIds) {
+        try {
+          const photo = await storage.getFileVersion(photoId);
+          if (!photo || photo.tier !== 'silver') {
+            continue;
+          }
+
+          if (!photo.mimeType.startsWith('image/')) {
+            continue;
+          }
+
+          // Check if already has AI processing
+          const existingAI = (photo.metadata as any)?.ai;
+          if (existingAI?.shortDescription) {
+            continue; // Skip already processed photos
+          }
+
+          // Get people context (same as single photo processing)
+          const existingFaces = await storage.getFacesByPhoto(photo.id);
+          const peopleContext = [];
+
+          for (const face of existingFaces) {
+            if (face.personId) {
+              const person = await storage.getPerson(face.personId);
+              if (person) {
+                let ageInPhoto = null;
+                const asset = await storage.getMediaAsset(photo.mediaAssetId);
+                const photoWithAsset = { ...photo, mediaAsset: asset };
+                const photoDate = extractPhotoDate(photoWithAsset);
+
+                if (person.birthdate && photoDate) {
+                  ageInPhoto = eventDetectionService.calculateAgeInPhoto(new Date(person.birthdate), photoDate);
+                }
+
+                const relationships = await storage.getRelationshipsByPerson(person.id);
+                const relationshipInfo = relationships.map(rel => {
+                  const otherPersonId = rel.person1Id === person.id ? rel.person2Id : rel.person1Id;
+                  return {
+                    type: rel.relationshipType,
+                    otherPersonId: otherPersonId
+                  };
+                });
+
+                peopleContext.push({
+                  name: person.name,
+                  ageInPhoto: ageInPhoto,
+                  relationships: relationshipInfo,
+                  boundingBox: face.boundingBox
+                });
+              }
+            }
+          }
+
+          // Run AI analysis
+          const aiMetadata = await aiService.analyzeImageWithPeopleContext(
+            photo.filePath, 
+            "openai", 
+            peopleContext
+          );
+          const enhancedMetadata = await aiService.enhanceMetadataWithShortDescription(aiMetadata, photo.filePath);
+
+          // Event detection
+          let eventType: string | undefined;
+          let eventName: string | undefined;
+          const asset = await storage.getMediaAsset(photo.mediaAssetId);
+          const photoWithAsset = { ...photo, mediaAsset: asset };
+          const photoDate = extractPhotoDate(photoWithAsset);
+          if (photoDate) {
+            try {
+              const detectedEvents = await eventDetectionService.detectEvents(photoDate);
+              if (detectedEvents.length > 0) {
+                const bestEvent = detectedEvents.reduce((max, event) => 
+                  event.confidence > max.confidence ? event : max
+                );
+                if (bestEvent.confidence >= 80) {
+                  eventType = bestEvent.eventType;
+                  eventName = bestEvent.eventName;
+                }
+              }
+            } catch (error) {
+              console.error('Event detection failed for photo:', photoId, error);
+            }
+          }
+
+          // Update metadata
+          const combinedMetadata = {
+            ...(photo.metadata || {}),
+            ai: enhancedMetadata,
+          };
+
+          await storage.updateFileVersion(photo.id, {
+            metadata: combinedMetadata as any,
+            aiShortDescription: enhancedMetadata.shortDescription,
+            eventType: eventType || undefined,
+            eventName: eventName || undefined,
+            isReviewed: false,
+          });
+
+          await storage.createAssetHistory({
+            mediaAssetId: photo.mediaAssetId,
+            action: 'AI_PROCESSED',
+            details: 'Batch AI processing completed',
+          });
+
+          processed++;
+        } catch (error: any) {
+          errors.push({ photoId, error: error.message });
+        }
+      }
+
+      res.json({ processed, errors });
+    } catch (error) {
+      console.error("Error in batch AI processing:", error);
+      res.status(500).json({ message: "Failed to batch process photos with AI" });
     }
   });
 

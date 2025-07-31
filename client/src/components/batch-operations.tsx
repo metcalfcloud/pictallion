@@ -165,16 +165,33 @@ export default function BatchOperations({
   };
 
   const handleProcessWithAI = () => {
-    const bronzePhotos = selectedPhotosData.filter(photo => photo.tier === 'bronze');
-    if (bronzePhotos.length === 0) {
+    try {
+      const response = await fetch('/api/photos/batch-ai-process', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ photoIds: selectedPhotos })
+      });
+
+      if (!response.ok) {
+        throw new Error('Batch AI processing failed');
+      }
+
+      const result = await response.json();
+
       toast({
-        title: "No Bronze Photos",
-        description: "AI processing is only available for Bronze tier photos.",
+        title: "Operation Complete",
+        description: `Added AI analysis to ${result.processed} photos.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/photos"] });
+      onClose();
+    } catch (error) {
+      console.error('Batch AI processing error:', error);
+      toast({
+        title: "Operation Failed",
+        description: 'Failed to add AI analysis to photos',
         variant: "destructive"
       });
-      return;
     }
-    startOperation('processAI', { photoIds: bronzePhotos.map(p => p.id) });
   };
 
   const handleAddToCollection = () => {

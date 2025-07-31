@@ -163,6 +163,12 @@ export default function SilverReview() {
           e.preventDefault();
           markAsReviewed();
           break;
+        case 'i':
+          e.preventDefault();
+          if (selectedPhoto && !hasAiProcessing(selectedPhoto)) {
+            processAI();
+          }
+          break;
         case '1':
         case '2':
         case '3':
@@ -218,6 +224,42 @@ export default function SilverReview() {
     }
   });
 
+  // AI processing mutation
+  const aiProcessMutation = useMutation({
+    mutationFn: async (photoId: string) => {
+      return await apiRequest('POST', `/api/photos/${photoId}/process-ai`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/photos/search'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/faces/photo', selectedPhoto?.id] });
+      toast({ title: "AI processing completed successfully!" });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "AI processing failed", 
+        description: error.message || "Please try again",
+        variant: "destructive" 
+      });
+    }
+  });
+
+  // Batch AI processing mutation
+  const batchAiProcessMutation = useMutation({
+    mutationFn: async (photoIds: string[]) => {
+      return await apiRequest('POST', '/api/photos/batch-ai-process', { photoIds });
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/photos/search'] });
+      toast({ title: `AI processing completed for ${data.processed} photos!` });
+      if (data.errors.length > 0) {
+        toast({ 
+          title: `${data.errors.length} photos had errors`, 
+          variant: "destructive" 
+        });
+      }
+    }
+  });
+
   // Promote to gold mutation
   const promoteToGoldMutation = useMutation({
     mutationFn: async (photoId: string) => {
@@ -249,6 +291,31 @@ export default function SilverReview() {
   const promoteToGold = () => {
     if (!selectedPhoto) return;
     promoteToGoldMutation.mutate(selectedPhoto.id);
+  };
+
+  const processAI = () => {
+    if (!selectedPhoto) return;
+    aiProcessMutation.mutate(selectedPhoto.id);
+  };
+
+  const batchProcessAI = async () => {
+    if (selectedPhotos.size === 0) return;
+    const photoIds = Array.from(selectedPhotos).filter(photoId => {
+      const photo = photos.find(p => p.id === photoId);
+      return photo && !photo.metadata?.ai?.shortDescription;
+    });
+    
+    if (photoIds.length === 0) {
+      toast({ title: "No photos need AI processing" });
+      return;
+    }
+    
+    batchAiProcessMutation.mutate(photoIds);
+    setSelectedPhotos(new Set());
+  };
+
+  const hasAiProcessing = (photo: Photo) => {
+    return !!(photo.metadata?.ai?.shortDescription);
   };
 
   const togglePhotoSelection = (photoId: string) => {
@@ -371,10 +438,16 @@ export default function SilverReview() {
           </Dialog>
 
           {selectedPhotos.size > 0 && (
-            <Button onClick={batchPromote} className="flex items-center gap-2">
-              <ThumbsUp className="h-4 w-4" />
-              Promote {selectedPhotos.size} to Gold
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={batchProcessAI} variant="outline" className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4" />
+                Process {selectedPhotos.size} with AI
+              </Button>
+              <Button onClick={batchPromote} className="flex items-center gap-2">
+                <ThumbsUp className="h-4 w-4" />
+                Promote {selectedPhotos.size} to Gold
+              </Button>
+            </div>
           )}
 
           <Button onClick={() => setLocation("/upload")} variant="outline">
@@ -434,11 +507,21 @@ export default function SilverReview() {
                   />
                 </div>
 
-                {/* Review status */}
-                <div className="absolute bottom-4 left-4">
+                {/* Review status and AI processing status */}
+                <div className="absolute bottom-4 left-4 flex gap-2">
                   <Badge variant={selectedPhoto?.isReviewed ? "default" : "secondary"}>
                     {selectedPhoto?.isReviewed ? "Reviewed" : "Unreviewed"}
                   </Badge>
+                  {selectedPhoto && !hasAiProcessing(selectedPhoto) && (
+                    <Badge variant="outline" className="bg-amber-500/20 text-amber-700 border-amber-500">
+                      Needs AI Processing
+                    </Badge>
+                  )}
+                  {selectedPhoto && hasAiProcessing(selectedPhoto) && (
+                    <Badge variant="outline" className="bg-green-500/20 text-green-700 border-green-500">
+                      AI Processed
+                    </Badge>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -446,6 +529,18 @@ export default function SilverReview() {
 
           {/* Action buttons */}
           <div className="flex gap-2 justify-center">
+            {selectedPhoto && !hasAiProcessing(selectedPhoto) && (
+              <Button
+                onClick={processAI}
+                variant="outline"
+                className="flex items-center gap-2"
+                disabled={aiProcessMutation.isPending}
+              >
+                <Sparkles className="h-4 w-4" />
+                {aiProcessMutation.isPending ? "Processing..." : "Process with AI"}
+              </Button>
+            )}
+
             <Button
               onClick={markAsReviewed}
               variant="outline"
@@ -459,7 +554,7 @@ export default function SilverReview() {
             <Button
               onClick={promoteToGold}
               className="flex items-center gap-2"
-              disabled={!selectedPhoto?.isReviewed || (selectedPhoto?.rating || 0) < 3}
+              disabled={!selectedPhoto?.isReviewed || (selectedPhoto?.rating || 0) < 3 || !hasAiProcessing(selectedPhoto)}
             >
               <ThumbsUp className="h-4 w-4" />
               Promote to Gold (P)
@@ -477,6 +572,7 @@ export default function SilverReview() {
                 <span>→ / D: Next photo</span>
                 <span>1-5: Rate photo</span>
                 <span>R: Mark reviewed</span>
+                <span>I: Process with AI</span>
                 <span>P: Promote to Gold</span>
               </div>
             </CardContent>
