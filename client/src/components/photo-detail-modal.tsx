@@ -255,9 +255,9 @@ export default function PhotoDetailModal({
 
   // Query detected faces for this photo
   const { data: detectedFaces = [] } = useQuery({
-    queryKey: ['/api/faces', photo.id],
+    queryKey: ['/api/faces/photo', photo.id],
     queryFn: async () => {
-      const response = await apiRequest('GET', `/api/faces/${photo.id}`);
+      const response = await apiRequest('GET', `/api/faces/photo/${photo.id}`);
       return await response.json();
     },
   });
