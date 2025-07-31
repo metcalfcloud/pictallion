@@ -11,6 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 import { MapPin, Plus, Clock, TrendingUp, Camera, Map, Edit2, Trash2, MoreVertical } from "lucide-react";
+import LocationMap from "@/components/LocationMap";
+import LocationTimeline from "@/components/LocationTimeline";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -508,14 +510,8 @@ export default function Locations() {
               </p>
             </CardHeader>
             <CardContent>
-              <div className="h-96 bg-muted rounded-lg flex items-center justify-center">
-                <div className="text-center">
-                  <Map className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">Map view coming soon</p>
-                  <p className="text-sm text-muted-foreground">
-                    Interactive map with photo hotspots and location clustering
-                  </p>
-                </div>
+              <div className="h-96 bg-muted rounded-lg overflow-hidden">
+                <LocationMap locations={locations} hotspots={locationStats?.hotspots || []} />
               </div>
             </CardContent>
           </Card>
@@ -530,14 +526,8 @@ export default function Locations() {
               </p>
             </CardHeader>
             <CardContent>
-              <div className="h-96 bg-muted rounded-lg flex items-center justify-center">
-                <div className="text-center">
-                  <Clock className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">Timeline view coming soon</p>
-                  <p className="text-sm text-muted-foreground">
-                    Visualization of location visits over time
-                  </p>
-                </div>
+              <div className="h-96">
+                <LocationTimeline locations={locations} />
               </div>
             </CardContent>
           </Card>
