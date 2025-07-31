@@ -100,6 +100,9 @@ export interface IStorage {
   getUnassignedFaces(): Promise<Face[]>;
   linkFaceToPerson(faceId: string, personId: string): Promise<void>;
   assignFaceToPerson?(faceId: string, personId: string): Promise<void>;
+  updateFace(id: string, updates: Partial<Face>): Promise<Face>;
+  deleteFace(id: string): Promise<void>;
+  deleteFacesByPhoto(photoId: string): Promise<void>;
 
   // Settings methods
   getAllSettings(): Promise<Setting[]>;
@@ -478,6 +481,19 @@ export class DatabaseStorage implements IStorage {
       .update(people)
       .set({ representativeFace: filePath })
       .where(eq(people.id, personId));
+  }
+
+  async updateFace(id: string, updates: Partial<Face>): Promise<Face> {
+    const [updatedFace] = await db
+      .update(faces)
+      .set(updates)
+      .where(eq(faces.id, id))
+      .returning();
+    return updatedFace;
+  }
+
+  async deleteFace(id: string): Promise<void> {
+    await db.delete(faces).where(eq(faces.id, id));
   }
 
   async getPersonPhotos(personId: string): Promise<Array<FileVersion & { mediaAsset: MediaAsset }>> {

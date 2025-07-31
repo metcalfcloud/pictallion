@@ -87,13 +87,15 @@ The application uses a relational database with four main tables:
 
 ## Recent Changes
 
-### July 31, 2025 - Completed Natural AI Description System with Universal Prompts
-- **Implemented Universal AI Prompts**: Simplified from provider-specific to universal prompts that work with both OpenAI and Ollama
+### July 31, 2025 - Completed Natural AI Description System with Face Preservation
+- **Fixed Face Assignment Preservation**: Resolved critical issue where reprocessing photos would unassign all faces from people
+- **Intelligent Face Matching**: Implemented bounding box overlap detection (30% threshold) to match new detections with existing face assignments
+- **Universal AI Prompts**: Simplified from provider-specific to universal prompts that work with both OpenAI and Ollama
 - **Natural Family-Friendly Descriptions**: Successfully generating warm, conversational descriptions instead of robotic metadata
+- **Named Face Integration**: AI descriptions now naturally include people's names (e.g., "Ellie and Chloe surrounded by loving family")
 - **Clean Settings Interface**: Created simplified prompt management with category tabs (Image Analysis, File Naming, Description Generation)
-- **Proven Results**: Testing shows natural output like "A delightful moment captured with warm smiles all around..." instead of repetitive technical text
-- **User-Friendly Prompt Editing**: Inline editing interface allows easy customization of AI behavior
-- **Comprehensive Prompt Engineering**: Each category has optimized prompts for natural, family-appropriate content generation
+- **Proven Results**: Testing shows natural output like "A delightful moment captured with Ellie and Chloe surrounded by loving family..." with preserved face assignments
+- **Enhanced Storage Methods**: Added updateFace() and deleteFace() methods to support smart face preservation during reprocessing
 
 ### July 31, 2025 - Fixed AI Reprocess Functionality with Enhanced People Context
 - **Fixed Duplicate File Creation Bug**: Removed duplicate `/api/photos/:id/reprocess` endpoint that was creating new Silver files instead of updating existing ones

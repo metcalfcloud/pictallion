@@ -19,6 +19,28 @@ import { sql } from "drizzle-orm";
 import { db } from "./db";
 import { promptManager } from "./services/promptManager";
 
+// Helper function to calculate bounding box overlap (Intersection over Union)
+function calculateBoundingBoxOverlap(
+  box1: [number, number, number, number], 
+  box2: [number, number, number, number]
+): number {
+  const [x1, y1, w1, h1] = box1;
+  const [x2, y2, w2, h2] = box2;
+  
+  // Calculate overlap area
+  const overlapX = Math.max(0, Math.min(x1 + w1, x2 + w2) - Math.max(x1, x2));
+  const overlapY = Math.max(0, Math.min(y1 + h1, y2 + h2) - Math.max(y1, y2));
+  const overlapArea = overlapX * overlapY;
+  
+  // Calculate union area
+  const area1 = w1 * h1;
+  const area2 = w2 * h2;
+  const unionArea = area1 + area2 - overlapArea;
+  
+  // Return intersection over union (IoU)
+  return unionArea > 0 ? overlapArea / unionArea : 0;
+}
+
 // Enhanced Face interface for API responses
 interface EnhancedFace extends Face {
   person?: Person;
@@ -2612,16 +2634,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isReviewed: false, // Reset review status since metadata changed
       });
 
-      // Delete old faces and add new ones
-      await storage.deleteFacesByPhoto(photo.id);
-      for (const face of detectedFaces) {
-        await storage.createFace({
-          photoId: photo.id,
-          boundingBox: face.boundingBox,
-          confidence: face.confidence,
-          embedding: face.embedding,
-          personId: face.personId || null,
-        });
+      // Preserve existing face assignments during reprocessing
+      // Match new faces to existing ones based on position similarity
+      const matchedFaces = [];
+      const unmatchedExistingFaces = [...existingFaces];
+      
+      for (const newFace of detectedFaces) {
+        let bestMatch = null;
+        let bestOverlap = 0;
+        
+        // Find existing face with highest overlap
+        for (let i = 0; i < unmatchedExistingFaces.length; i++) {
+          const existingFace = unmatchedExistingFaces[i];
+          const overlap = calculateBoundingBoxOverlap(
+            newFace.boundingBox as [number, number, number, number],
+            existingFace.boundingBox as [number, number, number, number]
+          );
+          
+          if (overlap > bestOverlap && overlap > 0.3) { // 30% overlap threshold
+            bestMatch = existingFace;
+            bestOverlap = overlap;
+          }
+        }
+        
+        if (bestMatch) {
+          // Update existing face with new detection data but preserve person assignment
+          await storage.updateFace(bestMatch.id, {
+            boundingBox: newFace.boundingBox,
+            confidence: newFace.confidence,
+            embedding: newFace.embedding,
+            // Keep existing personId
+          });
+          
+          // Remove from unmatched list
+          const index = unmatchedExistingFaces.indexOf(bestMatch);
+          unmatchedExistingFaces.splice(index, 1);
+          matchedFaces.push(bestMatch);
+        } else {
+          // Create new face for unmatched detection
+          await storage.createFace({
+            photoId: photo.id,
+            boundingBox: newFace.boundingBox,
+            confidence: newFace.confidence,
+            embedding: newFace.embedding,
+            personId: null, // New face starts unassigned
+          });
+        }
+      }
+      
+      // Delete faces that weren't matched (faces that are no longer detected)
+      for (const unmatchedFace of unmatchedExistingFaces) {
+        await storage.deleteFace(unmatchedFace.id);
       }
 
       // Log reprocessing
