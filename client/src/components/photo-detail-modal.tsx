@@ -193,7 +193,7 @@ export default function PhotoDetailModal({
   // Format date safely with validation
   const formatDateSafely = (dateString: string | undefined): string | null => {
     if (!dateString) return null;
-    
+
     try {
       const date = new Date(dateString);
       if (!isNaN(date.getTime()) && date.getFullYear() > 1900) {
@@ -398,6 +398,7 @@ export default function PhotoDetailModal({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/photos'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/faces/photo', photo.id] });
       toast({ title: "Photo reprocessed successfully!" });
     },
     onError: (error: Error) => {
@@ -484,6 +485,65 @@ export default function PhotoDetailModal({
     });
   };
 
+  // Face Overlay Component - moved inside the main component to fix scope issues
+  const FaceOverlay = ({ 
+    face, 
+    imageElement, 
+    originalImageWidth, 
+    originalImageHeight 
+  }: {
+    face: any;
+    imageElement: HTMLImageElement;
+    originalImageWidth: number;
+    originalImageHeight: number;
+  }) => {
+    if (!face.boundingBox || !Array.isArray(face.boundingBox)) return null;
+
+    const [x, y, width, height] = face.boundingBox;
+
+    // Get the displayed image dimensions
+    const displayedWidth = imageElement.offsetWidth;
+    const displayedHeight = imageElement.offsetHeight;
+
+    // Safety check: ensure we have valid dimensions to prevent division by zero
+    if (!originalImageWidth || !originalImageHeight || !displayedWidth || !displayedHeight) return null;
+
+    // Calculate scaling factors
+    const scaleX = displayedWidth / originalImageWidth;
+    const scaleY = displayedHeight / originalImageHeight;
+
+    // Scale the face coordinates
+    const scaledX = x * scaleX;
+    const scaledY = y * scaleY;
+    const scaledWidth = width * scaleX;
+    const scaledHeight = height * scaleY;
+
+    // Get image offset within its container
+    const imageRect = imageElement.getBoundingClientRect();
+    const containerRect = imageElement.parentElement?.getBoundingClientRect();
+
+    if (!containerRect) return null;
+
+    const offsetX = imageRect.left - containerRect.left;
+    const offsetY = imageRect.top - containerRect.top;
+
+    return (
+      <div
+        className="absolute border-2 border-cyan-400 bg-cyan-400/10 pointer-events-none animate-pulse"
+        style={{
+          left: offsetX + scaledX,
+          top: offsetY + scaledY,
+          width: scaledWidth,
+          height: scaledHeight,
+        }}
+      >
+        <div className="absolute -top-6 left-0 bg-cyan-400 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+          {face.person?.name || 'Unknown'} ({face.confidence}%)
+        </div>
+      </div>
+    );
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl max-h-[90vh] w-[95vw] p-0 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
@@ -491,7 +551,7 @@ export default function PhotoDetailModal({
           <DialogTitle>Photo Details</DialogTitle>
           <DialogDescription>View and edit photo metadata, EXIF data, and AI-generated information</DialogDescription>
         </DialogHeader>
-        
+
         {/* Fullscreen Image Overlay */}
         {isImageFullscreen && (
           <div className="fixed inset-0 z-50 bg-black flex items-center justify-center" onClick={() => setIsImageFullscreen(false)}>
@@ -555,7 +615,7 @@ export default function PhotoDetailModal({
                   e.currentTarget.src = '/placeholder-image.svg';
                 }}
               />
-              
+
               {/* Face Hover Overlay */}
               {hoveredFace && imageRef.current && (
                 <FaceOverlay 
@@ -872,7 +932,7 @@ export default function PhotoDetailModal({
                               <Users className="w-5 h-5 text-cyan-600 dark:text-cyan-300" />
                             </div>
                           )}
-                          
+
                           <div className="flex-1 min-w-0">
                             <div className="text-sm font-medium text-cyan-800 dark:text-cyan-200 truncate">
                               {face.personId && face.person ? face.person.name : 'Unknown'}
@@ -890,7 +950,7 @@ export default function PhotoDetailModal({
                             </Badge>
                           </div>
                         </div>
-                        
+
                         {!face.personId && (
                           <Button 
                             size="sm" 
@@ -1105,7 +1165,7 @@ export default function PhotoDetailModal({
                 Choose an existing person or create a new one for this face.
               </DialogDescription>
             </DialogHeader>
-            
+
             <div className="space-y-4">
               {/* Face Preview */}
               <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
@@ -1178,64 +1238,5 @@ export default function PhotoDetailModal({
         </Dialog>
       )}
     </Dialog>
-  );
-}
-
-// Face Overlay Component
-function FaceOverlay({ 
-  face, 
-  imageElement, 
-  originalImageWidth, 
-  originalImageHeight 
-}: {
-  face: any;
-  imageElement: HTMLImageElement;
-  originalImageWidth: number;
-  originalImageHeight: number;
-}) {
-  if (!face.boundingBox || !Array.isArray(face.boundingBox)) return null;
-
-  const [x, y, width, height] = face.boundingBox;
-  
-  // Get the displayed image dimensions
-  const displayedWidth = imageElement.offsetWidth;
-  const displayedHeight = imageElement.offsetHeight;
-  
-  // Safety check: ensure we have valid dimensions to prevent division by zero
-  if (!originalImageWidth || !originalImageHeight || !displayedWidth || !displayedHeight) return null;
-  
-  // Calculate scaling factors
-  const scaleX = displayedWidth / originalImageWidth;
-  const scaleY = displayedHeight / originalImageHeight;
-  
-  // Scale the face coordinates
-  const scaledX = x * scaleX;
-  const scaledY = y * scaleY;
-  const scaledWidth = width * scaleX;
-  const scaledHeight = height * scaleY;
-  
-  // Get image offset within its container
-  const imageRect = imageElement.getBoundingClientRect();
-  const containerRect = imageElement.parentElement?.getBoundingClientRect();
-  
-  if (!containerRect) return null;
-  
-  const offsetX = imageRect.left - containerRect.left;
-  const offsetY = imageRect.top - containerRect.top;
-
-  return (
-    <div
-      className="absolute border-2 border-cyan-400 bg-cyan-400/10 pointer-events-none animate-pulse"
-      style={{
-        left: offsetX + scaledX,
-        top: offsetY + scaledY,
-        width: scaledWidth,
-        height: scaledHeight,
-      }}
-    >
-      <div className="absolute -top-6 left-0 bg-cyan-400 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
-        {face.person?.name || 'Unknown'} ({face.confidence}%)
-      </div>
-    </div>
   );
 }
