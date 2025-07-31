@@ -561,8 +561,8 @@ export default function PhotoDetailModal({
                 <FaceOverlay 
                   face={hoveredFace}
                   imageElement={imageRef.current}
-                  originalImageWidth={photo.metadata?.exif?.imageWidth || 3024}
-                  originalImageHeight={photo.metadata?.exif?.imageHeight || 4032}
+                  originalImageWidth={photo.metadata?.exif?.imageWidth || imageRef.current.naturalWidth}
+                  originalImageHeight={photo.metadata?.exif?.imageHeight || imageRef.current.naturalHeight}
                 />
               )}
             </div>
@@ -1200,6 +1200,9 @@ function FaceOverlay({
   // Get the displayed image dimensions
   const displayedWidth = imageElement.offsetWidth;
   const displayedHeight = imageElement.offsetHeight;
+  
+  // Safety check: ensure we have valid dimensions to prevent division by zero
+  if (!originalImageWidth || !originalImageHeight || !displayedWidth || !displayedHeight) return null;
   
   // Calculate scaling factors
   const scaleX = displayedWidth / originalImageWidth;
