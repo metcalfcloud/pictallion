@@ -92,9 +92,9 @@ Rules:
     updatedAt: new Date().toISOString()
   },
   {
-    id: 'ai-short-description',
-    name: 'AI Short Description Generator',
-    description: 'Generates concise 2-3 word descriptions for file naming',
+    id: 'openai-short-description',
+    name: 'OpenAI Short Description Generator',
+    description: 'Generates concise 2-3 word descriptions for file naming using OpenAI',
     category: 'naming',
     provider: 'openai',
     systemPrompt: `Generate a very short 2-3 word description for this image in PascalCase format (e.g., SunsetBeach, FamilyDinner, MountainHike). 
@@ -102,6 +102,23 @@ Rules:
 Focus on the main subject or scene. Be concise and descriptive. For family photos, use names when known or general terms like FamilyTime, PlayDate, etc.
 
 Respond with JSON format: {"description": "YourDescription"}`,
+    userPrompt: `Generate a short PascalCase description for this image perfect for file naming.`,
+    isDefault: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'ollama-short-description',
+    name: 'Ollama Short Description Generator',
+    description: 'Generates concise 2-3 word descriptions for file naming using local Ollama',
+    category: 'naming',
+    provider: 'ollama',
+    systemPrompt: `Generate a very short 2-3 word description for this image in PascalCase format (e.g., SunsetBeach, FamilyDinner, MountainHike). 
+
+Focus on the main subject or scene. Be concise and descriptive. For family photos, use names when known or general terms like FamilyTime, PlayDate, etc.
+
+Return ONLY the description in JSON format: {"description": "YourDescription"}
+No additional text or explanations.`,
     userPrompt: `Generate a short PascalCase description for this image perfect for file naming.`,
     isDefault: true,
     createdAt: new Date().toISOString(),
