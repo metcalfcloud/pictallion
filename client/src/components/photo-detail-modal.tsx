@@ -940,39 +940,66 @@ export default function PhotoDetailModal({
                 </div>
               )}
 
-              {/* Detected Faces */}
-              {detectedFaces && detectedFaces.length > 0 && (
-                <div className="bg-cyan-50 dark:bg-cyan-900/20 p-4 rounded-lg border border-cyan-200 dark:border-cyan-800">
-                  <h3 className="text-base font-semibold text-cyan-800 dark:text-cyan-200 mb-3 flex items-center">
-                    <Users className="w-5 h-5 mr-2" />
-                    Detected Faces ({detectedFaces.length})
-                  </h3>
-                  {facesData && facesData.length > 0 && (
-              <div className="grid grid-cols-2 gap-2">
-                {facesData.map((face: any) => (
-                  <div key={face.id} className="flex items-center gap-2 p-2 border rounded">
-                    {face.faceCropUrl && (
-                      <img 
-                        src={`/api/files/${face.faceCropUrl}`}
-                        alt="Face crop"
-                        className="w-12 h-12 rounded-full object-cover"
-                      />
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium truncate">
-                        {face.personId ? face.person?.name || 'Unknown Person' : 'Unassigned'}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {Math.round(face.confidence)}% confidence
-                        {face.ageInPhoto && ` • Age ${face.ageInPhoto}`}
+              {/* Face Detection Status */}
+              <div className="bg-cyan-50 dark:bg-cyan-900/20 p-4 rounded-lg border border-cyan-200 dark:border-cyan-800">
+                <h3 className="text-base font-semibold text-cyan-800 dark:text-cyan-200 mb-3 flex items-center">
+                  <Users className="w-5 h-5 mr-2" />
+                  Face Detection
+                  {detectedFaces && detectedFaces.length > 0 && (
+                    <Badge variant="secondary" className="ml-2 text-xs">
+                      {detectedFaces.length} found
+                    </Badge>
+                  )}
+                </h3>
+
+                {/* Face detection errors */}
+                {photo.metadata?.faceDetectionErrors && photo.metadata.faceDetectionErrors.length > 0 && (
+                  <div className="mb-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded">
+                    <div className="flex items-start gap-2">
+                      <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                      <div className="text-sm">
+                        <div className="font-medium text-amber-800 dark:text-amber-200 mb-1">Detection Issues:</div>
+                        {photo.metadata.faceDetectionErrors.map((error: string, index: number) => (
+                          <div key={index} className="text-amber-700 dark:text-amber-300 text-xs">{error}</div>
+                        ))}
                       </div>
                     </div>
                   </div>
-                ))}
+                )}
+
+                {/* Detected faces grid */}
+                {facesData && facesData.length > 0 ? (
+                  <div className="grid grid-cols-2 gap-2">
+                    {facesData.map((face: any) => (
+                      <div key={face.id} className="flex items-center gap-2 p-2 border rounded">
+                        {face.faceCropUrl && (
+                          <img 
+                            src={`/api/files/${face.faceCropUrl}`}
+                            alt="Face crop"
+                            className="w-12 h-12 rounded-full object-cover"
+                          />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium truncate">
+                            {face.personId ? face.person?.name || 'Unknown Person' : 'Unassigned'}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {Math.round(face.confidence)}% confidence
+                            {face.ageInPhoto && ` • Age ${face.ageInPhoto}`}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-sm text-cyan-600 dark:text-cyan-400">
+                    {photo.metadata?.faceDetectionErrors?.length > 0 
+                      ? "Face detection encountered issues - no faces found" 
+                      : "No faces detected in this photo"
+                    }
+                  </div>
+                )}
               </div>
-            )}
-                </div>
-              )}
 
               <Separator className="my-6" />
 

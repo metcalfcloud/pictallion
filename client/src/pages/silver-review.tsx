@@ -594,9 +594,27 @@ export default function SilverReview() {
                 group.photos.some(p => p.id === selectedPhoto?.id)
               );
               const unassignedFaces = facesData?.filter(face => !face.personId)?.length || 0;
+              const faceDetectionErrors = selectedPhoto?.metadata?.faceDetectionErrors || [];
 
               return (
                 <>
+                  {faceDetectionErrors.length > 0 && (
+                    <Alert className="border-amber-200 bg-amber-50 dark:bg-amber-900/20">
+                      <AlertCircle className="h-4 w-4 text-amber-600" />
+                      <AlertDescription className="text-amber-800 dark:text-amber-200">
+                        <div className="font-medium mb-1">Face Detection Issues:</div>
+                        <ul className="text-sm space-y-1">
+                          {faceDetectionErrors.map((error: string, index: number) => (
+                            <li key={index} className="flex items-start gap-2">
+                              <span className="text-amber-600 mt-0.5">•</span>
+                              <span>{error}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
                   {photoInBurst && (
                     <Alert>
                       <Zap className="h-4 w-4" />

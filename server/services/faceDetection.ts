@@ -60,7 +60,9 @@ class FaceDetectionService {
     }
   }
 
-  async detectFaces(imagePath: string): Promise<DetectedFace[]> {
+  async detectFaces(imagePath: string): Promise<{ faces: DetectedFace[], errors: string[] }> {
+    const errors: string[] = [];
+    
     try {
       console.log('Running Face-API.js neural network face detection on:', imagePath);
       
@@ -70,16 +72,23 @@ class FaceDetectionService {
       // If Face-API fails, fall back to heuristics
       if (faces.length === 0) {
         console.log('Face-API found no faces, using heuristic fallback');
+        errors.push('Neural face detection found no faces, using composition analysis fallback');
         faces = await this.detectFacesWithAdvancedAnalysis(imagePath);
+        
+        if (faces.length === 0) {
+          errors.push('All face detection methods found no faces in this image');
+        }
       } else {
         console.log(`Face-API detected ${faces.length} faces successfully`);
       }
       
       console.log(`Face detection completed: found ${faces.length} faces`);
-      return faces;
+      return { faces, errors };
     } catch (error) {
       console.error('Face detection failed:', error);
-      return [];
+      const errorMessage = error instanceof Error ? error.message : 'Unknown face detection error';
+      errors.push(`Face detection failed: ${errorMessage}`);
+      return { faces: [], errors };
     }
   }
 
@@ -88,11 +97,18 @@ class FaceDetectionService {
       await this.initializeFaceAPI();
       
       if (!this.faceApiInitialized) {
-        throw new Error('Face-API not initialized');
+        console.warn('Face-API models not available, will use fallback detection');
+        return [];
       }
 
       const fullImagePath = path.join(process.cwd(), 'data', imagePath);
       
+      // Verify file exists
+      if (!fs.existsSync(fullImagePath)) {
+        console.error(`Image file not found: ${fullImagePath}`);
+        return [];
+      }
+
       // Load and process image with Sharp for Face-API
       const imageBuffer = await sharp(fullImagePath)
         .jpeg({ quality: 90 })
@@ -136,6 +152,14 @@ class FaceDetectionService {
       
     } catch (error) {
       console.error('Face-API detection failed:', error);
+      // Log detailed error info for debugging
+      if (error instanceof Error) {
+        console.error('Face-API error details:', {
+          name: error.name,
+          message: error.message,
+          stack: error.stack?.split('\n').slice(0, 3).join('\n')
+        });
+      }
       return [];
     }
   }

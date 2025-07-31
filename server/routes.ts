@@ -715,7 +715,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (file.mimetype.startsWith('image/')) {
             try {
               const detectedFaces = await faceDetectionService.detectFaces(silverPath);
-              
+
               // Save detected faces to database
               for (const face of detectedFaces) {
                 await storage.createFace({
@@ -1536,7 +1536,7 @@ app.get("/api/smart-collections", async (req, res) => {
 app.post("/api/smart-collections", async (req, res) => {
   try {
     const { name, description, rules } = req.body;
-    
+
     const collection = await storage.createCollection({
       name,
       description,
@@ -1544,7 +1544,7 @@ app.post("/api/smart-collections", async (req, res) => {
       smartRules: rules || {},
       isPublic: false
     });
-    
+
     res.json(collection);
   } catch (error) {
     console.error("Failed to create smart collection:", error);
@@ -1556,7 +1556,7 @@ app.patch("/api/smart-collections/:id/toggle", async (req, res) => {
   try {
     const { id } = req.params;
     const { isActive } = req.body;
-    
+
     await storage.updateCollection(id, { isPublic: isActive });
     res.json({ success: true });
   } catch (error) {
@@ -1579,9 +1579,9 @@ app.post("/api/smart-collections/organize", async (req, res) => {
 app.get("/api/smart-collections/:id/photos", async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     const photos = await storage.getCollectionPhotos(id);
-    
+
     res.json(photos);
   } catch (error) {
     console.error("Failed to get collection photos:", error);
@@ -1780,15 +1780,15 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
             // For silver photos: only update metadata (keep files immutable)
             if (photo.tier === 'silver') {
               if (!photo.mimeType.startsWith('image/')) {
-                continue;
-              }
+                continue;              }
 
               // Run AI analysis for metadata update only
               const aiMetadata = await aiService.analyzeImage(photo.filePath, "openai");
               const enhancedMetadata = await aiService.enhanceMetadataWithShortDescription(aiMetadata, photo.filePath);
 
               // Detect faces
-              const detectedFaces = await faceDetectionService.detectFaces(photo.filePath);
+              const faceDetectionResult = await faceDetectionService.detectFaces(photo.filePath);
+              const detectedFaces = faceDetectionResult.faces;
 
               // Get media asset for event detection
               const mediaAsset = await storage.getMediaAsset(photo.mediaAssetId);
@@ -1892,7 +1892,8 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
             const silverPath = await fileManager.copyToSilver(photo.filePath, newFilename, photoDate);
 
             // Detect faces
-            const detectedFaces = await faceDetectionService.detectFaces(photo.filePath);
+           const faceDetectionResult = await faceDetectionService.detectFaces(photo.filePath);
+            const detectedFaces = faceDetectionResult.faces;
 
             // Detect events based on photo date
             let eventType: string | undefined;
@@ -2038,7 +2039,10 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
             const photoWithAsset = { ...photo, mediaAsset: mediaAsset };
             const photoDate = extractPhotoDate(photoWithAsset);
             const silverPath = await fileManager.copyToSilver(photo.filePath, newFilename, photoDate);
-            const detectedFaces = await faceDetectionService.detectFaces(photo.filePath);
+            
+            // Face detection
+            const faceDetectionResult = await faceDetectionService.detectFaces(photo.filePath);
+            const detectedFaces = faceDetectionResult.faces;
 
             // Detect events based on photo date
             let eventType: string | undefined;
@@ -2683,7 +2687,8 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
           const silverPath = await fileManager.copyToSilver(photo.filePath, newFilename, photoDate);
 
           // Detect faces in the image
-          const detectedFaces = await faceDetectionService.detectFaces(photo.filePath);
+          const faceDetectionResult = await faceDetectionService.detectFaces(photo.filePath);
+          const detectedFaces = faceDetectionResult.faces;
 
           // Detect events based on photo date
           let eventType: string | undefined;
