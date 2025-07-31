@@ -713,22 +713,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           // Detect faces (non-LLM processing) if it's an image
           if (file.mimetype.startsWith('image/')) {
-            try {
-              const detectedFaces = await faceDetectionService.detectFaces(silverPath);
+            // Run face detection
+            console.log('Running face detection on uploaded photo...');
+            const faceDetectionResult = await faceDetectionService.detectFaces(file.path);
+            const detectedFaces = faceDetectionResult.faces;
 
-              // Save detected faces to database
-              for (const face of detectedFaces) {
-                await storage.createFace({
-                  photoId: fileVersion.id,
-                  boundingBox: face.boundingBox,
-                  confidence: face.confidence,
-                  embedding: face.embedding,
-                  personId: null, // Faces start unassigned
-                });
-              }
-            } catch (faceError) {
-              console.error(`Face detection failed for ${file.originalname}:`, faceError);
-              // Continue processing even if face detection fails
+            // Update photo metadata with face detection status
+            const currentMetadata = fileVersion.metadata || {};
+            const updatedMetadata = {
+              ...currentMetadata,
+              ...faceDetectionResult.metadata
+            };
+
+            await storage.updateFileVersion(fileVersion.id, { metadata: updatedMetadata });
+
+            // Save detected faces to database
+            for (const face of detectedFaces) {
+              await storage.createFace({
+                photoId: fileVersion.id,
+                boundingBox: face.boundingBox,
+                confidence: face.confidence,
+                embedding: face.embedding,
+                personId: null, // Faces start unassigned
+              });
             }
           }
 
@@ -1407,18 +1414,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Assign a single face to a person
-  app.post("/api/faces/assign-single", async (req, res) => {
-    try {
-      const { faceId, personId } = req.body;
-      await storage.assignFaceToPerson(faceId, personId);
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Error assigning face:", error);
-      res.status(500).json({ message: "Failed to assign face" });
-    }
-  });
-
   // Ignore a face
   app.post("/api/faces/:id/ignore", async (req, res) => {
     try {
@@ -2051,7 +2046,7 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
             const photoWithAsset = { ...photo, mediaAsset: mediaAsset };
             const photoDate = extractPhotoDate(photoWithAsset);
             const silverPath = await fileManager.copyToSilver(photo.filePath, newFilename, photoDate);
-            
+
             // Face detection
             const faceDetectionResult = await faceDetectionService.detectFaces(photo.filePath);
             const detectedFaces = faceDetectionResult.faces;
@@ -2695,7 +2690,8 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
 
           // Copy file to Silver tier with new filename
           const photoWithAsset = { ...photo, mediaAsset: asset };
-          const photoDate = extractPhotoDate(photoWithAsset);
+          ```tool_code
+const photoDate = extractPhotoDate(photoWithAsset);
           const silverPath = await fileManager.copyToSilver(photo.filePath, newFilename, photoDate);
 
           // Detect faces in the image

@@ -31,6 +31,8 @@ import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { Photo } from "@shared/types";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { FaceDetectionBadge, getFaceDetectionStatus } from "@/components/ui/processing-state-badge";
 
 // Tag Editor Component
 interface TagEditorProps {
@@ -940,37 +942,22 @@ export default function PhotoDetailModal({
                 </div>
               )}
 
-              {/* Face Detection Status */}
+              {/* Face Detection Status and Detected Faces */}
               <div className="bg-cyan-50 dark:bg-cyan-900/20 p-4 rounded-lg border border-cyan-200 dark:border-cyan-800">
-                <h3 className="text-base font-semibold text-cyan-800 dark:text-cyan-200 mb-3 flex items-center">
-                  <Users className="w-5 h-5 mr-2" />
-                  Face Detection
-                  {detectedFaces && detectedFaces.length > 0 && (
-                    <Badge variant="secondary" className="ml-2 text-xs">
-                      {detectedFaces.length} found
-                    </Badge>
-                  )}
-                </h3>
-
-                {/* Face detection errors */}
-                {photo.metadata?.faceDetectionErrors && photo.metadata.faceDetectionErrors.length > 0 && (
-                  <div className="mb-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded">
-                    <div className="flex items-start gap-2">
-                      <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
-                      <div className="text-sm">
-                        <div className="font-medium text-amber-800 dark:text-amber-200 mb-1">Detection Issues:</div>
-                        {photo.metadata.faceDetectionErrors.map((error: string, index: number) => (
-                          <div key={index} className="text-amber-700 dark:text-amber-300 text-xs">{error}</div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Detected faces grid */}
-                {facesData && facesData.length > 0 ? (
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-base font-semibold text-cyan-800 dark:text-cyan-200 flex items-center">
+                    <Users className="w-5 h-5 mr-2" />
+                    Face Detection
+                  </h3>
+                  <FaceDetectionBadge 
+                    status={getFaceDetectionStatus(photo).status}
+                    faceCount={getFaceDetectionStatus(photo).faceCount}
+                    size="md"
+                  />
+                </div>
+                {detectedFaces && detectedFaces.length > 0 && (
                   <div className="grid grid-cols-2 gap-2">
-                    {facesData.map((face: any) => (
+                    {detectedFaces.map((face: any) => (
                       <div key={face.id} className="flex items-center gap-2 p-2 border rounded">
                         {face.faceCropUrl && (
                           <img 
@@ -990,13 +977,6 @@ export default function PhotoDetailModal({
                         </div>
                       </div>
                     ))}
-                  </div>
-                ) : (
-                  <div className="text-sm text-cyan-600 dark:text-cyan-400">
-                    {photo.metadata?.faceDetectionErrors?.length > 0 
-                      ? "Face detection encountered issues - no faces found" 
-                      : "No faces detected in this photo"
-                    }
                   </div>
                 )}
               </div>
