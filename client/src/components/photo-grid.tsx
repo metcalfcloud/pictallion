@@ -7,6 +7,57 @@ import { cn } from "@/lib/utils";
 
 import type { Photo } from "@shared/types";
 
+// Helper function to extract photo date from EXIF or filename
+const extractPhotoDate = (photo: Photo): Date => {
+  try {
+    // First try EXIF metadata
+    if (photo.metadata?.exif) {
+      const exif = photo.metadata.exif as any;
+      
+      // Try DateTimeOriginal first (most accurate)
+      if (exif.dateTimeOriginal) {
+        const date = new Date(exif.dateTimeOriginal);
+        if (!isNaN(date.getTime())) return date;
+      }
+      
+      // Try CreateDate
+      if (exif.createDate) {
+        const date = new Date(exif.createDate);
+        if (!isNaN(date.getTime())) return date;
+      }
+      
+      // Try DateTime
+      if (exif.dateTime) {
+        const date = new Date(exif.dateTime);
+        if (!isNaN(date.getTime())) return date;
+      }
+    }
+
+    // Try to extract from filename if it has timestamp format (YYYYMMDD_HHMMSS)
+    const filename = photo.mediaAsset?.originalFilename || '';
+    const timestampMatch = filename.match(/^(\d{8})_(\d{6})/);
+    if (timestampMatch) {
+      const dateStr = timestampMatch[1]; // YYYYMMDD
+      const timeStr = timestampMatch[2]; // HHMMSS
+      const year = parseInt(dateStr.substring(0, 4));
+      const month = parseInt(dateStr.substring(4, 6)) - 1; // Month is 0-indexed
+      const day = parseInt(dateStr.substring(6, 8));
+      const hour = parseInt(timeStr.substring(0, 2));
+      const minute = parseInt(timeStr.substring(2, 4));
+      const second = parseInt(timeStr.substring(4, 6));
+
+      const extractedDate = new Date(year, month, day, hour, minute, second);
+      if (!isNaN(extractedDate.getTime())) return extractedDate;
+    }
+
+    // Fallback to upload date if no EXIF date available
+    return new Date(photo.createdAt);
+  } catch (error) {
+    console.error('Error extracting photo date:', error);
+    return new Date(photo.createdAt);
+  }
+};
+
 interface PhotoGridProps {
   photos: Photo[];
   viewMode: 'grid' | 'list';
@@ -83,6 +134,18 @@ export default function PhotoGrid({
                       <h3 className="font-medium text-card-foreground mb-1">
                         {photo.mediaAsset.originalFilename}
                       </h3>
+                      
+                      {/* Photo Date */}
+                      <p className="text-xs text-muted-foreground mb-2">
+                        {extractPhotoDate(photo).toLocaleDateString('en-US', {
+                          weekday: 'short',
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </p>
 
                       <div className="flex items-center space-x-2 mb-2">
                         <Badge className={cn("text-xs", getTierBadgeClass(photo.tier))}>
@@ -233,7 +296,7 @@ export default function PhotoGrid({
               {/* Date - Handwritten Style */}
               <div className="text-center mb-3">
                 <h3 className="font-medium text-sm tracking-wide">
-                  {new Date(photo.createdAt).toLocaleDateString('en-US', {
+                  {extractPhotoDate(photo).toLocaleDateString('en-US', {
                     month: 'short',
                     day: 'numeric',
                     year: 'numeric'
