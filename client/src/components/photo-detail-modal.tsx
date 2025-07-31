@@ -402,247 +402,308 @@ export default function PhotoDetailModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[85vh] w-[90vw] p-0">
+      <DialogContent className="max-w-6xl max-h-[90vh] w-[95vw] p-0 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
         <DialogHeader className="sr-only">
           <DialogTitle>Photo Details</DialogTitle>
           <DialogDescription>View and edit photo metadata, EXIF data, and AI-generated information</DialogDescription>
         </DialogHeader>
+        
+        {/* Fullscreen Image Overlay */}
+        {isImageFullscreen && (
+          <div className="fixed inset-0 z-50 bg-black flex items-center justify-center" onClick={() => setIsImageFullscreen(false)}>
+            <img 
+              src={`/api/files/${photo.filePath}`}
+              alt={photo.mediaAsset?.originalFilename || 'Photo'}
+              className="max-w-full max-h-full object-contain"
+              onError={(e) => {
+                e.currentTarget.src = '/placeholder-image.svg';
+              }}
+            />
+            <Button
+              variant="secondary"
+              size="sm"
+              className="absolute top-4 right-4 bg-black/50 hover:bg-black/70 text-white border-none"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsImageFullscreen(false);
+              }}
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+        )}
+
         <div className="flex h-full">
-          {/* Fullscreen Image Overlay */}
-          {isImageFullscreen && (
-            <div className="fixed inset-0 z-50 bg-black flex items-center justify-center" onClick={() => setIsImageFullscreen(false)}>
+          {/* Left Panel - Image */}
+          <div className="w-1/2 bg-white dark:bg-gray-900 p-6 flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <Badge className={cn("text-sm px-3 py-1", getTierBadgeClass(photo.tier))}>
+                  <span className="capitalize">{photo.tier}</span>
+                </Badge>
+                {photo.tier === 'silver' && !photo.isReviewed && (
+                  <Badge variant="outline" className="text-sm text-amber-600 border-amber-600 bg-amber-50 dark:bg-amber-900/20">
+                    <Eye className="w-4 h-4 mr-1" />
+                    Needs Review
+                  </Badge>
+                )}
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onOpenChange(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="w-5 h-5" />
+              </Button>
+            </div>
+
+            {/* Main Image */}
+            <div className="flex-1 flex items-center justify-center bg-gray-50 dark:bg-gray-800 rounded-lg overflow-hidden">
               <img 
                 src={`/api/files/${photo.filePath}`}
                 alt={photo.mediaAsset?.originalFilename || 'Photo'}
-                className="max-w-full max-h-full object-contain"
+                className="max-w-full max-h-full object-contain cursor-pointer hover:scale-105 transition-transform duration-200"
+                onClick={() => setIsImageFullscreen(true)}
                 onError={(e) => {
                   e.currentTarget.src = '/placeholder-image.svg';
                 }}
               />
-              <Button
-                variant="secondary"
-                size="sm"
-                className="absolute top-4 right-4 bg-black/50 hover:bg-black/70 text-white border-none"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsImageFullscreen(false);
-                }}
-              >
-                <X className="w-4 h-4" />
-              </Button>
             </div>
-          )}
 
-          {/* Metadata Panel with Pinned Polaroid Photo */}
-          <div className="flex-1 bg-card dark:bg-gray-900 flex flex-col">
-            <div className="flex-1 overflow-y-auto p-4">
-              {/* Top Section: Photo on left, Description & Tags on right */}
-              <div className="flex gap-4 mb-4">
-                {/* Pinned Polaroid Photo - Far Left */}
-                <div className="flex-shrink-0">
-                  <div className="relative">
-                    <div 
-                      className="bg-white p-2 pb-4 shadow-lg transform rotate-3 hover:rotate-0 transition-transform duration-200 cursor-pointer relative"
-                      onClick={() => setIsImageFullscreen(true)}
-                    >
-                      <img 
-                        src={`/api/files/${photo.filePath}`}
-                        alt={photo.mediaAsset?.originalFilename || 'Photo'}
-                        className="w-32 h-32 object-cover"
-                        onError={(e) => {
-                          e.currentTarget.src = '/placeholder-image.svg';
-                        }}
-                      />
-                      {/* Push Pin */}
-                      <div className="absolute -top-1 -left-1 w-3 h-3 bg-red-500 rounded-full shadow-sm border border-red-600"></div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Description & Tags - Fill right space */}
-                <div className="flex-1 space-y-3">
-                  {/* AI Description */}
-                  {photo.metadata?.ai?.longDescription && (
-                    <div>
-                      <h4 className="text-sm font-semibold text-card-foreground mb-2">Description</h4>
-                      {isEditing ? (
-                        <Textarea
-                          value={editedMetadata.aiDescription || photo.metadata.ai.longDescription}
-                          onChange={(e) => setEditedMetadata(prev => ({ ...prev, aiDescription: e.target.value }))}
-                          placeholder="Edit AI description..."
-                          className="text-sm min-h-[60px]"
-                        />
-                      ) : (
-                        <p className="text-sm text-muted-foreground">
-                          {editedMetadata.aiDescription || photo.metadata.ai.longDescription}
-                        </p>
-                      )}
-                    </div>
-                  )}
-
-                  {/* AI Tags */}
-                  {photo.metadata?.ai?.aiTags && (
-                    <div>
-                      <h4 className="text-sm font-semibold text-card-foreground mb-2">AI Generated Tags</h4>
-                      {isEditing ? (
-                        <TagEditor
-                          tags={editedMetadata.aiTags || photo.metadata.ai.aiTags}
-                          onChange={(tags) => setEditedMetadata(prev => ({ ...prev, aiTags: tags }))}
-                          placeholder="Add AI tags..."
-                          className="text-sm"
-                        />
-                      ) : (
-                        <div className="flex flex-wrap gap-2">
-                          {(editedMetadata.aiTags || photo.metadata.ai.aiTags).map((tag: string, index: number) => (
-                            <Badge 
-                              key={index} 
-                              className="bg-blue-100 text-blue-800 hover:bg-blue-200 text-xs"
-                            >
-                              {tag}
-                            </Badge>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
+            {/* Image Info */}
+            <div className="mt-4 space-y-2">
+              <div className="text-lg font-semibold text-gray-800 dark:text-gray-200 truncate">
+                {photo.mediaAsset?.originalFilename}
               </div>
+              <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                {photo.fileSize && (
+                  <span>{Math.round(photo.fileSize / 1024)} KB</span>
+                )}
+                {photo.metadata?.exif?.imageWidth && photo.metadata?.exif?.imageHeight && (
+                  <span>{photo.metadata.exif.imageWidth} × {photo.metadata.exif.imageHeight}</span>
+                )}
+                {photo.metadata?.exif?.dateTimeOriginal && (
+                  <span>{new Date(photo.metadata.exif.dateTimeOriginal).toLocaleDateString()}</span>
+                )}
+              </div>
+            </div>
 
-              {/* Two Column Metadata Layout */}
-              <div className="grid grid-cols-2 gap-4 text-sm">
+            {/* Action Buttons */}
+            {!isEditing && (
+              <div className="mt-4 space-y-3">
+                <div className="flex gap-2">
+                  {photo.tier !== 'bronze' && (
+                    <Button 
+                      variant="outline" 
+                      className="flex-1"
+                      onClick={() => setIsEditing(!isEditing)}
+                      size="sm"
+                    >
+                      <Edit className="w-4 h-4 mr-2" />
+                      Edit Metadata
+                    </Button>
+                  )}
+                  <Button 
+                    variant="outline" 
+                    onClick={handleDownload}
+                    size="sm"
+                  >
+                    <Download className="w-4 h-4" />
+                  </Button>
+                </div>
 
-                {/* Left Column */}
-                <div className="space-y-3">
-                  <h4 className="text-sm font-semibold text-card-foreground">File Information</h4>
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">Filename</span>
-                      <span className="text-card-foreground font-mono truncate ml-2">{photo.mediaAsset?.originalFilename}</span>
-                    </div>
-                    {photo.fileSize && (
-                      <div className="flex justify-between text-xs">
-                        <span className="text-muted-foreground">Size</span>
-                        <span className="text-card-foreground">{Math.round(photo.fileSize / 1024)} KB</span>
-                      </div>
-                    )}
-                    {photo.metadata?.exif?.imageWidth && photo.metadata?.exif?.imageHeight && (
-                      <div className="flex justify-between text-xs">
-                        <span className="text-muted-foreground">Dimensions</span>
-                        <span className="text-card-foreground">{photo.metadata.exif.imageWidth} x {photo.metadata.exif.imageHeight}</span>
-                      </div>
-                    )}
+                <div className="flex gap-2">
+                  {canPromoteToSilver && (
+                    <Button 
+                      className="flex-1 bg-blue-600 hover:bg-blue-700"
+                      onClick={() => onProcessPhoto!(photo.id)}
+                      disabled={isProcessing}
+                      size="sm"
+                    >
+                      <Bot className="w-4 h-4 mr-2" />
+                      {isProcessing ? 'Promoting...' : 'Promote to Silver'}
+                    </Button>
+                  )}
+                  {canPromoteToGold && (
+                    <Button 
+                      onClick={() => promoteToGoldMutation.mutate()}
+                      disabled={promoteToGoldMutation.isPending}
+                      size="sm"
+                      className="flex-1 bg-yellow-600 hover:bg-yellow-700"
+                    >
+                      <Star className="w-4 h-4 mr-2" />
+                      {promoteToGoldMutation.isPending ? 'Promoting...' : 'Promote to Gold'}
+                    </Button>
+                  )}
+                </div>
+
+                {isSilverTier && (
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => archivePhotoMutation.mutate()}
+                      disabled={archivePhotoMutation.isPending}
+                      size="sm"
+                      className="flex-1"
+                    >
+                      <Archive className="w-4 h-4 mr-2" />
+                      {archivePhotoMutation.isPending ? 'Archiving...' : 'Archive'}
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => aiReprocessMutation.mutate()}
+                      disabled={aiReprocessMutation.isPending}
+                      size="sm"
+                      className="flex-1"
+                    >
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      {aiReprocessMutation.isPending ? 'Reprocessing...' : 'AI Reprocess'}
+                    </Button>
                   </div>
+                )}
+              </div>
+            )}
+          </div>
 
-                  <h4 className="text-sm font-semibold text-card-foreground pt-2">Camera Settings</h4>
-                  <div className="space-y-1">
+          {/* Right Panel - Metadata */}
+          <div className="w-1/2 bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-700 flex flex-col">
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {/* AI Description */}
+              {photo.metadata?.ai?.longDescription && (
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <h3 className="text-base font-semibold text-blue-900 dark:text-blue-100 mb-3 flex items-center">
+                    <Bot className="w-5 h-5 mr-2" />
+                    Description
+                  </h3>
+                  {isEditing ? (
+                    <Textarea
+                      value={editedMetadata.aiDescription || photo.metadata.ai.longDescription}
+                      onChange={(e) => setEditedMetadata(prev => ({ ...prev, aiDescription: e.target.value }))}
+                      placeholder="Edit AI description..."
+                      className="text-sm min-h-[80px] bg-white dark:bg-gray-800"
+                    />
+                  ) : (
+                    <p className="text-sm text-blue-800 dark:text-blue-200 leading-relaxed">
+                      {editedMetadata.aiDescription || photo.metadata.ai.longDescription}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* AI Tags */}
+              {photo.metadata?.ai?.aiTags && (
+                <div>
+                  <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-3 flex items-center">
+                    <Tag className="w-5 h-5 mr-2" />
+                    AI Generated Tags
+                  </h3>
+                  {isEditing ? (
+                    <TagEditor
+                      tags={editedMetadata.aiTags || photo.metadata.ai.aiTags}
+                      onChange={(tags) => setEditedMetadata(prev => ({ ...prev, aiTags: tags }))}
+                      placeholder="Add AI tags..."
+                      className="text-sm"
+                    />
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {(editedMetadata.aiTags || photo.metadata.ai.aiTags).map((tag: string, index: number) => (
+                        <Badge 
+                          key={index} 
+                          className="bg-blue-100 text-blue-800 hover:bg-blue-200 text-xs px-3 py-1"
+                        >
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Camera Information */}
+              {(photo.metadata?.exif?.camera || photo.metadata?.exif?.lens || photo.metadata?.exif?.aperture || photo.metadata?.exif?.shutter || photo.metadata?.exif?.iso) && (
+                <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border">
+                  <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-3 flex items-center">
+                    <Camera className="w-5 h-5 mr-2" />
+                    Camera Settings
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
                     {photo.metadata?.exif?.camera && (
-                      <div className="flex justify-between text-xs">
-                        <span className="text-muted-foreground">Camera</span>
-                        <span className="text-card-foreground truncate ml-2">{photo.metadata.exif.camera}</span>
+                      <div>
+                        <span className="text-gray-600 dark:text-gray-400 block">Camera</span>
+                        <span className="text-gray-800 dark:text-gray-200 font-medium">{photo.metadata.exif.camera}</span>
                       </div>
                     )}
                     {photo.metadata?.exif?.lens && (
-                      <div className="flex justify-between text-xs">
-                        <span className="text-muted-foreground">Lens</span>
-                        <span className="text-card-foreground truncate ml-2">{photo.metadata.exif.lens}</span>
+                      <div>
+                        <span className="text-gray-600 dark:text-gray-400 block">Lens</span>
+                        <span className="text-gray-800 dark:text-gray-200 font-medium">{photo.metadata.exif.lens}</span>
                       </div>
                     )}
                     {photo.metadata?.exif?.aperture && (
-                      <div className="flex justify-between text-xs">
-                        <span className="text-muted-foreground">Aperture</span>
-                        <span className="text-card-foreground">{photo.metadata.exif.aperture}</span>
+                      <div>
+                        <span className="text-gray-600 dark:text-gray-400 block">Aperture</span>
+                        <span className="text-gray-800 dark:text-gray-200 font-medium">{photo.metadata.exif.aperture}</span>
                       </div>
                     )}
                     {photo.metadata?.exif?.shutter && (
-                      <div className="flex justify-between text-xs">
-                        <span className="text-muted-foreground">Shutter</span>
-                        <span className="text-card-foreground">{photo.metadata.exif.shutter}</span>
+                      <div>
+                        <span className="text-gray-600 dark:text-gray-400 block">Shutter</span>
+                        <span className="text-gray-800 dark:text-gray-200 font-medium">{photo.metadata.exif.shutter}</span>
                       </div>
                     )}
                     {photo.metadata?.exif?.iso && (
-                      <div className="flex justify-between text-xs">
-                        <span className="text-muted-foreground">ISO</span>
-                        <span className="text-card-foreground">{photo.metadata.exif.iso}</span>
+                      <div>
+                        <span className="text-gray-600 dark:text-gray-400 block">ISO</span>
+                        <span className="text-gray-800 dark:text-gray-200 font-medium">{photo.metadata.exif.iso}</span>
                       </div>
                     )}
                   </div>
                 </div>
+              )}
 
-                {/* Right Column */}
-                <div className="space-y-3">
-                  <h4 className="text-sm font-semibold text-card-foreground">Date Information</h4>
-                  <div className="space-y-1">
-                    {photo.createdAt && (
-                      <div className="flex justify-between text-xs">
-                        <span className="text-muted-foreground">Processed</span>
-                        <span className="text-card-foreground">{new Date(photo.createdAt).toLocaleDateString()}</span>
-                      </div>
-                    )}
-                    {photo.metadata?.exif?.dateTimeOriginal && (
-                      <div className="flex justify-between text-xs">
-                        <span className="text-muted-foreground">Date Taken</span>
-                        <span className="text-card-foreground">{new Date(photo.metadata.exif.dateTimeOriginal).toLocaleDateString()}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <h4 className="text-sm font-semibold text-card-foreground pt-2">Status</h4>
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <Badge className={cn("text-xs", getTierBadgeClass(photo.tier))}>
-                        <span className="capitalize">{photo.tier}</span>
-                      </Badge>
-                      {photo.tier === 'silver' && !photo.isReviewed && (
-                        <Badge variant="outline" className="text-xs text-yellow-600 border-yellow-600">
-                          <Eye className="w-3 h-3 mr-1" />
-                          Needs Review
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* GPS Information */}
-                  {photo.metadata?.exif?.gps && (
-                    <>
-                      <h4 className="text-sm font-semibold text-card-foreground pt-2">Location</h4>
-                      <div className="space-y-1">
-                        <div className="flex justify-between text-xs">
-                          <span className="text-muted-foreground">Latitude</span>
-                          <span className="text-card-foreground font-mono">{photo.metadata.exif.gps.latitude}</span>
-                        </div>
-                        <div className="flex justify-between text-xs">
-                          <span className="text-muted-foreground">Longitude</span>
-                          <span className="text-card-foreground font-mono">{photo.metadata.exif.gps.longitude}</span>
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </div>
-
-              </div>
-
-              {/* Location */}
-              {photo.metadata?.ai?.placeName && (
-                <div className="mb-6">
-                  <h4 className="text-sm font-semibold text-card-foreground mb-2">
-                    <MapPin className="w-4 h-4 inline mr-1" />
+              {/* Location Information */}
+              {(photo.metadata?.ai?.placeName || photo.metadata?.exif?.gps) && (
+                <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
+                  <h3 className="text-base font-semibold text-green-800 dark:text-green-200 mb-3 flex items-center">
+                    <MapPin className="w-5 h-5 mr-2" />
                     Location
-                  </h4>
-                  <p className="text-sm text-muted-foreground">{photo.metadata.ai.placeName}</p>
+                  </h3>
+                  {photo.metadata?.ai?.placeName && (
+                    <p className="text-sm text-green-700 dark:text-green-300 mb-3">
+                      {photo.metadata.ai.placeName}
+                    </p>
+                  )}
+                  {photo.metadata?.exif?.gps && (
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-green-600 dark:text-green-400 block">Latitude</span>
+                        <span className="text-green-800 dark:text-green-200 font-mono">{photo.metadata.exif.gps.latitude}</span>
+                      </div>
+                      <div>
+                        <span className="text-green-600 dark:text-green-400 block">Longitude</span>
+                        <span className="text-green-800 dark:text-green-200 font-mono">{photo.metadata.exif.gps.longitude}</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
               {/* Detected Objects */}
               {photo.metadata?.ai?.detectedObjects && photo.metadata.ai.detectedObjects.length > 0 && (
-                <div className="mb-6">
-                  <h4 className="text-sm font-semibold text-card-foreground mb-3">Detected Objects</h4>
-                  <div className="space-y-2">
+                <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg border border-purple-200 dark:border-purple-800">
+                  <h3 className="text-base font-semibold text-purple-800 dark:text-purple-200 mb-3 flex items-center">
+                    <Eye className="w-5 h-5 mr-2" />
+                    Detected Objects
+                  </h3>
+                  <div className="grid grid-cols-2 gap-3">
                     {photo.metadata.ai.detectedObjects.map((obj: any, index: number) => (
-                      <div key={index} className="flex justify-between">
-                        <span className="text-sm text-card-foreground">{obj.name}</span>
-                        <span className="text-sm text-muted-foreground">
+                      <div key={index} className="flex items-center justify-between p-2 bg-white dark:bg-purple-900/50 rounded border">
+                        <span className="text-sm text-purple-800 dark:text-purple-200 font-medium">{obj.name}</span>
+                        <Badge variant="outline" className="text-xs border-purple-300 text-purple-700 dark:border-purple-600 dark:text-purple-300">
                           {Math.round(obj.confidence * 100)}%
-                        </span>
+                        </Badge>
                       </div>
                     ))}
                   </div>
@@ -651,24 +712,24 @@ export default function PhotoDetailModal({
 
               {/* Detected People */}
               {photo.metadata?.ai?.detectedPeople && photo.metadata.ai.detectedPeople.length > 0 && (
-                <div className="mb-6">
-                  <h4 className="text-sm font-semibold text-card-foreground mb-3">
-                    <Users className="w-4 h-4 inline mr-1" />
+                <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg border border-orange-200 dark:border-orange-800">
+                  <h3 className="text-base font-semibold text-orange-800 dark:text-orange-200 mb-3 flex items-center">
+                    <Users className="w-5 h-5 mr-2" />
                     Detected People
-                  </h4>
-                  <div className="space-y-2">
+                  </h3>
+                  <div className="space-y-3">
                     {photo.metadata.ai.detectedPeople.map((person: any, index: number) => (
-                      <div key={index} className="flex items-center justify-between p-2 bg-muted/50 rounded border">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                            <Users className="w-4 h-4 text-blue-600" />
+                      <div key={index} className="flex items-center justify-between p-3 bg-white dark:bg-orange-900/50 rounded-lg border shadow-sm">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-orange-100 dark:bg-orange-800 rounded-full flex items-center justify-center">
+                            <Users className="w-5 h-5 text-orange-600 dark:text-orange-300" />
                           </div>
                           <div>
-                            <div className="text-sm font-medium text-card-foreground">
+                            <div className="text-sm font-medium text-orange-800 dark:text-orange-200">
                               {person.name || 'Unknown Person'}
                             </div>
                             {person.age && (
-                              <div className="text-xs text-muted-foreground">
+                              <div className="text-xs text-orange-600 dark:text-orange-400">
                                 Age: {person.age}
                               </div>
                             )}
@@ -688,83 +749,87 @@ export default function PhotoDetailModal({
 
               <Separator className="my-6" />
 
-              {/* Editable Metadata */}
-              {isEditing ? (
-                <div className="border-t pt-4">
-                  <h4 className="text-sm font-semibold text-card-foreground mb-3">Edit Metadata</h4>
+              {/* Editing Panel */}
+              {isEditing && (
+                <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                  <h3 className="text-base font-semibold text-yellow-800 dark:text-yellow-200 mb-4 flex items-center">
+                    <Edit className="w-5 h-5 mr-2" />
+                    Edit Metadata
+                  </h3>
 
-                  {/* Compact Form Content */}
-                  <div className="space-y-3 max-h-60 overflow-y-auto">
+                  <div className="space-y-4">
                     <div>
-                      <Label htmlFor="keywords" className="text-xs">Keywords</Label>
+                      <Label htmlFor="keywords" className="text-sm font-medium text-yellow-800 dark:text-yellow-200">Keywords</Label>
                       <TagEditor
                         tags={editedMetadata.keywords}
                         onChange={(keywords) => setEditedMetadata(prev => ({ ...prev, keywords }))}
                         placeholder="Add keywords..."
-                        className="mt-1"
+                        className="mt-2"
                       />
                     </div>
 
                     <div>
-                      <Label htmlFor="location" className="text-xs">Location</Label>
+                      <Label htmlFor="location" className="text-sm font-medium text-yellow-800 dark:text-yellow-200">Location</Label>
                       <Input
                         id="location"
                         value={editedMetadata.location}
                         onChange={(e) => setEditedMetadata(prev => ({ ...prev, location: e.target.value }))}
                         placeholder="Location..."
-                        className="mt-1"
+                        className="mt-2 bg-white dark:bg-yellow-900/50"
                       />
                     </div>
 
-                    <div>
-                      <Label htmlFor="eventType" className="text-xs">Event Type</Label>
-                      <Select
-                        value={editedMetadata.eventType || 'none'}
-                        onValueChange={(value) => setEditedMetadata(prev => ({ ...prev, eventType: value === 'none' ? '' : value }))}
-                      >
-                        <SelectTrigger className="mt-1">
-                          <SelectValue placeholder="Select event type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">None</SelectItem>
-                          <SelectItem value="holiday">Holiday</SelectItem>
-                          <SelectItem value="birthday">Birthday</SelectItem>
-                          <SelectItem value="wedding">Wedding</SelectItem>
-                          <SelectItem value="vacation">Vacation</SelectItem>
-                          <SelectItem value="party">Party</SelectItem>
-                          <SelectItem value="sports">Sports</SelectItem>
-                          <SelectItem value="concert">Concert</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="eventType" className="text-sm font-medium text-yellow-800 dark:text-yellow-200">Event Type</Label>
+                        <Select
+                          value={editedMetadata.eventType || 'none'}
+                          onValueChange={(value) => setEditedMetadata(prev => ({ ...prev, eventType: value === 'none' ? '' : value }))}
+                        >
+                          <SelectTrigger className="mt-2 bg-white dark:bg-yellow-900/50">
+                            <SelectValue placeholder="Select event type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">None</SelectItem>
+                            <SelectItem value="holiday">Holiday</SelectItem>
+                            <SelectItem value="birthday">Birthday</SelectItem>
+                            <SelectItem value="wedding">Wedding</SelectItem>
+                            <SelectItem value="vacation">Vacation</SelectItem>
+                            <SelectItem value="party">Party</SelectItem>
+                            <SelectItem value="sports">Sports</SelectItem>
+                            <SelectItem value="concert">Concert</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
 
-                    <div>
-                      <Label htmlFor="eventName" className="text-xs">Event Name</Label>
-                      <Input
-                        id="eventName"
-                        value={editedMetadata.eventName}
-                        onChange={(e) => setEditedMetadata(prev => ({ ...prev, eventName: e.target.value }))}
-                        placeholder="Event name..."
-                        className="mt-1"
-                      />
+                      <div>
+                        <Label htmlFor="eventName" className="text-sm font-medium text-yellow-800 dark:text-yellow-200">Event Name</Label>
+                        <Input
+                          id="eventName"
+                          value={editedMetadata.eventName}
+                          onChange={(e) => setEditedMetadata(prev => ({ ...prev, eventName: e.target.value }))}
+                          placeholder="Event name..."
+                          className="mt-2 bg-white dark:bg-yellow-900/50"
+                        />
+                      </div>
                     </div>
                   </div>
 
-                  {/* Always Visible Action Buttons */}
-                  <div className="flex gap-2 pt-3 mt-3 border-t">
+                  <div className="flex gap-3 pt-4 mt-4 border-t border-yellow-200 dark:border-yellow-700">
                     <Button 
                       onClick={handleSaveMetadata}
                       disabled={updateMetadataMutation.isPending}
-                      className="flex-1"
+                      className="flex-1 bg-yellow-600 hover:bg-yellow-700"
                       size="sm"
                     >
-                      <Save className="w-4 h-4 mr-1" />
-                      {updateMetadataMutation.isPending ? 'Saving...' : 'Save'}
+                      <Save className="w-4 h-4 mr-2" />
+                      {updateMetadataMutation.isPending ? 'Saving...' : 'Save Changes'}
                     </Button>
                     <Button 
                       variant="outline"
                       onClick={resetMetadata}
                       size="sm"
+                      className="border-yellow-300 text-yellow-700 hover:bg-yellow-100 dark:border-yellow-600 dark:text-yellow-300"
                     >
                       <RotateCcw className="w-4 h-4" />
                     </Button>
@@ -772,180 +837,95 @@ export default function PhotoDetailModal({
                       variant="ghost"
                       onClick={() => setIsEditing(false)}
                       size="sm"
+                      className="text-yellow-700 hover:text-yellow-800 hover:bg-yellow-100 dark:text-yellow-300"
                     >
                       Cancel
                     </Button>
                   </div>
                 </div>
-              ) : (
-                /* Current metadata display */
-                <>
-                  {(photo.keywords && photo.keywords.length > 0) && (
-                    <div className="mb-4">
-                      <h4 className="text-sm font-semibold text-card-foreground mb-2">Keywords</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {photo.keywords.map((keyword: string, index: number) => (
-                          <Badge key={index} variant="secondary" className="text-xs flex items-center gap-1">
-                            <Tag className="w-3 h-3" />
-                            {keyword}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {photo.location && (
-                    <div className="mb-4">
-                      <h4 className="text-sm font-semibold text-card-foreground mb-2">Location</h4>
-                      <div className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-sm text-muted-foreground">{photo.location}</span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Events Section */}
-                  {((photo.eventType || photo.eventName) || detectedEvents.length > 0) && (
-                    <div className="mb-4">
-                      <h4 className="text-sm font-semibold text-card-foreground mb-2">
-                        <Calendar className="w-4 h-4 inline mr-1" />
-                        Events
-                      </h4>
-
-                      {/* Manual/Saved Event */}
-                      {(photo.eventType || photo.eventName) && (
-                        <div className="mb-2 p-2 bg-background rounded border">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              {photo.eventType && (
-                                <Badge variant="outline" className="text-xs mb-1">
-                                  {photo.eventType.charAt(0).toUpperCase() + photo.eventType.slice(1)}
-                                </Badge>
-                              )}
-                              {photo.eventName && (
-                                <div className="text-sm font-medium text-card-foreground">
-                                  {photo.eventName}
-                                </div>
-                              )}
-                            </div>
-                            <Badge variant="secondary" className="text-xs">Saved</Badge>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Auto-Detected Events */}
-                      {detectedEvents.length > 0 && (
-                        <div className="space-y-2">
-                          <div className="text-xs text-muted-foreground">Auto-detected events:</div>
-                          {detectedEvents.map((event: any, index: number) => (
-                            <div key={index} className="p-2 bg-muted/50 rounded border-l-2 border-blue-500">
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <Badge variant="outline" className="text-xs mb-1">
-                                    {event.eventType.charAt(0).toUpperCase() + event.eventType.slice(1)}
-                                  </Badge>
-                                  <div className="text-sm font-medium text-card-foreground">
-                                    {event.eventName}
-                                  </div>
-                                  {event.age !== undefined && (
-                                    <div className="text-xs text-muted-foreground mt-1">
-                                      Age: {event.age}                                      years old
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="text-right">
-                                  <Badge 
-                                    variant={event.confidence >= 95 ? "default" : event.confidence >= 80 ? "secondary" : "outline"}
-                                    className="text-xs"
-                                  >
-                                    {event.confidence}%
-                                  </Badge>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </>
               )}
 
-              {/* Actions - Only show when not editing */}
-              {!isEditing && (
-                <div className="space-y-2 border-t pt-3 mt-4">
-                  {/* First row - Primary actions */}
-                  <div className="flex gap-2">
-                    {/* Only show edit button for silver and gold tiers */}
-                    {photo.tier !== 'bronze' && (
-                      <Button 
-                        variant="outline" 
-                        className="flex-1"
-                        onClick={() => setIsEditing(!isEditing)}
-                        size="sm"
-                      >
-                        <Edit className="w-4 h-4 mr-1" />
-                        Edit
-                      </Button>
-                    )}
-                    {canPromoteToSilver && (
-                      <Button 
-                        className="flex-1"
-                        onClick={() => onProcessPhoto!(photo.id)}
-                        disabled={isProcessing}
-                        size="sm"
-                      >
-                        <Bot className="w-4 h-4 mr-1" />
-                        {isProcessing ? 'Promoting...' : 'Promote to Silver'}
-                      </Button>
-                    )}
-                    {canPromoteToGold && (
-                      <Button 
-                        onClick={() => promoteToGoldMutation.mutate()}
-                        disabled={promoteToGoldMutation.isPending}
-                        size="sm"
-                        className="flex-1"
-                      >
-                        <Star className="w-4 h-4 mr-1" />
-                        {promoteToGoldMutation.isPending ? 'Promoting...' : 'Promote to Gold'}
-                      </Button>
-                    )}
-                    <Button 
-                      variant="outline" 
-                      onClick={handleDownload}
-                      size="sm"
-                    >
-                      <Download className="w-4 h-4" />
-                    </Button>
+              {/* User Keywords */}
+              {!isEditing && photo.keywords && photo.keywords.length > 0 && (
+                <div className="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-lg border border-indigo-200 dark:border-indigo-800">
+                  <h3 className="text-base font-semibold text-indigo-800 dark:text-indigo-200 mb-3 flex items-center">
+                    <Tag className="w-5 h-5 mr-2" />
+                    Keywords
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {photo.keywords.map((keyword: string, index: number) => (
+                      <Badge key={index} className="bg-indigo-100 text-indigo-800 hover:bg-indigo-200 text-xs px-3 py-1">
+                        {keyword}
+                      </Badge>
+                    ))}
                   </div>
+                </div>
+              )}
 
-                  {/* Second row - Silver tier specific actions */}
-                  {isSilverTier && (
-                    <div className="flex gap-2">
-                      <Button 
-                        variant="outline" 
-                        onClick={() => archivePhotoMutation.mutate()}
-                        disabled={archivePhotoMutation.isPending}
-                        size="sm"
-                        className="flex-1"
-                      >
-                        <Archive className="w-4 h-4 mr-1" />
-                        {archivePhotoMutation.isPending ? 'Archiving...' : 'Archive'}
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        onClick={() => aiReprocessMutation.mutate()}
-                        disabled={aiReprocessMutation.isPending}
-                        size="sm"
-                        className="flex-1"
-                      >
-                        <RefreshCw className="w-4 h-4 mr-1" />
-                        {aiReprocessMutation.isPending ? 'Reprocessing...' : 'AI Reprocess'}
-                      </Button>
+              {/* Events Section */}
+              {!isEditing && ((photo.eventType || photo.eventName) || detectedEvents.length > 0) && (
+                <div className="bg-pink-50 dark:bg-pink-900/20 p-4 rounded-lg border border-pink-200 dark:border-pink-800">
+                  <h3 className="text-base font-semibold text-pink-800 dark:text-pink-200 mb-3 flex items-center">
+                    <Calendar className="w-5 h-5 mr-2" />
+                    Events
+                  </h3>
+
+                  {/* Manual/Saved Event */}
+                  {(photo.eventType || photo.eventName) && (
+                    <div className="mb-3 p-3 bg-white dark:bg-pink-900/50 rounded-lg border shadow-sm">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          {photo.eventType && (
+                            <Badge variant="outline" className="text-xs mb-2 border-pink-300 text-pink-700 dark:border-pink-600 dark:text-pink-300">
+                              {photo.eventType.charAt(0).toUpperCase() + photo.eventType.slice(1)}
+                            </Badge>
+                          )}
+                          {photo.eventName && (
+                            <div className="text-sm font-medium text-pink-800 dark:text-pink-200">
+                              {photo.eventName}
+                            </div>
+                          )}
+                        </div>
+                        <Badge variant="secondary" className="text-xs">Saved</Badge>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Auto-Detected Events */}
+                  {detectedEvents.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="text-xs text-pink-600 dark:text-pink-400 font-medium">Auto-detected events:</div>
+                      {detectedEvents.map((event: any, index: number) => (
+                        <div key={index} className="p-3 bg-white dark:bg-pink-900/50 rounded-lg border-l-4 border-pink-500 shadow-sm">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <Badge variant="outline" className="text-xs mb-2 border-pink-300 text-pink-700 dark:border-pink-600 dark:text-pink-300">
+                                {event.eventType.charAt(0).toUpperCase() + event.eventType.slice(1)}
+                              </Badge>
+                              <div className="text-sm font-medium text-pink-800 dark:text-pink-200">
+                                {event.eventName}
+                              </div>
+                              {event.age !== undefined && (
+                                <div className="text-xs text-pink-600 dark:text-pink-400 mt-1">
+                                  Age: {event.age} years old
+                                </div>
+                              )}
+                            </div>
+                            <Badge 
+                              variant={event.confidence >= 95 ? "default" : event.confidence >= 80 ? "secondary" : "outline"}
+                              className="text-xs"
+                            >
+                              {event.confidence}%
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
               )}
+
+
             </div>
           </div>
         </div>
