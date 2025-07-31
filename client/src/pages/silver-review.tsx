@@ -304,12 +304,12 @@ export default function SilverReview() {
       const photo = photos.find(p => p.id === photoId);
       return photo && !photo.metadata?.ai?.shortDescription;
     });
-    
+
     if (photoIds.length === 0) {
       toast({ title: "No photos need AI processing" });
       return;
     }
-    
+
     batchAiProcessMutation.mutate(photoIds);
     setSelectedPhotos(new Set());
   };
@@ -594,7 +594,7 @@ export default function SilverReview() {
                 group.photos.some(p => p.id === selectedPhoto?.id)
               );
               const unassignedFaces = facesData?.filter(face => !face.personId)?.length || 0;
-              
+
               return (
                 <>
                   {photoInBurst && (
@@ -608,7 +608,7 @@ export default function SilverReview() {
                       </AlertDescription>
                     </Alert>
                   )}
-                  
+
                   {unassignedFaces > 0 && (
                     <Alert>
                       <Users className="h-4 w-4" />
@@ -765,15 +765,17 @@ export default function SilverReview() {
                       <p className="text-sm">{aiData.placeName}</p>
                     </div>
                   )}
+                  {(aiData.gpsCoordinates || (exifData.gpsLatitude && exifData.gpsLongitude)) && (
                   <div>
                     <Label className="text-xs text-muted-foreground">Coordinates</Label>
                     <p className="text-sm font-mono">
                       {aiData.gpsCoordinates
                         ? `${aiData.gpsCoordinates.latitude.toFixed(6)}, ${aiData.gpsCoordinates.longitude.toFixed(6)}`
-                        : `${exifData.gpsLatitude?.toFixed(6)}, ${exifData.gpsLongitude?.toFixed(6)}`
+                        : `${exifData.gpsLatitude?.toFixed(6) || '0'}, ${exifData.gpsLongitude?.toFixed(6) || '0'}`
                       }
                     </p>
                   </div>
+                )}
                 </CardContent>
               </Card>
             )}
@@ -895,7 +897,7 @@ export default function SilverReview() {
                 <CardContent>
                   <ScrollArea className="h-96">
                     <div className="space-y-3 text-sm">
-                      {aiData.shortDescription && (
+                      {aiData.shortDescription &&(
                         <div>
                           <Label className="text-xs text-muted-foreground">Short Description</Label>
                           <p className="font-semibold">{aiData.shortDescription}</p>

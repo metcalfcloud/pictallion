@@ -125,3 +125,6 @@ export {
   ToastClose,
   ToastAction,
 }
+
+// Re-export toast function from use-toast hook
+export { toast } from "@/hooks/use-toast"

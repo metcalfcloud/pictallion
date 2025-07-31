@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
@@ -203,7 +202,7 @@ export function SmartCollections() {
           })
         });
       }
-      
+
       await loadCollections();
       toast({
         title: "Collections Created",
@@ -227,7 +226,7 @@ export function SmartCollections() {
       const response = await fetch('/api/smart-collections/organize', {
         method: 'POST'
       });
-      
+
       if (response.ok) {
         const result = await response.json();
         await loadCollections();
@@ -255,7 +254,7 @@ export function SmartCollections() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isActive })
       });
-      
+
       setCollections(prev => prev.map(col => 
         col.id === collectionId ? { ...col, isActive } : col
       ));
@@ -374,7 +373,7 @@ export function SmartCollections() {
                   Define rules to automatically organize photos into this collection
                 </DialogDescription>
               </DialogHeader>
-              
+
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -405,7 +404,7 @@ export function SmartCollections() {
                     </Select>
                   </div>
                 </div>
-                
+
                 <div>
                   <Label htmlFor="description">Description</Label>
                   <Textarea
@@ -433,7 +432,7 @@ export function SmartCollections() {
                             <SelectItem value="personAge">Person Age</SelectItem>
                           </SelectContent>
                         </Select>
-                        
+
                         <Select value={rule.operator} onValueChange={(value) => updateRule(rule.id, 'operator', value)}>
                           <SelectTrigger className="w-32">
                             <SelectValue />
@@ -446,14 +445,14 @@ export function SmartCollections() {
                             <SelectItem value="time_range">Time Range</SelectItem>
                           </SelectContent>
                         </Select>
-                        
+
                         <Input
                           value={rule.value}
                           onChange={(e) => updateRule(rule.id, 'value', e.target.value)}
                           placeholder="Value"
                           className="flex-1"
                         />
-                        
+
                         <Input
                           type="number"
                           min="1"
@@ -463,7 +462,7 @@ export function SmartCollections() {
                           className="w-16"
                           title="Weight (1-5)"
                         />
-                        
+
                         <Button
                           variant="outline"
                           size="sm"
@@ -473,7 +472,7 @@ export function SmartCollections() {
                         </Button>
                       </div>
                     ))}
-                    
+
                     <Button variant="outline" onClick={addRule} className="w-full">
                       <Plus className="h-4 w-4 mr-2" />
                       Add Rule
@@ -579,7 +578,7 @@ export function SmartCollections() {
                   </div>
                 ))}
               </div>
-              
+
               <Button 
                 onClick={createPredefinedCollections}
                 disabled={isProcessing}
@@ -605,12 +604,12 @@ export function SmartCollections() {
                 <Label htmlFor="auto-organize">Automatic Organization</Label>
                 <Switch id="auto-organize" defaultChecked />
               </div>
-              
+
               <div className="flex items-center justify-between">
                 <Label htmlFor="real-time">Real-time Processing</Label>
                 <Switch id="real-time" defaultChecked />
               </div>
-              
+
               <div className="flex items-center justify-between">
                 <Label htmlFor="confidence-threshold">Minimum Confidence Threshold</Label>
                 <div className="flex items-center gap-2">
