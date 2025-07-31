@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Heart, Bot, Eye, Star, MoreVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ProcessingStateBadge, getProcessingState } from "@/components/ui/processing-state-badge";
+
 
 import type { Photo } from "@shared/types";
 
@@ -229,45 +229,39 @@ export default function PhotoGrid({
             </div>
             
             {/* Polaroid White Bottom Section */}
-            <div className="space-y-2 text-gray-800 dark:text-gray-900">
-              {/* Date */}
-              <h3 className="font-medium text-sm text-center">
-                {new Date(photo.createdAt).toLocaleDateString('en-US', {
-                  month: 'short',
-                  day: 'numeric',
-                  year: 'numeric'
-                })}
-              </h3>
-              
-              {/* Processing State */}
-              <div className="flex items-center justify-center">
-                <ProcessingStateBadge 
-                  state={getProcessingState(photo)} 
-                  tier={photo.tier} 
-                  size="sm" 
-                />
+            <div className="text-gray-800 dark:text-gray-900">
+              {/* Date - Handwritten Style */}
+              <div className="text-center mb-3">
+                <h3 className="font-medium text-sm tracking-wide">
+                  {new Date(photo.createdAt).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric'
+                  })}
+                </h3>
               </div>
               
-              {/* Actions */}
-              <div className="flex items-center justify-between pt-1">
-                <div className="flex items-center space-x-1">
-                  {canProcess(photo) && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-6 px-2 text-xs bg-white/80 border-gray-300"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onProcessPhoto!(photo.id);
-                      }}
-                      disabled={isProcessing}
-                    >
-                      <Bot className="w-3 h-3 mr-1" />
-                      AI
-                    </Button>
+              {/* Tier Label with Elegant Design */}
+              <div className="flex items-center justify-between mb-2">
+                <div className={cn(
+                  "flex items-center gap-2 px-2 py-1 rounded-full text-xs font-medium border-2",
+                  photo.tier === 'bronze' && "bg-orange-50 border-orange-200 text-orange-700",
+                  photo.tier === 'silver' && "bg-slate-50 border-slate-200 text-slate-700",
+                  photo.tier === 'gold' && "bg-yellow-50 border-yellow-200 text-yellow-700"
+                )}>
+                  <div className={cn(
+                    "w-2 h-2 rounded-full",
+                    photo.tier === 'bronze' && "bg-orange-400",
+                    photo.tier === 'silver' && "bg-slate-400", 
+                    photo.tier === 'gold' && "bg-yellow-400"
+                  )} />
+                  <span className="capitalize">{photo.tier}</span>
+                  {photo.tier === 'silver' && !photo.isReviewed && (
+                    <Eye className="w-3 h-3 text-yellow-600" />
                   )}
                 </div>
                 
+                {/* Quick Actions */}
                 <div className="flex items-center space-x-1">
                   <Button
                     variant="ghost"
@@ -287,6 +281,25 @@ export default function PhotoGrid({
                   </Button>
                 </div>
               </div>
+
+              {/* AI Processing Button (if applicable) */}
+              {canProcess(photo) && (
+                <div className="flex justify-center">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 px-3 text-xs bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onProcessPhoto!(photo.id);
+                    }}
+                    disabled={isProcessing}
+                  >
+                    <Bot className="w-3 h-3 mr-1" />
+                    {isProcessing ? 'Processing...' : 'Enhance with AI'}
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </div>
