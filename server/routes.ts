@@ -1318,10 +1318,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
               // Get representative face for this person
               let representativeFaceUrl = '';
               if (person.selectedThumbnailFaceId) {
-                // Try to get the face crop URL for the selected thumbnail
+                // Try to get the face data for the selected thumbnail
                 const thumbnailFace = await storage.getFaceById(person.selectedThumbnailFaceId);
-                if (thumbnailFace?.faceCropUrl) {
-                  representativeFaceUrl = thumbnailFace.faceCropUrl;
+                if (thumbnailFace) {
+                  // Use a placeholder or construct URL as needed
+                  representativeFaceUrl = `/api/faces/${thumbnailFace.id}/crop`;
                 }
               }
 
@@ -1783,8 +1784,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   detectedObjects: enhancedMetadata.detectedObjects || [],
                   aiTags: enhancedMetadata.aiTags || []
                 },
-                exifMetadata:```text
-(photo.metadata && typeof photo.metadata === 'object' && 'exif' in photo.metadata && typeof photo.metadata.exif === 'object')
+                exifMetadata: (photo.metadata && typeof photo.metadata === 'object' && 'exif' in photo.metadata && typeof photo.metadata.exif === 'object')
                   ? (photo.metadata.exif as { dateTime?: string; dateTimeOriginal?: string; createDate?: string; camera?: string; lens?: string })
                   : undefined,
                 originalFilename: mediaAsset.originalFilename,
@@ -2684,7 +2684,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Delete faces that weren't matched (faces that are no longer detected)
       for (const unmatchedFace of unmatchedExistingFaces) {
         await storage.deleteFace(unmatchedFace.id);
-      }```text
+      }
 
       // Log reprocessing
       await storage.createAssetHistory({
@@ -2999,11 +2999,9 @@ app.put('/api/photos/:id', async (req, res) => {
     const updatedPhoto = await storage.updatePhoto(id, updates);
 
     // Log the update activity
-    await storage.logActivity({
-      id: crypto.randomUUID(),
-      action: 'metadata_updated',
+    await storage.createAssetHistory({
       mediaAssetId: id,
-      timestamp: new Date(),
+      action: 'METADATA_UPDATED',
       details: `Updated metadata: ${Object.keys(updates).join(', ')}`
     });
 
