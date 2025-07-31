@@ -936,7 +936,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Testing face detection on photo:', photo.filePath);
 
       // Run face detection
-      const detectedFaces = await faceDetectionService.detectFaces(photo.filePath);
+      const faceDetectionResult = await faceDetectionService.detectFaces(photo.filePath);
+      const detectedFaces = faceDetectionResult.faces;
 
       // Save faces to database if any detected
       const savedFaces = [];
@@ -2690,8 +2691,7 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
 
           // Copy file to Silver tier with new filename
           const photoWithAsset = { ...photo, mediaAsset: asset };
-          ```tool_code
-const photoDate = extractPhotoDate(photoWithAsset);
+          const photoDate = extractPhotoDate(photoWithAsset);
           const silverPath = await fileManager.copyToSilver(photo.filePath, newFilename, photoDate);
 
           // Detect faces in the image
@@ -2995,7 +2995,11 @@ const photoDate = extractPhotoDate(photoWithAsset);
       const matchedFaces = [];
       const unmatchedExistingFaces = [...existingFaces];
 
-      for (const newFace of detectedFaces) {
+      // Detect faces again for reprocessing
+      const reprocessFaceResult = await faceDetectionService.detectFaces(photo.filePath);
+      const newDetectedFaces = reprocessFaceResult.faces;
+
+      for (const newFace of newDetectedFaces) {
         let bestMatch = null;
         let bestOverlap = 0;
 

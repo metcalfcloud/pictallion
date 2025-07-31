@@ -57,7 +57,15 @@ export function ProcessingStateBadge({ state, tier, size = "sm" }: ProcessingSta
   const textSize = size === "lg" ? "text-sm" : size === "md" ? "text-xs" : "text-xs";
 
   return (
-
+    <Badge 
+      variant={config.variant}
+      className={`inline-flex items-center gap-1 ${textSize} ${config.className}`}
+    >
+      <Icon size={iconSize} />
+      {config.label}
+    </Badge>
+  );
+}
 
 // Face Detection Status Badge Component
 interface FaceDetectionBadgeProps {
@@ -147,16 +155,6 @@ export function getFaceDetectionStatus(photo: any): { status: "success" | "faile
   } else {
     return { status: "none", faceCount: 0 };
   }
-}
-
-    <Badge 
-      variant={config.variant}
-      className={`inline-flex items-center gap-1 ${textSize} ${config.className}`}
-    >
-      <Icon size={iconSize} />
-      {config.label}
-    </Badge>
-  );
 }
 
 // Helper function to get state from photo data
