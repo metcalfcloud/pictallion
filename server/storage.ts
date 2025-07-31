@@ -12,6 +12,7 @@ import {
   relationships,
   locations,
   aiPrompts,
+  globalTagLibrary,
   type User, 
   type InsertUser,
   type MediaAsset,
@@ -87,6 +88,7 @@ export interface IStorage {
   createCollection(collection: InsertCollection): Promise<Collection>;
   getCollections(): Promise<Collection[]>;
   getCollection(id: string): Promise<Collection | undefined>;
+  updateCollection(id: string, updates: Partial<Collection>): Promise<Collection>;
   deleteCollection(id: string): Promise<void>;
   addPhotoToCollection(collectionId: string, photoId: string): Promise<void>;
   getCollectionPhotos(collectionId: string): Promise<Array<FileVersion & { mediaAsset: MediaAsset }>>;
@@ -179,7 +181,7 @@ export interface IStorage {
   getSmartCollectionPhotos?(collectionId: string): Promise<Array<FileVersion & { mediaAsset: MediaAsset }>>;
 }
 
-const globalTagLibrary = 'global_tag_library';
+
 
 export class DatabaseStorage implements IStorage {
   async getUser(id: string): Promise<User | undefined> {
@@ -869,7 +871,7 @@ export class DatabaseStorage implements IStorage {
   async getAllTags(): Promise<string[]> {
     try {
       const result = await db.select().from(globalTagLibrary);
-      return result.map(row => row.tagName);
+      return result.map(row => row.tag);
     } catch (error) {
       console.error('Error fetching tags:', error);
       return [];
@@ -882,7 +884,7 @@ export class DatabaseStorage implements IStorage {
       await db.insert(globalTagLibrary)
         .values({
           id: crypto.randomUUID(),
-          tagName: tag,
+          tag: tag,
           createdAt: new Date()
         })
         .onConflictDoNothing();
@@ -893,4 +895,4 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-export conststorage = new DatabaseStorage();
+export const storage = new DatabaseStorage();
