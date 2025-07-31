@@ -694,29 +694,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Process file directly to Silver tier with AI analysis
           const silverPath = await fileManager.processToSilver(file.path, file.originalname);
 
-          // Extract enhanced metadata with AI processing
+          // Extract basic EXIF metadata only (no AI processing)
           const metadata = await fileManager.extractMetadata(silverPath);
-          
-          // Run AI analysis if it's an image
-          let aiMetadata = null;
-          let aiShortDescription = null;
-          if (file.mimetype.startsWith('image/')) {
-            try {
-              const { aiService } = await import("./services/ai");
-              aiMetadata = await aiService.analyzeImage(silverPath, "openai");
-              aiShortDescription = aiMetadata.shortDescription;
-            } catch (aiError) {
-              console.warn(`AI analysis failed for ${file.originalname}:`, aiError);
-            }
-          }
 
-          // Combine metadata
-          const combinedMetadata = {
-            ...metadata,
-            ai: aiMetadata,
-          };
-
-          // Create Silver file version with AI processing
+          // Create Silver file version with basic metadata only
           const fileVersion = await storage.createFileVersion({
             mediaAssetId: mediaAsset.id,
             tier: 'silver',
@@ -724,8 +705,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             fileHash,
             fileSize: file.size,
             mimeType: file.mimetype,
-            metadata: combinedMetadata as any,
-            aiShortDescription,
+            metadata: metadata as any,
+            aiShortDescription: null, // No AI processing at upload
             isReviewed: false,
           });
 
@@ -733,10 +714,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           await storage.createAssetHistory({
             mediaAssetId: mediaAsset.id,
             action: 'INGESTED',
-            details: `File uploaded directly to Silver tier with AI processing: ${file.originalname}`,
+            details: `File uploaded to Silver tier: ${file.originalname}`,
           });
 
-          console.log(`Successfully processed ${file.originalname} to Silver tier with asset ID: ${mediaAsset.id}`);
+          console.log(`Successfully uploaded ${file.originalname} to Silver tier with asset ID: ${mediaAsset.id}`);
 
           results.push({
             filename: file.originalname,

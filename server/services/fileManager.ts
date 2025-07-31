@@ -97,12 +97,21 @@ class FileManager {
       await fs.mkdir(silverDir, { recursive: true });
     }
 
-    // Generate unique filename to avoid conflicts
-    const ext = path.extname(originalFilename);
-    const name = path.basename(originalFilename, ext);
-    const timestamp = Date.now();
-    const newFilename = `${name}_${timestamp}${ext}`;
-    const silverPath = path.join(silverDir, newFilename);
+    // Use original filename, add timestamp only if conflict exists
+    let silverPath = path.join(silverDir, originalFilename);
+    
+    // Check if file already exists and generate unique filename if needed
+    try {
+      await fs.access(silverPath);
+      // File exists, add timestamp to avoid conflict
+      const ext = path.extname(originalFilename);
+      const name = path.basename(originalFilename, ext);
+      const timestamp = Date.now();
+      const newFilename = `${name}_${timestamp}${ext}`;
+      silverPath = path.join(silverDir, newFilename);
+    } catch {
+      // File doesn't exist, use original name
+    }
 
     console.log(`Moving ${tempPath} to ${silverPath}`);
     await fs.rename(tempPath, silverPath);
