@@ -14,9 +14,16 @@ import { faceDetectionService } from "./services/faceDetection.js";
 import { burstPhotoService } from "./services/burstPhotoDetection";
 import { generateSilverFilename } from "./services/aiNaming";
 import { eventDetectionService } from "./services/eventDetection";
-import { insertMediaAssetSchema, insertFileVersionSchema, insertAssetHistorySchema } from "@shared/schema";
+import { insertMediaAssetSchema, insertFileVersionSchema, insertAssetHistorySchema, type Face, type Person } from "@shared/schema";
 import { sql } from "drizzle-orm";
 import { db } from "./db";
+
+// Enhanced Face interface for API responses
+interface EnhancedFace extends Face {
+  person?: Person;
+  faceCropUrl?: string | null;
+  ageInPhoto?: number | null;
+}
 
 // Helper function to extract photo date from metadata or filename
 function extractPhotoDate(photo: any): Date | undefined {
@@ -264,15 +271,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Photo not found" });
       }
       
-      // Enhance faces with person data and face crop URLs
-      const enhancedFaces = await Promise.all(
+      // Enhance faces with person data, face crop URLs, and age-in-photo
+      const enhancedFaces: EnhancedFace[] = await Promise.all(
         faces.map(async (face) => {
-          let enhancedFace = { ...face };
+          let enhancedFace: EnhancedFace = { ...face };
           
           // Add person data if available
           if (face.personId) {
             const person = await storage.getPerson(face.personId);
             enhancedFace.person = person;
+            
+            // Calculate age in photo if person has birthdate and photo has date
+            if (person?.birthdate) {
+              const photoDate = extractPhotoDate(photo);
+              if (photoDate) {
+                enhancedFace.ageInPhoto = eventDetectionService.calculateAgeInPhoto(
+                  new Date(person.birthdate), 
+                  photoDate
+                );
+              }
+            }
           }
           
           // Generate face crop URL
@@ -1231,7 +1249,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const faces = await storage.getAllFaces();
 
-      // Add photo information and face crop URL to each face
+      // Add photo information, face crop URL, and age-in-photo to each face
       const facesWithPhotos = await Promise.all(
         faces.map(async (face) => {
           const photo = await storage.getFileVersion(face.photoId);
@@ -1246,9 +1264,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
               faceCropUrl = photo.filePath; // Fallback to full image
             }
 
+            // Calculate age in photo if face is assigned to a person with birthdate
+            let ageInPhoto: number | null = null;
+            if (face.personId) {
+              const person = await storage.getPerson(face.personId);
+              if (person?.birthdate) {
+                const photoWithAsset = { ...photo, mediaAsset: asset };
+                const photoDate = extractPhotoDate(photoWithAsset);
+                if (photoDate) {
+                  ageInPhoto = eventDetectionService.calculateAgeInPhoto(
+                    new Date(person.birthdate), 
+                    photoDate
+                  );
+                }
+              }
+            }
+
             return {
               ...face,
               faceCropUrl,
+              ageInPhoto,
               photo: {
                 ...photo,
                 mediaAsset: asset
@@ -1782,8 +1817,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
 
             // For non-silver photos: process to silver tier (original logic)
-            if (photo.tier === 'silver') {
-              continue; // Already handled above
+            if (photo.tier !== 'bronze') {
+              continue; // Only process bronze tier photos to silver
             }
 
             if (!photo.mimeType.startsWith('image/')) {

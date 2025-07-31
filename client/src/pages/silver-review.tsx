@@ -633,9 +633,16 @@ export default function SilverReview() {
                             <AlertCircle className="h-5 w-5 text-amber-500" />
                           )}
                         </div>
-                        <span className="text-sm">
-                          {face.personId ? face.person?.name || 'Unknown Person' : 'Unassigned'}
-                        </span>
+                        <div className="flex flex-col">
+                          <span className="text-sm">
+                            {face.personId ? face.person?.name || 'Unknown Person' : 'Unassigned'}
+                          </span>
+                          {face.ageInPhoto !== null && face.ageInPhoto !== undefined && (
+                            <span className="text-xs text-muted-foreground">
+                              Age: {face.ageInPhoto}
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <Badge variant="outline" className="text-xs">
                         {face.confidence}%

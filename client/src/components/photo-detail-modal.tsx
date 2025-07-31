@@ -877,6 +877,11 @@ export default function PhotoDetailModal({
                             <div className="text-sm font-medium text-cyan-800 dark:text-cyan-200 truncate">
                               {face.personId && face.person ? face.person.name : 'Unknown'}
                             </div>
+                            {face.ageInPhoto !== null && face.ageInPhoto !== undefined && (
+                              <div className="text-xs text-cyan-600 dark:text-cyan-400 mb-1">
+                                Age: {face.ageInPhoto}
+                              </div>
+                            )}
                             <Badge 
                               variant={face.confidence >= 95 ? "default" : face.confidence >= 80 ? "secondary" : "outline"}
                               className="text-xs"
