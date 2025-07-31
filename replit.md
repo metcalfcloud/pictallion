@@ -23,9 +23,9 @@ Pictallion is a comprehensive photo and video management application built with 
 ## Core Features
 
 ### Tiered Processing System
-1. **Upload Staging** - Temporary area for incoming files
-2. **Silver Tier** - AI-processed media with enriched metadata (first immutable tier)
-3. **Gold Tier** - Curated, finalized media with embedded metadata
+1. **Upload Staging** - Temporary dropzone for incoming files
+2. **Silver Tier** - AI-processed media with enriched metadata (first immutable tier, auto-created on upload)
+3. **Gold Tier** - Curated, finalized media with embedded metadata (manually promoted from Silver)
 
 ### AI-Powered Processing
 - **Image Analysis**: Ollama/OpenAI Vision for comprehensive understanding
@@ -38,8 +38,8 @@ Pictallion is a comprehensive photo and video management application built with 
 ### Database Schema
 - **users**: Authentication and management
 - **mediaAssets**: Core media records with original filenames
-- **fileVersions**: Processing tiers (Silver/Gold only)
-- **assetHistory**: Complete audit trail
+- **fileVersions**: Processing tiers (Silver/Gold only - Bronze eliminated)
+- **assetHistory**: Complete audit trail with promotion tracking
 - **people**: Face recognition and relationships
 - **collections**: Custom photo organization
 
