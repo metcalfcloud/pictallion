@@ -290,7 +290,7 @@ export default function Locations() {
             <CardHeader>
               <CardTitle>Photo Hotspots</CardTitle>
               <p className="text-sm text-muted-foreground">
-                Locations with 10+ photos that could be given friendly names
+                Locations with multiple photos that could be given friendly names
               </p>
             </CardHeader>
             <CardContent>
@@ -373,7 +373,7 @@ export default function Locations() {
                   <MapPin className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
                   <h3 className="text-lg font-medium mb-2">No Hotspots Found</h3>
                   <p className="text-muted-foreground">
-                    Upload more photos with GPS data to discover location patterns
+                    No location clusters found. Upload more photos with GPS data to discover patterns.
                   </p>
                 </div>
               )}

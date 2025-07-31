@@ -52,18 +52,25 @@ export class LocationClusteringService {
       // Ensure metadata exists and is properly typed
       const metadata = photo.metadata as CombinedMetadata | undefined;
 
-      // Try AI metadata first
-      if (metadata?.ai?.gpsCoordinates) {
+      // Try AI metadata first (but skip if coordinates are 0,0 which means invalid)
+      if (metadata?.ai?.gpsCoordinates && 
+          metadata.ai.gpsCoordinates.latitude !== 0 && 
+          metadata.ai.gpsCoordinates.longitude !== 0) {
         latitude = metadata.ai.gpsCoordinates.latitude;
         longitude = metadata.ai.gpsCoordinates.longitude;
       }
       // Fall back to EXIF data
-      else if (metadata?.exif?.gpsLatitude && metadata?.exif?.gpsLongitude) {
+      else if (metadata?.exif?.gpsLatitude !== undefined && metadata?.exif?.gpsLongitude !== undefined) {
         latitude = metadata.exif.gpsLatitude;
         longitude = metadata.exif.gpsLongitude;
       }
 
-      if (latitude && longitude && !isNaN(latitude) && !isNaN(longitude)) {
+      // Validate coordinates are real GPS coordinates (not 0,0 and within valid ranges)
+      if (latitude && longitude && 
+          !isNaN(latitude) && !isNaN(longitude) && 
+          latitude !== 0 && longitude !== 0 &&
+          latitude >= -90 && latitude <= 90 &&
+          longitude >= -180 && longitude <= 180) {
         photosWithLocation.push({
           id: photo.id,
           latitude,
@@ -126,8 +133,11 @@ export class LocationClusteringService {
     return clusters;
   }
 
-  // Find hotspots with 10+ photos
+  // Find hotspots with configurable minimum photos
   public findHotspots(photos: Array<FileVersion & { mediaAsset: MediaAsset }>, minPhotoCount: number = 10): LocationHotspot[] {
+    if (photos.length === 0) {
+      return [];
+    }
     const photosWithLocation = this.extractCoordinates(photos);
     const clusters = this.clusterPhotos(photosWithLocation, 100); // 100 meter radius
 

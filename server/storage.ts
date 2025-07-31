@@ -742,8 +742,8 @@ export class DatabaseStorage implements IStorage {
     // Extract photo statistics
     const photosWithLocation = locationClusteringService.extractCoordinates(allPhotos);
     
-    // Find hotspots
-    const hotspots = locationClusteringService.findHotspots(allPhotos, 10);
+    // Find hotspots - use a lower threshold since we have fewer photos for testing
+    const hotspots = locationClusteringService.findHotspots(allPhotos, 2);
     
     // Get top locations by photo count
     const topLocations = allLocations
@@ -754,6 +754,8 @@ export class DatabaseStorage implements IStorage {
     const recentLocations = allLocations
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       .slice(0, 5);
+
+
 
     return {
       totalLocations: allLocations.length,
@@ -772,7 +774,7 @@ export class DatabaseStorage implements IStorage {
   }>> {
     const { locationClusteringService } = await import('./services/location-clustering');
     const allPhotos = await this.getAllFileVersionsWithAssets();
-    return locationClusteringService.findHotspots(allPhotos, 10);
+    return locationClusteringService.findHotspots(allPhotos, 2);
   }
 
   // Helper method to get all file versions with their media assets

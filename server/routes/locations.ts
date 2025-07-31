@@ -94,4 +94,52 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
+// Create location from coordinates with reverse geocoding
+router.post("/from-coordinates", async (req, res) => {
+  try {
+    const { latitude, longitude, name, description } = req.body;
+    
+    if (!latitude || !longitude) {
+      return res.status(400).json({ message: "Latitude and longitude are required" });
+    }
+    
+    let placeName = undefined;
+    let placeType = undefined;
+    
+    // Try reverse geocoding to get place information
+    try {
+      const { reverseGeocodingService } = await import("../services/reverse-geocoding");
+      const geocodingResult = await reverseGeocodingService.reverseGeocode(
+        parseFloat(latitude), 
+        parseFloat(longitude)
+      );
+      
+      if (geocodingResult) {
+        placeName = geocodingResult.placeName;
+        placeType = geocodingResult.placeType;
+      }
+    } catch (geocodingError) {
+      console.warn("Reverse geocoding failed:", geocodingError);
+      // Continue without geocoding data
+    }
+    
+    const locationData = {
+      name: name || placeName || "Unknown Location",
+      description: description || undefined,
+      latitude: latitude.toString(),
+      longitude: longitude.toString(),
+      isUserDefined: true,
+      placeName,
+      placeType,
+      photoCount: 0, // Will be updated when photos are associated
+    };
+    
+    const location = await storage.createLocation(locationData);
+    res.status(201).json(location);
+  } catch (error) {
+    console.error("Error creating location from coordinates:", error);
+    res.status(500).json({ message: "Failed to create location" });
+  }
+});
+
 export default router;
