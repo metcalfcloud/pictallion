@@ -316,10 +316,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const namingContext = {
         aiMetadata: {
           shortDescription: photo.aiShortDescription || '',
-          detectedObjects: photo.metadata?.ai?.detectedObjects || [],
-          aiTags: photo.metadata?.ai?.aiTags || []
+          detectedObjects: (photo.metadata as any)?.ai?.detectedObjects || [],
+          aiTags: (photo.metadata as any)?.ai?.aiTags || []
         },
-        exifMetadata: photo.metadata?.exif,
+        exifMetadata: (photo.metadata as any)?.exif,
         originalFilename: mediaAsset.originalFilename,
         tier: 'gold' as const
       };
@@ -347,21 +347,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const timeThreshold = 5000; // 5 seconds in milliseconds
       
       const sortedPhotos = recentPhotos.sort((a, b) => {
-        const aTime = new Date(a.metadata?.exif?.dateTime || a.createdAt).getTime();
-        const bTime = new Date(b.metadata?.exif?.dateTime || b.createdAt).getTime();
+        const aTime = new Date((a.metadata as any)?.exif?.dateTime || a.createdAt).getTime();
+        const bTime = new Date((b.metadata as any)?.exif?.dateTime || b.createdAt).getTime();
         return aTime - bTime;
       });
       
-      let currentGroup = [];
+      let currentGroup: any[] = [];
       for (let i = 0; i < sortedPhotos.length; i++) {
         const photo = sortedPhotos[i];
-        const photoTime = new Date(photo.metadata?.exif?.dateTime || photo.createdAt).getTime();
+        const photoTime = new Date((photo.metadata as any)?.exif?.dateTime || photo.createdAt).getTime();
         
         if (currentGroup.length === 0) {
           currentGroup.push(photo);
         } else {
           const lastPhotoTime = new Date(
-            currentGroup[currentGroup.length - 1].metadata?.exif?.dateTime || 
+            (currentGroup[currentGroup.length - 1].metadata as any)?.exif?.dateTime || 
             currentGroup[currentGroup.length - 1].createdAt
           ).getTime();
           
@@ -372,8 +372,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               burstGroups.push({
                 id: `burst-${currentGroup[0].id}`,
                 photos: currentGroup,
-                startTime: currentGroup[0].metadata?.exif?.dateTime || currentGroup[0].createdAt,
-                endTime: currentGroup[currentGroup.length - 1].metadata?.exif?.dateTime || currentGroup[currentGroup.length - 1].createdAt,
+                startTime: (currentGroup[0].metadata as any)?.exif?.dateTime || currentGroup[0].createdAt,
+                endTime: (currentGroup[currentGroup.length - 1].metadata as any)?.exif?.dateTime || currentGroup[currentGroup.length - 1].createdAt,
                 count: currentGroup.length
               });
             }
@@ -387,8 +387,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         burstGroups.push({
           id: `burst-${currentGroup[0].id}`,
           photos: currentGroup,
-          startTime: currentGroup[0].metadata?.exif?.dateTime || currentGroup[0].createdAt,
-          endTime: currentGroup[currentGroup.length - 1].metadata?.exif?.dateTime || currentGroup[currentGroup.length - 1].createdAt,
+          startTime: (currentGroup[0].metadata as any)?.exif?.dateTime || currentGroup[0].createdAt,
+          endTime: (currentGroup[currentGroup.length - 1].metadata as any)?.exif?.dateTime || currentGroup[currentGroup.length - 1].createdAt,
           count: currentGroup.length
         });
       }
@@ -843,11 +843,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Handle AI metadata updates
       if (updates.aiTags || updates.aiDescription) {
-        const existingMetadata = photo.metadata || {};
+        const existingMetadata = (photo.metadata as any) || {};
         const updatedMetadata = {
           ...existingMetadata,
           ai: {
-            ...existingMetadata.ai,
+            ...(existingMetadata.ai || {}),
             ...(updates.aiTags && { aiTags: updates.aiTags }),
             ...(updates.aiDescription && { longDescription: updates.aiDescription })
           }
@@ -2191,9 +2191,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Save tags to global library
-      if (photo.metadata?.ai?.aiTags) {
+      if ((photo.metadata as any)?.ai?.aiTags) {
         try {
-          for (const tag of photo.metadata.ai.aiTags) {
+          for (const tag of (photo.metadata as any).ai.aiTags) {
             await db.execute(sql`
               INSERT INTO global_tag_library (tag, usage_count, created_at)
               VALUES (${tag}, 1, NOW())

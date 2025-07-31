@@ -49,7 +49,7 @@ export interface IStorage {
   createFileVersion(version: InsertFileVersion): Promise<FileVersion>;
   getFileVersion(id: string): Promise<FileVersion | undefined>;
   getFileVersionsByAsset(assetId: string): Promise<FileVersion[]>;
-  getFileVersionsByTier(tier: "silver" | "gold"): Promise<FileVersion[]>;
+  getFileVersionsByTier(tier: "bronze" | "silver" | "gold"): Promise<FileVersion[]>;
   getAllFileVersions(): Promise<FileVersion[]>;
   updateFileVersion(id: string, updates: Partial<FileVersion>): Promise<FileVersion>;
   updateFileVersionPerceptualHash(id: string, perceptualHash: string): Promise<void>;

@@ -19,7 +19,7 @@ export const mediaAssets = pgTable("media_assets", {
 export const fileVersions = pgTable("file_versions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   mediaAssetId: varchar("media_asset_id").references(() => mediaAssets.id).notNull(),
-  tier: text("tier", { enum: ["silver", "gold"] }).notNull(),
+  tier: text("tier", { enum: ["bronze", "silver", "gold"] }).notNull(),
   filePath: text("file_path").notNull(),
   fileHash: text("file_hash").notNull(),
   fileSize: integer("file_size").notNull(),
