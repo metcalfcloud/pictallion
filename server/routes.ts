@@ -17,6 +17,7 @@ import { eventDetectionService } from "./services/eventDetection";
 import { insertMediaAssetSchema, insertFileVersionSchema, insertAssetHistorySchema, type Face, type Person } from "@shared/schema";
 import { sql } from "drizzle-orm";
 import { db } from "./db";
+import { promptManager } from "./services/promptManager";
 
 // Enhanced Face interface for API responses
 interface EnhancedFace extends Face {
@@ -202,6 +203,9 @@ const upload = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Initialize prompt manager first
+  await promptManager.initialize();
+  
   // Serve uploaded files  
   app.use("/api/files", express.static(path.join(process.cwd(), "data")));
   // Serve temporary files (face crops)  
@@ -2821,6 +2825,103 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error calculating age:", error);
       res.status(500).json({ message: "Failed to calculate age" });
+    }
+  });
+
+  // AI Prompts API routes
+  app.get("/api/ai/prompts", async (req, res) => {
+    try {
+      const prompts = await storage.getAllAIPrompts();
+      res.json(prompts);
+    } catch (error) {
+      console.error("Error fetching AI prompts:", error);
+      res.status(500).json({ message: "Failed to fetch AI prompts" });
+    }
+  });
+
+  app.get("/api/ai/prompts/category/:category", async (req, res) => {
+    try {
+      const prompts = await storage.getAIPromptsByCategory(req.params.category);
+      res.json(prompts);
+    } catch (error) {
+      console.error("Error fetching AI prompts by category:", error);
+      res.status(500).json({ message: "Failed to fetch AI prompts" });
+    }
+  });
+
+  app.get("/api/ai/prompts/provider/:provider", async (req, res) => {
+    try {
+      const prompts = await storage.getAIPromptsByProvider(req.params.provider);
+      res.json(prompts);
+    } catch (error) {
+      console.error("Error fetching AI prompts by provider:", error);
+      res.status(500).json({ message: "Failed to fetch AI prompts" });
+    }
+  });
+
+  app.get("/api/ai/prompts/:id", async (req, res) => {
+    try {
+      const prompt = await storage.getAIPrompt(req.params.id);
+      if (!prompt) {
+        return res.status(404).json({ message: "AI prompt not found" });
+      }
+      res.json(prompt);
+    } catch (error) {
+      console.error("Error fetching AI prompt:", error);
+      res.status(500).json({ message: "Failed to fetch AI prompt" });
+    }
+  });
+
+  app.post("/api/ai/prompts", async (req, res) => {
+    try {
+      const { insertAIPromptSchema } = await import("@shared/schema");
+      const promptData = insertAIPromptSchema.parse(req.body);
+      const prompt = await storage.createAIPrompt(promptData);
+      res.status(201).json(prompt);
+    } catch (error) {
+      console.error("Error creating AI prompt:", error);
+      res.status(500).json({ message: "Failed to create AI prompt" });
+    }
+  });
+
+  app.put("/api/ai/prompts/:id", async (req, res) => {
+    try {
+      const updates = req.body;
+      const prompt = await storage.updateAIPrompt(req.params.id, updates);
+      res.json(prompt);
+    } catch (error) {
+      console.error("Error updating AI prompt:", error);
+      res.status(500).json({ message: "Failed to update AI prompt" });
+    }
+  });
+
+  app.delete("/api/ai/prompts/:id", async (req, res) => {
+    try {
+      await storage.deleteAIPrompt(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting AI prompt:", error);
+      res.status(500).json({ message: "Failed to delete AI prompt" });
+    }
+  });
+
+  app.post("/api/ai/prompts/reset-to-defaults", async (req, res) => {
+    try {
+      await storage.resetAIPromptsToDefaults();
+      res.json({ message: "AI prompts reset to defaults successfully" });
+    } catch (error) {
+      console.error("Error resetting AI prompts to defaults:", error);
+      res.status(500).json({ message: "Failed to reset AI prompts to defaults" });
+    }
+  });
+
+  app.get("/api/ai/prompts/defaults/available", async (req, res) => {
+    try {
+      const { DEFAULT_PROMPTS, PROMPT_CATEGORIES } = await import("@shared/ai-prompts");
+      res.json({ prompts: DEFAULT_PROMPTS, categories: PROMPT_CATEGORIES });
+    } catch (error) {
+      console.error("Error fetching default prompts:", error);
+      res.status(500).json({ message: "Failed to fetch default prompts" });
     }
   });
 

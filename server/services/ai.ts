@@ -3,6 +3,7 @@ import path from "path";
 import sharp from "sharp";
 import type { AIMetadata } from "@shared/schema";
 import { logger } from "../utils/logger.js";
+import { promptManager } from "./promptManager";
 
 // AI Provider configuration
 export type AIProvider = "ollama" | "openai" | "both";
@@ -110,6 +111,9 @@ class AIService {
       const imageBuffer = await fs.readFile(path.join(process.cwd(), 'data', imagePath));
       const base64Image = imageBuffer.toString('base64');
 
+      // Get prompt from prompt manager
+      const aiPrompt = await promptManager.getPrompt('analysis', 'ollama');
+      
       // Create context string for known people
       const peopleContextStr = peopleContext && peopleContext.length > 0 
         ? `\n\nKNOWN PEOPLE IN THIS IMAGE:\n${peopleContext.map(person => 
@@ -121,25 +125,30 @@ class AIService {
           ).join('\n')}\n\nUse this information to enhance your analysis and descriptions. Consider the people's ages and relationships when describing the image context and generating tags.`
         : '';
 
-      const prompt = `Analyze this image and provide detailed metadata in JSON format:
+      // Use dynamic prompt from prompt manager
+      const systemPrompt = aiPrompt?.systemPrompt || `Analyze this image and provide detailed metadata in JSON format:
 {
   "aiTags": ["tag1", "tag2", "tag3", "tag4", "tag5"],
   "shortDescription": "Brief description under 100 characters",
-  "longDescription": "Detailed description of the image content, scene, mood, and notable aspects",
+  "longDescription": "Warm family-friendly description of the image",
   "detectedObjects": [{"name": "object_name", "confidence": 0.95}],
   "placeName": "Location or place name if identifiable",
   "aiConfidenceScores": {"tags": 0.9, "description": 0.85, "objects": 0.8, "place": 0.7}
 }
 
 Rules:
-- Provide 5-8 relevant tags describing the image content, style, mood, and setting
+- Write descriptions as family memories, not technical analysis
+- Use warm, natural language appropriate for a family album
+- Provide 5-8 relevant tags describing content, mood, and setting
 - Keep short description under 100 characters
-- Make long description detailed and informative (200-500 characters)
+- Make long description warm and detailed (200-500 characters)
+- Focus on emotions, relationships, and special moments
 - Only include highly confident object detections (>0.7 confidence)
 - Only specify placeName if you can clearly identify a specific location
-- Provide confidence scores for each analysis type (0.0 to 1.0)
-- Focus on visual elements, composition, lighting, colors, and subject matter
-- Return ONLY valid JSON, no additional text${peopleContextStr}`;
+- Return ONLY valid JSON, no additional text`;
+
+      const userPrompt = aiPrompt?.userPrompt || "Please analyze this family photo and provide warm, natural metadata in the specified JSON format.";
+      const fullPrompt = systemPrompt + peopleContextStr + "\n\n" + userPrompt;
 
       const response = await fetch(`${this.config.ollama.baseUrl}/api/generate`, {
         method: 'POST',
@@ -148,7 +157,7 @@ Rules:
         },
         body: JSON.stringify({
           model: this.config.ollama.visionModel,
-          prompt: prompt,
+          prompt: fullPrompt,
           images: [base64Image],
           stream: false,
           format: "json"
@@ -193,6 +202,9 @@ Rules:
     const imageBuffer = await fs.readFile(path.join(process.cwd(), 'data', imagePath));
     const base64Image = imageBuffer.toString('base64');
 
+    // Get prompt from prompt manager
+    const aiPrompt = await promptManager.getPrompt('analysis', 'openai');
+
     // Create context string for known people
     const peopleContextStr = peopleContext && peopleContext.length > 0 
       ? `\n\nKNOWN PEOPLE IN THIS IMAGE:\n${peopleContext.map(person => 
@@ -204,42 +216,55 @@ Rules:
         ).join('\n')}\n\nUse this information to enhance your analysis and descriptions. Consider the people's ages and relationships when describing the image context and generating tags.`
       : '';
 
+    // Use dynamic prompt from prompt manager with fallback
+    const systemPrompt = aiPrompt?.systemPrompt || `You are an expert family photo analyst. Create warm, natural descriptions perfect for a family album. When people are identified, write descriptions as if this is a cherished family memory.
+
+Analyze the image and return a JSON object with this structure:
+{
+  "aiTags": ["tag1", "tag2", "tag3", "tag4", "tag5"],
+  "shortDescription": "Brief description under 100 characters",
+  "longDescription": "Warm, natural description perfect for a family album",
+  "detectedObjects": [{"name": "object_name", "confidence": 0.95, "boundingBox": [x,y,w,h]}],
+  "detectedFaces": [{"faceId": "uuid", "personName": null, "confidence": 0.95, "boundingBox": [x,y,w,h]}],
+  "detectedEvents": [{"eventType": "holiday", "eventName": "Christmas", "confidence": 0.9}],
+  "placeName": "Location or place name if identifiable",
+  "gpsCoordinates": {"latitude": 40.7128, "longitude": -74.0060},
+  "aiConfidenceScores": {"tags": 0.9, "description": 0.85, "objects": 0.8, "faces": 0.7, "events": 0.6, "place": 0.7}
+}
+
+DESCRIPTION GUIDELINES:
+- Write descriptions as warm family memories, not technical analysis
+- Use natural language like "A delightful moment with..." or "Family time captured..."
+- Include emotions and atmosphere when visible
+- For children, mention activities or expressions naturally
+- For group photos, describe the gathering warmly
+- Avoid robotic phrases like "Metadata enhanced with known people information"
+
+FACE DETECTION INSTRUCTIONS:
+- Only include detectedFaces if you can clearly see human faces
+- Bounding box format: [x, y, width, height] where x,y is top-left corner
+- Coordinates must be in absolute pixels, not relative values
+- Double-check coordinates point to actual faces before including them
+- If uncertain about face locations, omit detectedFaces entirely
+
+For events, detect holidays, celebrations, activities, and life events.`;
+
+    const userPrompt = aiPrompt?.userPrompt || "Analyze this family photo and provide comprehensive metadata in the specified JSON format. Focus on creating warm, natural descriptions that would be perfect for a family album.";
+
     const response = await openai.chat.completions.create({
       // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
       model: "gpt-4o",
       messages: [
         {
           role: "system",
-          content: `You are an expert image analysis AI. Analyze the provided image and return a JSON object with the following structure:
-          {
-            "aiTags": ["tag1", "tag2", "tag3", "tag4", "tag5"],
-            "shortDescription": "Brief description under 100 characters",
-            "longDescription": "Detailed description of the image content, scene, mood, and notable aspects",
-            "detectedObjects": [{"name": "object_name", "confidence": 0.95, "boundingBox": [x,y,w,h]}],
-            "detectedFaces": [{"faceId": "uuid", "personName": null, "confidence": 0.95, "boundingBox": [x,y,w,h]}],
-            "detectedEvents": [{"eventType": "holiday", "eventName": "Christmas", "confidence": 0.9}],
-            "placeName": "Location or place name if identifiable",
-            "gpsCoordinates": {"latitude": 40.7128, "longitude": -74.0060},
-            "aiConfidenceScores": {"tags": 0.9, "description": 0.85, "objects": 0.8, "faces": 0.7, "events": 0.6, "place": 0.7}
-          }
-          
-          CRITICAL FACE DETECTION INSTRUCTIONS:
-          - Only include detectedFaces if you can clearly see human faces in the image
-          - Bounding box format: [x, y, width, height] where x,y is top-left corner
-          - Coordinates must be in absolute pixels, not relative (0-1) values
-          - Carefully locate the actual face area - head, eyes, nose, mouth - not clothing or background
-          - Double-check coordinates point to actual faces before including them
-          - If uncertain about face locations, omit detectedFaces entirely rather than guess
-          - For people seen from behind or with obscured faces, do NOT include face detection
-          
-          For events, detect holidays, celebrations, activities, and life events. Generate unique faceIds but leave personName null.${peopleContextStr}`
+          content: systemPrompt + peopleContextStr
         },
         {
           role: "user",
           content: [
             {
               type: "text",
-              text: "Analyze this image and provide comprehensive metadata in the specified JSON format. For face detection, be extremely careful about coordinate accuracy - only include faces you can clearly see and precisely locate. Verify each bounding box actually contains a human face before including it in the response."
+              text: userPrompt
             },
             {
               type: "image_url",
@@ -302,56 +327,84 @@ Rules:
     
     let tags = ["photo", "image"];
     let shortDescription = "Photo";
-    let longDescription = "Basic metadata generated from filename.";
+    let longDescription = "A moment captured in time.";
     
-    // Enhanced classification with people context
+    // Enhanced classification with people context using warm family language
     if (peopleContext && peopleContext.length > 0) {
-      const peopleNames = peopleContext.map(p => p.name).join(", ");
-      tags.push("people", "family");
-      shortDescription = `Photo with ${peopleNames}`;
+      // Use the prompt manager to generate a natural family description
+      const familyDescription = await promptManager.generateFamilyDescription(peopleContext);
       
-      // Add age-based tags
-      if (peopleContext.some(p => p.ageInPhoto && p.ageInPhoto < 18)) {
-        tags.push("children");
+      const peopleNames = peopleContext.map(p => p.name);
+      const displayNames = peopleNames.length <= 3 
+        ? peopleNames.join(", ")
+        : `${peopleNames.slice(0, 2).join(", ")} and ${peopleNames.length - 2} others`;
+      
+      tags.push("people", "family");
+      
+      // Create natural short description
+      if (peopleNames.length === 1) {
+        shortDescription = `A special moment with ${peopleNames[0]}`;
+      } else if (peopleNames.length === 2) {
+        shortDescription = `${peopleNames.join(" and ")} together`;
+      } else {
+        shortDescription = `Family time with ${displayNames}`;
       }
-      if (peopleContext.some(p => p.ageInPhoto && p.ageInPhoto >= 60)) {
-        tags.push("elderly");
-      }
+      
+      // Add age-based tags naturally
+      const children = peopleContext.filter(p => p.ageInPhoto && p.ageInPhoto < 13);
+      const teens = peopleContext.filter(p => p.ageInPhoto && p.ageInPhoto >= 13 && p.ageInPhoto < 18);
+      const adults = peopleContext.filter(p => p.ageInPhoto && p.ageInPhoto >= 18 && p.ageInPhoto < 60);
+      const seniors = peopleContext.filter(p => p.ageInPhoto && p.ageInPhoto >= 60);
+      
+      if (children.length > 0) tags.push("children", "family-time");
+      if (teens.length > 0) tags.push("teenagers");
+      if (adults.length > 0) tags.push("adults");
+      if (seniors.length > 0) tags.push("grandparents", "generations");
       
       // Add relationship-based context
       const relationships = peopleContext.flatMap(p => p.relationships.map(r => r.type));
       if (relationships.includes("spouse") || relationships.includes("partner")) {
-        tags.push("couple");
+        tags.push("couple", "love");
       }
       if (relationships.includes("parent") || relationships.includes("child")) {
-        tags.push("family");
+        tags.push("family", "bonding");
+      }
+      if (relationships.includes("sibling")) {
+        tags.push("siblings", "family");
       }
       
-      longDescription = `A photo featuring ${peopleNames}. ` +
-        (peopleContext.some(p => p.ageInPhoto) 
-          ? `Ages in photo: ${peopleContext.filter(p => p.ageInPhoto).map(p => `${p.name} (${p.ageInPhoto})`).join(", ")}. `
-          : '') +
-        `Metadata enhanced with known people information.`;
+      // Create warm, natural long description
+      longDescription = familyDescription;
+      
+      // Add age context if available
+      const agesInfo = peopleContext.filter(p => p.ageInPhoto).map(p => `${p.name} (${p.ageInPhoto})`);
+      if (agesInfo.length > 0 && agesInfo.length <= 4) {
+        longDescription += ` Everyone captured beautifully - ${agesInfo.join(", ")}.`;
+      }
+      
     } else {
       // Basic classification based on filename patterns
       if (filename.toLowerCase().includes('portrait')) {
         tags.push("portrait", "person");
         shortDescription = "Portrait photograph";
+        longDescription = "A beautiful portrait capturing a special moment.";
       } else if (filename.toLowerCase().includes('landscape')) {
         tags.push("landscape", "outdoor", "nature");
         shortDescription = "Landscape photograph";
+        longDescription = "A scenic landscape view captured with care.";
       } else if (filename.toLowerCase().includes('food')) {
         tags.push("food", "cuisine");
         shortDescription = "Food photograph";
+        longDescription = "Delicious food captured to remember the moment.";
       } else {
-        tags.push("photography");
+        tags.push("photography", "memories");
         shortDescription = "Digital photograph";
+        longDescription = "A photograph preserving a meaningful moment. Enhanced AI analysis available with OpenAI API key or local Ollama vision model.";
       }
-      longDescription = "Basic metadata generated from filename. AI analysis requires OpenAI API key or Ollama to be running locally with a vision model like llava:latest.";
     }
 
     return {
-      aiTags: tags,
+      aiTags: tags.slice(0, 8), // Limit to 8 tags
       shortDescription,
       longDescription,
       detectedObjects: [],
@@ -361,8 +414,8 @@ Rules:
       gpsCoordinates: undefined,
       perceptualHash: await this.generatePerceptualHash(imagePath),
       aiConfidenceScores: {
-        tags: peopleContext && peopleContext.length > 0 ? 0.6 : 0.3,
-        description: peopleContext && peopleContext.length > 0 ? 0.6 : 0.2,
+        tags: peopleContext && peopleContext.length > 0 ? 0.7 : 0.4,
+        description: peopleContext && peopleContext.length > 0 ? 0.8 : 0.3,
         objects: 0.0,
         faces: 0.0,
         events: 0.0,

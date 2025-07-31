@@ -26,6 +26,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import EventSettings from "@/components/event-settings";
+import { AIPromptsSettings } from "@/components/ai-prompts-settings";
 
 interface Setting {
   id: string;
@@ -371,10 +372,11 @@ export default function SettingsPage() {
 
       {/* Settings Tabs */}
       <Tabs defaultValue="naming" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="naming">File Naming</TabsTrigger>
           <TabsTrigger value="display">Display</TabsTrigger>
           <TabsTrigger value="ai">AI Configuration</TabsTrigger>
+          <TabsTrigger value="ai-prompts">AI Prompts</TabsTrigger>
           <TabsTrigger value="events">Event Detection</TabsTrigger>
         </TabsList>
 
@@ -740,6 +742,11 @@ export default function SettingsPage() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* AI Prompts Management Tab */}
+        <TabsContent value="ai-prompts" className="space-y-6">
+          <AIPromptsSettings />
         </TabsContent>
 
         {/* Event Detection Settings Tab */}
