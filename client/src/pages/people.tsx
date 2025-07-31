@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -89,17 +89,19 @@ export default function PeoplePage() {
 
   const { data: people = [], isLoading: peopleLoading } = useQuery<Person[]>({
     queryKey: ["/api/people"],
-    staleTime: 30000,
+    staleTime: 60000,
     refetchOnWindowFocus: false,
-    gcTime: 60000,
+    refetchOnMount: false,
+    gcTime: 300000,
   });
 
   const { data: faces = [], isLoading: facesLoading } = useQuery<Face[]>({
     queryKey: ["/api/faces"],
-    staleTime: 30000,
+    staleTime: 60000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
-    gcTime: 60000,
+    gcTime: 300000,
+    enabled: viewMode === 'faces' || isSelectThumbnailOpen,
   });
 
   const { data: personPhotos = [], isLoading: personPhotosLoading } = useQuery<any[]>({
@@ -251,27 +253,28 @@ export default function PeoplePage() {
     ), [people, searchQuery]
   );
 
-  const filteredFaces = useMemo(() => 
-    faces.filter(face => {
+  const filteredFaces = useMemo(() => {
+    if (viewMode !== 'faces') return [];
+    return faces.filter(face => {
       if (filterUnassigned && face.personId) return false;
       if (selectedPerson && face.personId !== selectedPerson) return false;
       return true;
-    }), [faces, filterUnassigned, selectedPerson]
-  );
+    });
+  }, [faces, filterUnassigned, selectedPerson, viewMode]);
 
-  const handleFaceSelection = (faceId: string) => {
+  const handleFaceSelection = useCallback((faceId: string) => {
     setSelectedFaces(prev => 
       prev.includes(faceId) 
         ? prev.filter(id => id !== faceId)
         : [...prev, faceId]
     );
-  };
+  }, []);
 
-  const handleAssignFaces = (personId: string) => {
+  const handleAssignFaces = useCallback((personId: string) => {
     if (selectedFaces.length > 0) {
       assignFacesToPersonMutation.mutate({ faceIds: selectedFaces, personId });
     }
-  };
+  }, [selectedFaces, assignFacesToPersonMutation]);
 
   const handleCreatePerson = () => {
     if (newPersonName.trim()) {

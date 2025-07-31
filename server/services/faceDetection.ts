@@ -522,7 +522,7 @@ class FaceDetectionService {
     }
   }
 
-  async findSimilarFaces(faceEmbedding: number[], threshold: number = 0.8): Promise<Array<{id: string, similarity: number, personId?: string}>> {
+  async findSimilarFaces(faceEmbedding: number[], threshold: number = 0.75): Promise<Array<{id: string, similarity: number, personId?: string}>> {
     const allFaces = await storage.getAllFaces();
     const similarFaces: Array<{id: string, similarity: number, personId?: string}> = [];
     
@@ -544,17 +544,26 @@ class FaceDetectionService {
 
   calculateEmbeddingSimilarity(embedding1: number[], embedding2: number[]): number {
     // Calculate cosine similarity between embeddings
+    if (!embedding1 || !embedding2 || embedding1.length === 0 || embedding2.length === 0) {
+      return 0;
+    }
+    
     let dotProduct = 0;
     let norm1 = 0;
     let norm2 = 0;
     
-    for (let i = 0; i < Math.min(embedding1.length, embedding2.length); i++) {
+    const minLength = Math.min(embedding1.length, embedding2.length);
+    
+    for (let i = 0; i < minLength; i++) {
       dotProduct += embedding1[i] * embedding2[i];
       norm1 += embedding1[i] * embedding1[i];
       norm2 += embedding2[i] * embedding2[i];
     }
     
-    return dotProduct / (Math.sqrt(norm1) * Math.sqrt(norm2));
+    const magnitude = Math.sqrt(norm1) * Math.sqrt(norm2);
+    if (magnitude === 0) return 0;
+    
+    return Math.max(0, Math.min(1, dotProduct / magnitude));
   }
 
   async generateFaceSuggestions(unassignedFaceIds: string[]): Promise<Array<{

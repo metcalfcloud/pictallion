@@ -942,47 +942,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const people = await storage.getPeople();
 
-      // Add face count and photo count to each person
+      // Add face count and photo count to each person with better error handling
       const peopleWithStats = await Promise.all(
         people.map(async (person) => {
-          const faces = await storage.getFacesByPerson(person.id);
-          const photoIds = Array.from(new Set(faces.map(face => face.photoId)));
+          try {
+            const faces = await storage.getFacesByPerson(person.id);
+            const photoIds = Array.from(new Set(faces.map(face => face.photoId)));
 
-          // Generate face crop for thumbnail - use selected thumbnail or first face
-          let coverPhotoPath = null;
-          if (faces.length > 0) {
-            let selectedFace = faces[0]; // Default to first face
+            // Generate face crop for thumbnail - use selected thumbnail or first face
+            let coverPhotoPath = null;
+            if (faces.length > 0) {
+              let selectedFace = faces[0]; // Default to first face
 
-            // Use selected thumbnail face if one is set
-            if (person.selectedThumbnailFaceId) {
-              const thumbnailFace = faces.find(f => f.id === person.selectedThumbnailFaceId);
-              if (thumbnailFace) {
-                selectedFace = thumbnailFace;
+              // Use selected thumbnail face if one is set
+              if (person.selectedThumbnailFaceId) {
+                const thumbnailFace = faces.find(f => f.id === person.selectedThumbnailFaceId);
+                if (thumbnailFace) {
+                  selectedFace = thumbnailFace;
+                }
               }
-            }
 
-            const photo = await storage.getFileVersion(selectedFace.photoId);
-
-            if (photo && selectedFace.boundingBox) {
               try {
-                // Generate a face crop for better thumbnail
-                coverPhotoPath = await faceDetectionService.generateFaceCrop(
-                  photo.filePath, 
-                  selectedFace.boundingBox as [number, number, number, number]
-                );
+                const photo = await storage.getFileVersion(selectedFace.photoId);
+                if (photo && selectedFace.boundingBox) {
+                  // Generate a face crop for better thumbnail
+                  coverPhotoPath = await faceDetectionService.generateFaceCrop(
+                    photo.filePath, 
+                    selectedFace.boundingBox as [number, number, number, number]
+                  );
+                }
               } catch (error) {
                 console.error('Failed to generate face crop for thumbnail:', error);
-                coverPhotoPath = photo.filePath; // Fallback to full image
+                // Don't set coverPhotoPath, leave as null
               }
             }
-          }
 
-          return {
-            ...person,
-            faceCount: faces.length,
-            photoCount: photoIds.length,
-            coverPhoto: coverPhotoPath
-          };
+            return {
+              ...person,
+              faceCount: faces.length,
+              photoCount: photoIds.length,
+              coverPhoto: coverPhotoPath
+            };
+          } catch (error) {
+            console.error(`Error processing person ${person.id}:`, error);
+            // Return person with default stats on error
+            return {
+              ...person,
+              faceCount: 0,
+              photoCount: 0,
+              coverPhoto: null
+            };
+          }
         })
       );
 
@@ -1265,9 +1275,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           continue;
         }
 
-        // Find similar faces assigned to people - using very strict threshold to minimize false positives
-        // Ultra-conservative: 0.9 cosine similarity (90%+ match) for suggestions
-        const similarFaces = await faceDetectionService.findSimilarFaces(face.embedding, 0.90);
+        // Find similar faces assigned to people - use reasonable threshold for good suggestions
+        // Balanced approach: 0.75 cosine similarity (75%+ match) for suggestions
+        const similarFaces = await faceDetectionService.findSimilarFaces(face.embedding, 0.75);
 
         if (similarFaces.length === 0) {
           console.log(`No similar faces found for face ${face.id}`);
@@ -1303,8 +1313,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
             console.log(`Person ${person.name}: avgSimilarity=${avgSimilarity.toFixed(3)}, confidence=${confidence}%, matches=${match.count}`);
 
-            // Require reasonable confidence for face suggestions (lowered threshold)
-            if (confidence >= 80) {
+            // Accept suggestions with reasonable confidence
+            if (confidence >= 75) {
               // Get representative face for this person
               let representativeFaceUrl = '';
               if (person.selectedThumbnailFaceId) {
@@ -1335,6 +1345,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
 
           console.log(`Created ${faceSuggestions.length} suggestions for face ${face.id}`);
+        } else {
+          console.log(`No valid suggestions created for face ${face.id} - confidence too low`);
         }
       }
 

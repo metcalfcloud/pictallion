@@ -68,11 +68,12 @@ export function FaceSuggestions() {
   
 
   // Fetch face suggestions
-  const { data: suggestions = [], isLoading: suggestionsLoading, refetch: refetchSuggestions } = useQuery<FaceSuggestion[]>({
+  const { data: suggestions = [], isLoading: suggestionsLoading, refetch: refetchSuggestions, error: suggestionsError } = useQuery<FaceSuggestion[]>({
     queryKey: ["/api/faces/suggestions"],
     refetchInterval: false,
-    staleTime: 10000,
+    staleTime: 30000,
     refetchOnWindowFocus: false,
+    retry: 2,
   });
 
   // Fetch unassigned faces
@@ -201,6 +202,14 @@ export function FaceSuggestions() {
     ...suggestion,
     face: unassignedFaces.find(f => f.id === suggestion.faceId)
   })).filter(s => s.face || s.faceId); // Keep suggestions even if face data is missing
+
+  // Debug logging
+  console.log('Face suggestions debug:', {
+    totalSuggestions: suggestions.length,
+    unassignedFacesCount: unassignedFaces.length,
+    suggestionsWithFacesCount: suggestionsWithFaces.length,
+    suggestionsError: suggestionsError?.message
+  });
 
   const totalUnassigned = unassignedFaces.length;
   const totalWithSuggestions = suggestions.length;

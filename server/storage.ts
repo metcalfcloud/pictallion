@@ -397,7 +397,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPeople(): Promise<Person[]> {
-    return await db.select().from(people).orderBy(desc(people.createdAt));
+    try {
+      return await db.select().from(people).orderBy(desc(people.createdAt));
+    } catch (error) {
+      console.error('Error fetching people:', error);
+      // Return empty array on database connection errors to prevent UI crashes
+      return [];
+    }
   }
 
   async updatePerson(id: string, updates: Partial<Person>): Promise<Person | undefined> {
@@ -448,7 +454,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getFacesByPerson(personId: string): Promise<Face[]> {
-    return await db.select().from(faces).where(eq(faces.personId, personId));
+    try {
+      return await db.select().from(faces).where(eq(faces.personId, personId));
+    } catch (error) {
+      console.error(`Error fetching faces for person ${personId}:`, error);
+      // Return empty array on database connection errors
+      return [];
+    }
   }
 
   async getFacesByPhoto(photoId: string): Promise<Face[]> {
