@@ -162,13 +162,31 @@ export function FaceSuggestions() {
     }
   });
 
+  // Individual assign mutation
+  const assignFaceMutation = useMutation({
+    mutationFn: async ({ faceId, personId }: { faceId: string, personId: string }) => {
+      return await apiRequest('POST', '/api/faces/assign', { faceId, personId });
+    },
+    onSuccess: (_, { faceId, personId }) => {
+      // Remove from selected assignments if it was there
+      setSelectedAssignments(prev => prev.filter(a => a.faceId !== faceId));
+      refetchSuggestions();
+      queryClient.invalidateQueries({ queryKey: ["/api/faces"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/faces/unassigned"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/people"] });
+      toast({ title: "Face assigned successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to assign face", variant: "destructive" });
+    }
+  });
+
   const handleSuggestionAction = (faceId: string, personId: string, action: 'accept' | 'reject') => {
     if (action === 'accept') {
-      setSelectedAssignments(prev => [
-        ...prev.filter(a => a.faceId !== faceId),
-        { faceId, personId }
-      ]);
+      // Immediately assign the face instead of adding to selection
+      assignFaceMutation.mutate({ faceId, personId });
     } else {
+      // Remove from selected assignments if it was there
       setSelectedAssignments(prev => prev.filter(a => a.faceId !== faceId));
     }
   };
@@ -493,15 +511,21 @@ export function FaceSuggestions() {
                               variant={isThisSelected ? "default" : "outline"}
                               className="flex-1 text-xs"
                               onClick={() => handleSuggestionAction(item.faceId, suggestion.personId, 'accept')}
+                              disabled={assignFaceMutation.isPending}
                             >
-                              <Check className="h-3 w-3 mr-1" />
-                              {isThisSelected ? 'Selected' : 'Accept'}
+                              {assignFaceMutation.isPending ? (
+                                <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+                              ) : (
+                                <Check className="h-3 w-3 mr-1" />
+                              )}
+                              {assignFaceMutation.isPending ? 'Assigning...' : isThisSelected ? 'Selected' : 'Accept'}
                             </Button>
                             <Button
                               size="sm"
                               variant="outline"
                               className="text-xs"
                               onClick={() => handleSuggestionAction(item.faceId, suggestion.personId, 'reject')}
+                              disabled={assignFaceMutation.isPending}
                             >
                               <X className="h-3 w-3" />
                             </Button>

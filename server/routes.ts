@@ -1407,6 +1407,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Assign a single face to a person
+  app.post("/api/faces/assign", async (req, res) => {
+    try {
+      const { faceId, personId } = req.body;
+      await storage.assignFaceToPerson(faceId, personId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error assigning face:", error);
+      res.status(500).json({ message: "Failed to assign face" });
+    }
+  });
+
   // Ignore a face
   app.post("/api/faces/:id/ignore", async (req, res) => {
     try {
