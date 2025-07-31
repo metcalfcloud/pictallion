@@ -9,6 +9,7 @@ import {
   faces,
   settings,
   events,
+  relationships,
   type User, 
   type InsertUser,
   type MediaAsset,
@@ -27,7 +28,9 @@ import {
   type Setting,
   type InsertSetting,
   type Event,
-  type InsertEvent
+  type InsertEvent,
+  type Relationship,
+  type InsertRelationship
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, count, sql } from "drizzle-orm";
@@ -109,6 +112,13 @@ export interface IStorage {
   updateEvent(id: string, updates: Partial<Event>): Promise<Event>;
   deleteEvent(id: string): Promise<void>;
   getEventsByType(type: 'holiday' | 'birthday' | 'custom'): Promise<Event[]>;
+
+  // Relationship methods
+  createRelationship(relationship: InsertRelationship): Promise<Relationship>;
+  getRelationshipsByPerson(personId: string): Promise<Array<Relationship & { person1?: Person; person2?: Person }>>;
+  updateRelationship(id: string, updates: Partial<Relationship>): Promise<Relationship>;
+  deleteRelationship(id: string): Promise<void>;
+  getPerson(id: string): Promise<Person | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -420,11 +430,6 @@ export class DatabaseStorage implements IStorage {
     return face || undefined;
   }
 
-  async getPerson(personId: string): Promise<Person | undefined> {
-    const [person] = await db.select().from(people).where(eq(people.id, personId));
-    return person || undefined;
-  }
-
   async getUnassignedFaces(): Promise<Face[]> {
     return await db.select().from(faces).where(sql`${faces.personId} IS NULL AND ${faces.ignored} = false`);
   }
@@ -535,6 +540,54 @@ export class DatabaseStorage implements IStorage {
 
   async getEventsByType(type: 'holiday' | 'birthday' | 'custom'): Promise<Event[]> {
     return await db.select().from(events).where(eq(events.type, type));
+  }
+
+  // Relationship methods
+  async createRelationship(relationship: InsertRelationship): Promise<Relationship> {
+    const [newRelationship] = await db.insert(relationships).values(relationship).returning();
+    return newRelationship;
+  }
+
+  async getRelationshipsByPerson(personId: string): Promise<Array<Relationship & { person1?: Person; person2?: Person }>> {
+    // Get all relationships where the person is either person1 or person2
+    const relationshipsRaw = await db
+      .select()
+      .from(relationships)
+      .where(sql`${relationships.person1Id} = ${personId} OR ${relationships.person2Id} = ${personId}`)
+      .orderBy(desc(relationships.createdAt));
+
+    // Fetch person details for each relationship
+    const relationshipsWithPeople = await Promise.all(
+      relationshipsRaw.map(async (rel) => {
+        const person1 = await this.getPerson(rel.person1Id);
+        const person2 = await this.getPerson(rel.person2Id);
+        return {
+          ...rel,
+          person1,
+          person2,
+        };
+      })
+    );
+
+    return relationshipsWithPeople;
+  }
+
+  async updateRelationship(id: string, updates: Partial<Relationship>): Promise<Relationship> {
+    const [updated] = await db
+      .update(relationships)
+      .set(updates)
+      .where(eq(relationships.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteRelationship(id: string): Promise<void> {
+    await db.delete(relationships).where(eq(relationships.id, id));
+  }
+
+  async getPerson(id: string): Promise<Person | undefined> {
+    const [person] = await db.select().from(people).where(eq(people.id, id));
+    return person || undefined;
   }
 }
 

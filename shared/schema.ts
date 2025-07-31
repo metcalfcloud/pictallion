@@ -118,6 +118,17 @@ export const globalTagLibrary = pgTable("global_tag_library", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const relationships = pgTable("relationships", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  person1Id: varchar("person1_id").references(() => people.id).notNull(),
+  person2Id: varchar("person2_id").references(() => people.id).notNull(),
+  relationshipType: text("relationship_type", { 
+    enum: ["spouse", "partner", "sibling", "parent", "child", "friend", "relative"] 
+  }).notNull(),
+  notes: text("notes"), // Optional notes about the relationship
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Relations
 export const mediaAssetsRelations = relations(mediaAssets, ({ many }) => ({
   fileVersions: many(fileVersions),
@@ -156,6 +167,21 @@ export const collectionPhotosRelations = relations(collectionPhotos, ({ one }) =
 export const peopleRelations = relations(people, ({ many }) => ({
   faces: many(faces),
   birthdays: many(events),
+  relationshipsAsPerson1: many(relationships, { relationName: "person1" }),
+  relationshipsAsPerson2: many(relationships, { relationName: "person2" }),
+}));
+
+export const relationshipsRelations = relations(relationships, ({ one }) => ({
+  person1: one(people, {
+    fields: [relationships.person1Id],
+    references: [people.id],
+    relationName: "person1",
+  }),
+  person2: one(people, {
+    fields: [relationships.person2Id],
+    references: [people.id],
+    relationName: "person2",
+  }),
 }));
 
 export const facesRelations = relations(faces, ({ one }) => ({
@@ -233,6 +259,11 @@ export const insertGlobalTagLibrarySchema = createInsertSchema(globalTagLibrary)
   createdAt: true,
 });
 
+export const insertRelationshipSchema = createInsertSchema(relationships).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof insertUserSchema._output;
@@ -256,6 +287,8 @@ export type Event = typeof events.$inferSelect;
 export type InsertEvent = typeof insertEventSchema._output;
 export type GlobalTagLibrary = typeof globalTagLibrary.$inferSelect;
 export type InsertGlobalTagLibrary = typeof insertGlobalTagLibrarySchema._output;
+export type Relationship = typeof relationships.$inferSelect;
+export type InsertRelationship = typeof insertRelationshipSchema._output;
 
 // Metadata interfaces
 export interface AIMetadata {

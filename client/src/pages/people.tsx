@@ -34,6 +34,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { FaceSuggestions } from "@/components/face-suggestions";
+import { RelationshipManager } from "@/components/relationship-manager";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Person {
   id: string;
@@ -762,53 +764,70 @@ export default function PeoplePage() {
 
       {/* Edit Person Dialog */}
       <Dialog open={isEditPersonOpen} onOpenChange={setIsEditPersonOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-4xl">
           <DialogHeader>
             <DialogTitle>Edit Person</DialogTitle>
             <DialogDescription>
-              Update the person's name and notes.
+              Update the person's information and manage relationships.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="edit-person-name">Name</Label>
-              <Input
-                id="edit-person-name"
-                placeholder="Enter person's name"
-                value={newPersonName}
-                onChange={(e) => setNewPersonName(e.target.value)}
-              />
-            </div>
-            <div>
-              <Label htmlFor="edit-person-birthdate">Birthdate (optional)</Label>
-              <Input
-                id="edit-person-birthdate"
-                type="date"
-                value={newPersonBirthdate}
-                onChange={(e) => setNewPersonBirthdate(e.target.value)}
-              />
-            </div>
-            <div>
-              <Label htmlFor="edit-person-notes">Notes (optional)</Label>
-              <Textarea
-                id="edit-person-notes"
-                placeholder="Add any notes about this person"
-                value={newPersonNotes}
-                onChange={(e) => setNewPersonNotes(e.target.value)}
-              />
-            </div>
-            <div className="flex justify-end space-x-2">
-              <Button variant="outline" onClick={() => setIsEditPersonOpen(false)}>
-                Cancel
-              </Button>
-              <Button 
-                onClick={handleEditPerson}
-                disabled={!newPersonName.trim() || updatePersonMutation.isPending}
-              >
-                {updatePersonMutation.isPending ? 'Updating...' : 'Update Person'}
-              </Button>
-            </div>
-          </div>
+          
+          <Tabs defaultValue="basic" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="basic">Basic Info</TabsTrigger>
+              <TabsTrigger value="relationships">Relationships</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="basic" className="space-y-4 mt-4">
+              <div>
+                <Label htmlFor="edit-person-name">Name</Label>
+                <Input
+                  id="edit-person-name"
+                  placeholder="Enter person's name"
+                  value={newPersonName}
+                  onChange={(e) => setNewPersonName(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-person-birthdate">Birthdate (optional)</Label>
+                <Input
+                  id="edit-person-birthdate"
+                  type="date"
+                  value={newPersonBirthdate}
+                  onChange={(e) => setNewPersonBirthdate(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-person-notes">Notes (optional)</Label>
+                <Textarea
+                  id="edit-person-notes"
+                  placeholder="Add any notes about this person"
+                  value={newPersonNotes}
+                  onChange={(e) => setNewPersonNotes(e.target.value)}
+                />
+              </div>
+              <div className="flex justify-end space-x-2">
+                <Button variant="outline" onClick={() => setIsEditPersonOpen(false)}>
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleEditPerson}
+                  disabled={!newPersonName.trim() || updatePersonMutation.isPending}
+                >
+                  {updatePersonMutation.isPending ? 'Updating...' : 'Update Person'}
+                </Button>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="relationships" className="mt-4">
+              {editingPerson && (
+                <RelationshipManager 
+                  personId={editingPerson.id} 
+                  personName={editingPerson.name} 
+                />
+              )}
+            </TabsContent>
+          </Tabs>
         </DialogContent>
       </Dialog>
 

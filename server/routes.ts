@@ -1206,6 +1206,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Relationship routes
+  app.get("/api/people/:id/relationships", async (req, res) => {
+    try {
+      const relationships = await storage.getRelationshipsByPerson(req.params.id);
+      res.json(relationships);
+    } catch (error) {
+      console.error("Error fetching relationships:", error);
+      res.status(500).json({ message: "Failed to fetch relationships" });
+    }
+  });
+
+  app.post("/api/relationships", async (req, res) => {
+    try {
+      const relationship = await storage.createRelationship(req.body);
+      res.json(relationship);
+    } catch (error) {
+      console.error("Error creating relationship:", error);
+      res.status(500).json({ message: "Failed to create relationship" });
+    }
+  });
+
+  app.put("/api/relationships/:id", async (req, res) => {
+    try {
+      const relationship = await storage.updateRelationship(req.params.id, req.body);
+      res.json(relationship);
+    } catch (error) {
+      console.error("Error updating relationship:", error);
+      res.status(500).json({ message: "Failed to update relationship" });
+    }
+  });
+
+  app.delete("/api/relationships/:id", async (req, res) => {
+    try {
+      await storage.deleteRelationship(req.params.id);
+      res.json({ success: true, message: "Relationship deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting relationship:", error);
+      res.status(500).json({ message: "Failed to delete relationship" });
+    }
+  });
+
   app.get("/api/faces/unassigned", async (req, res) => {
     try {
       const unassignedFaces = await storage.getUnassignedFaces();
