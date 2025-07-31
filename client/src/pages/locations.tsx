@@ -10,7 +10,24 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
-import { MapPin, Plus, Clock, TrendingUp, Camera, Map } from "lucide-react";
+import { MapPin, Plus, Clock, TrendingUp, Camera, Map, Edit2, Trash2, MoreVertical } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import type { Location } from "@shared/schema";
 
 interface LocationHotspot {
@@ -29,12 +46,41 @@ interface LocationStats {
   hotspots: LocationHotspot[];
 }
 
+// Form schemas
+const editLocationSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  description: z.string().optional(),
+});
+
+type EditLocationFormData = z.infer<typeof editLocationSchema>;
+
 export default function Locations() {
   const { toast } = useToast();
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
   const [newLocationName, setNewLocationName] = useState("");
   const [newLocationDescription, setNewLocationDescription] = useState("");
   const [selectedHotspot, setSelectedHotspot] = useState<LocationHotspot | null>(null);
+  const [editingLocation, setEditingLocation] = useState<Location | null>(null);
+  const [deletingLocation, setDeletingLocation] = useState<Location | null>(null);
+
+  // Form for editing locations
+  const editForm = useForm<EditLocationFormData>({
+    resolver: zodResolver(editLocationSchema),
+    defaultValues: {
+      name: "",
+      description: "",
+    },
+  });
+
+  // Update form when editing location changes
+  useEffect(() => {
+    if (editingLocation) {
+      editForm.reset({
+        name: editingLocation.name,
+        description: editingLocation.description || "",
+      });
+    }
+  }, [editingLocation, editForm]);
 
   // Fetch location statistics and hotspots
   const { data: locationStats, isLoading } = useQuery<LocationStats>({
@@ -74,24 +120,74 @@ export default function Locations() {
     },
   });
 
-  // Update location mutation
-  const updateLocationMutation = useMutation({
-    mutationFn: ({ id, ...data }: any) => {
-      return fetch(`/api/locations/${id}`, {
+  // Edit location mutation
+  const editLocationMutation = useMutation({
+    mutationFn: async (data: { id: string; updates: Partial<Location> }) => {
+      const response = await fetch(`/api/locations/${data.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      }).then((res) => res.json());
+        body: JSON.stringify(data.updates),
+      });
+      if (!response.ok) throw new Error("Failed to update location");
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/locations"] });
       queryClient.invalidateQueries({ queryKey: ["/api/locations/stats"] });
+      setEditingLocation(null);
       toast({
-        title: "Location Updated",
-        description: "Location has been updated successfully.",
+        title: "Success",
+        description: "Location updated successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update location",
+        variant: "destructive",
       });
     },
   });
+
+  // Delete location mutation
+  const deleteLocationMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await fetch(`/api/locations/${id}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) throw new Error("Failed to delete location");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/locations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/locations/stats"] });
+      setDeletingLocation(null);
+      toast({
+        title: "Success",
+        description: "Location deleted successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete location",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleEditLocation = (data: EditLocationFormData) => {
+    if (!editingLocation) return;
+    editLocationMutation.mutate({
+      id: editingLocation.id,
+      updates: data,
+    });
+  };
+
+  const handleDeleteLocation = () => {
+    if (!deletingLocation) return;
+    deleteLocationMutation.mutate(deletingLocation.id);
+  };
 
   // Create location from hotspot
   const createFromHotspot = (hotspot: LocationHotspot) => {
@@ -259,9 +355,31 @@ export default function Locations() {
                       <MapPin className="w-4 h-4" />
                       <span>{location.name}</span>
                     </span>
-                    <Badge variant={location.isUserDefined ? "default" : "secondary"}>
-                      {location.isUserDefined ? "Custom" : "Auto"}
-                    </Badge>
+                    <div className="flex items-center space-x-2">
+                      <Badge variant={location.isUserDefined ? "default" : "secondary"}>
+                        {location.isUserDefined ? "Custom" : "Auto"}
+                      </Badge>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <MoreVertical className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => setEditingLocation(location)}>
+                            <Edit2 className="w-4 h-4 mr-2" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => setDeletingLocation(location)}
+                            className="text-red-600"
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -425,6 +543,78 @@ export default function Locations() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Edit Location Dialog */}
+      <Dialog open={!!editingLocation} onOpenChange={() => setEditingLocation(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Location</DialogTitle>
+          </DialogHeader>
+          <Form {...editForm}>
+            <form onSubmit={editForm.handleSubmit(handleEditLocation)} className="space-y-4">
+              <FormField
+                control={editForm.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Location Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter location name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={editForm.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description (Optional)</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="Enter description" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="flex justify-end space-x-2">
+                <Button type="button" variant="outline" onClick={() => setEditingLocation(null)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={editLocationMutation.isPending}>
+                  {editLocationMutation.isPending ? "Updating..." : "Update Location"}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Location Dialog */}
+      <Dialog open={!!deletingLocation} onOpenChange={() => setDeletingLocation(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Location</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground mb-4">
+            Are you sure you want to delete "{deletingLocation?.name}"? This action cannot be undone.
+            The photos will remain but will no longer be associated with this location.
+          </p>
+          <div className="flex justify-end space-x-2">
+            <Button variant="outline" onClick={() => setDeletingLocation(null)}>
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleDeleteLocation}
+              disabled={deleteLocationMutation.isPending}
+            >
+              {deleteLocationMutation.isPending ? "Deleting..." : "Delete Location"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

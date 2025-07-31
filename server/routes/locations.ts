@@ -75,9 +75,21 @@ router.post("/", async (req, res) => {
 // Update location
 router.patch("/:id", async (req, res) => {
   try {
-    const location = await storage.updateLocation(req.params.id, req.body);
+    // Validate request body - allow partial updates
+    const updateData = insertLocationSchema.partial().parse(req.body);
+    
+    const location = await storage.updateLocation(req.params.id, updateData);
+    if (!location) {
+      return res.status(404).json({ message: "Location not found" });
+    }
     res.json(location);
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ 
+        message: "Invalid location data", 
+        errors: error.errors 
+      });
+    }
     console.error("Error updating location:", error);
     res.status(500).json({ message: "Failed to update location" });
   }
@@ -86,7 +98,10 @@ router.patch("/:id", async (req, res) => {
 // Delete location
 router.delete("/:id", async (req, res) => {
   try {
-    await storage.deleteLocation(req.params.id);
+    const deleted = await storage.deleteLocation(req.params.id);
+    if (!deleted) {
+      return res.status(404).json({ message: "Location not found" });
+    }
     res.json({ message: "Location deleted successfully" });
   } catch (error) {
     console.error("Error deleting location:", error);
