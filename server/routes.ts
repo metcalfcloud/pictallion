@@ -19,6 +19,7 @@ import { sql } from "drizzle-orm";
 import { db } from "./db";
 import { promptManager } from "./services/promptManager";
 import locationRoutes from "./routes/locations";
+import { logger } from "./utils/logger";
 
 // Helper function to calculate bounding box overlap (Intersection over Union)
 function calculateBoundingBoxOverlap(
@@ -1274,7 +1275,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         // Group by person and calculate confidence scores
-        const personMatches = new Map();
+        const personMatches = new Map<string, { count: number; totalSimilarity: number }>();
 
         for (const similar of similarFaces) {
           if (similar.personId) {

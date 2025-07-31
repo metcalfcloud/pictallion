@@ -65,7 +65,7 @@ export function FaceSuggestions() {
   const [pendingFaceId, setPendingFaceId] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [searchQuery, setSearchQuery] = useState("");
+  
 
   // Fetch face suggestions
   const { data: suggestions = [], isLoading: suggestionsLoading, refetch: refetchSuggestions } = useQuery<FaceSuggestion[]>({

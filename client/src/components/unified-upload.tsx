@@ -7,7 +7,8 @@ import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { Upload, X, CheckCircle, AlertCircle, File, Clock, HardDrive } from "lucide-react";
 
 interface DuplicateConflict {

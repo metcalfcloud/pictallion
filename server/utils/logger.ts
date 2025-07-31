@@ -1,43 +1,50 @@
-/**
- * Simple logging utility for consistent error handling
- * Replace console.* calls with proper logging in production
- */
 
-type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+interface LogLevel {
+  ERROR: 0;
+  WARN: 1;
+  INFO: 2;
+  DEBUG: 3;
+}
+
+const LOG_LEVELS: LogLevel = {
+  ERROR: 0,
+  WARN: 1,
+  INFO: 2,
+  DEBUG: 3
+};
 
 class Logger {
-  private isDevelopment = process.env.NODE_ENV === 'development';
-  
-  private log(level: LogLevel, message: string, data?: any) {
-    const timestamp = new Date().toISOString();
-    const prefix = `[${timestamp}] [${level.toUpperCase()}]`;
-    
-    if (this.isDevelopment) {
-      // In development, still use console for immediate feedback
-      console[level === 'debug' ? 'log' : level](prefix, message, data || '');
-    } else {
-      // In production, you would integrate with a proper logging service
-      // For now, only log errors and warnings to console
-      if (level === 'error' || level === 'warn') {
-        console[level](prefix, message, data || '');
-      }
+  private level: number = LOG_LEVELS.INFO;
+
+  constructor() {
+    const envLevel = process.env.LOG_LEVEL?.toUpperCase();
+    if (envLevel && envLevel in LOG_LEVELS) {
+      this.level = LOG_LEVELS[envLevel as keyof LogLevel];
     }
   }
-  
-  debug(message: string, data?: any) {
-    this.log('debug', message, data);
+
+  private log(level: keyof LogLevel, message: string, ...args: any[]) {
+    if (LOG_LEVELS[level] <= this.level) {
+      const timestamp = new Date().toISOString();
+      const prefix = `[${timestamp}] [${level}]`;
+      console.log(prefix, message, ...args);
+    }
   }
-  
-  info(message: string, data?: any) {
-    this.log('info', message, data);
+
+  error(message: string, ...args: any[]) {
+    this.log('ERROR', message, ...args);
   }
-  
-  warn(message: string, data?: any) {
-    this.log('warn', message, data);
+
+  warn(message: string, ...args: any[]) {
+    this.log('WARN', message, ...args);
   }
-  
-  error(message: string, error?: any) {
-    this.log('error', message, error);
+
+  info(message: string, ...args: any[]) {
+    this.log('INFO', message, ...args);
+  }
+
+  debug(message: string, ...args: any[]) {
+    this.log('DEBUG', message, ...args);
   }
 }
 

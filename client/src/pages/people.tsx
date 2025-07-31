@@ -91,13 +91,15 @@ export default function PeoplePage() {
     queryKey: ["/api/people"],
     staleTime: 30000,
     refetchOnWindowFocus: false,
+    gcTime: 60000,
   });
 
   const { data: faces = [], isLoading: facesLoading } = useQuery<Face[]>({
     queryKey: ["/api/faces"],
-    staleTime: 30000, // Cache for 30 seconds
+    staleTime: 30000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
+    gcTime: 60000,
   });
 
   const { data: personPhotos = [], isLoading: personPhotosLoading } = useQuery<any[]>({

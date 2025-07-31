@@ -495,11 +495,24 @@ export class EnhancedDuplicateDetectionService {
       reasons.push('Existing file appears to be edited version (filename contains editing keywords)');
     }
 
-    // TODO: Add more sophisticated metadata analysis
-    // - EXIF modification dates
-    // - GPS coordinate changes
-    // - Software used for editing
-    // - File size differences
+    // Check EXIF modification dates
+    if (existingMetadata?.exif?.modifyDate && existingMetadata?.exif?.dateTimeOriginal) {
+      const modifyDate = new Date(existingMetadata.exif.modifyDate);
+      const originalDate = new Date(existingMetadata.exif.dateTimeOriginal);
+      if (modifyDate > originalDate) {
+        reasons.push('Existing file shows signs of modification (modify date after original date)');
+      }
+    }
+
+    // Check for editing software indicators
+    if (existingMetadata?.exif?.software) {
+      const editingSoftware = ['Photoshop', 'GIMP', 'Lightroom', 'Capture One'];
+      if (editingSoftware.some(software => 
+        existingMetadata.exif.software.toLowerCase().includes(software.toLowerCase())
+      )) {
+        reasons.push('Existing file processed with photo editing software');
+      }
+    }
 
     if (reasons.length === 0) {
       reasons.push('Files appear visually identical with different metadata - manual review recommended');
