@@ -85,6 +85,20 @@ export const settings = pgTable("settings", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+export const aiPrompts = pgTable("ai_prompts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  description: text("description"),
+  category: text("category", { enum: ["analysis", "naming", "description"] }).notNull(),
+  provider: text("provider", { enum: ["openai", "ollama", "both"] }).notNull(),
+  systemPrompt: text("system_prompt").notNull(),
+  userPrompt: text("user_prompt").notNull(),
+  isDefault: boolean("is_default").default(false),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const events = pgTable("events", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
@@ -264,6 +278,12 @@ export const insertRelationshipSchema = createInsertSchema(relationships).omit({
   createdAt: true,
 });
 
+export const insertAIPromptSchema = createInsertSchema(aiPrompts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof insertUserSchema._output;
@@ -289,6 +309,8 @@ export type GlobalTagLibrary = typeof globalTagLibrary.$inferSelect;
 export type InsertGlobalTagLibrary = typeof insertGlobalTagLibrarySchema._output;
 export type Relationship = typeof relationships.$inferSelect;
 export type InsertRelationship = typeof insertRelationshipSchema._output;
+export type AIPrompt = typeof aiPrompts.$inferSelect;
+export type InsertAIPrompt = typeof insertAIPromptSchema._output;
 
 // Metadata interfaces
 export interface AIMetadata {

@@ -10,6 +10,7 @@ import {
   settings,
   events,
   relationships,
+  aiPrompts,
   type User, 
   type InsertUser,
   type MediaAsset,
@@ -30,7 +31,9 @@ import {
   type Event,
   type InsertEvent,
   type Relationship,
-  type InsertRelationship
+  type InsertRelationship,
+  type AIPrompt,
+  type InsertAIPrompt
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, count, sql } from "drizzle-orm";
@@ -119,6 +122,17 @@ export interface IStorage {
   updateRelationship(id: string, updates: Partial<Relationship>): Promise<Relationship>;
   deleteRelationship(id: string): Promise<void>;
   getPerson(id: string): Promise<Person | undefined>;
+
+  // AI Prompt methods
+  getAllAIPrompts(): Promise<AIPrompt[]>;
+  getAIPrompt(id: string): Promise<AIPrompt | undefined>;
+  getAIPromptsByCategory(category: string): Promise<AIPrompt[]>;
+  getAIPromptsByProvider(provider: string): Promise<AIPrompt[]>;
+  createAIPrompt(prompt: InsertAIPrompt): Promise<AIPrompt>;
+  updateAIPrompt(id: string, updates: Partial<AIPrompt>): Promise<AIPrompt>;
+  deleteAIPrompt(id: string): Promise<void>;
+  getActiveAIPrompts(): Promise<AIPrompt[]>;
+  resetAIPromptsToDefaults(): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -588,6 +602,69 @@ export class DatabaseStorage implements IStorage {
   async getPerson(id: string): Promise<Person | undefined> {
     const [person] = await db.select().from(people).where(eq(people.id, id));
     return person || undefined;
+  }
+
+  // AI Prompt methods
+  async getAllAIPrompts(): Promise<AIPrompt[]> {
+    return await db.select().from(aiPrompts).orderBy(aiPrompts.category, aiPrompts.name);
+  }
+
+  async getAIPrompt(id: string): Promise<AIPrompt | undefined> {
+    const [prompt] = await db.select().from(aiPrompts).where(eq(aiPrompts.id, id));
+    return prompt || undefined;
+  }
+
+  async getAIPromptsByCategory(category: string): Promise<AIPrompt[]> {
+    return await db.select().from(aiPrompts).where(eq(aiPrompts.category, category));
+  }
+
+  async getAIPromptsByProvider(provider: string): Promise<AIPrompt[]> {
+    return await db.select().from(aiPrompts)
+      .where(sql`${aiPrompts.provider} = ${provider} OR ${aiPrompts.provider} = 'both'`);
+  }
+
+  async createAIPrompt(prompt: InsertAIPrompt): Promise<AIPrompt> {
+    const [newPrompt] = await db.insert(aiPrompts).values(prompt).returning();
+    return newPrompt;
+  }
+
+  async updateAIPrompt(id: string, updates: Partial<AIPrompt>): Promise<AIPrompt> {
+    const [updated] = await db
+      .update(aiPrompts)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(aiPrompts.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteAIPrompt(id: string): Promise<void> {
+    await db.delete(aiPrompts).where(eq(aiPrompts.id, id));
+  }
+
+  async getActiveAIPrompts(): Promise<AIPrompt[]> {
+    return await db.select().from(aiPrompts).where(eq(aiPrompts.isActive, true));
+  }
+
+  async resetAIPromptsToDefaults(): Promise<void> {
+    // Import default prompts
+    const { DEFAULT_PROMPTS } = await import("@shared/ai-prompts");
+    
+    // Clear existing prompts
+    await db.delete(aiPrompts);
+    
+    // Insert default prompts
+    for (const prompt of DEFAULT_PROMPTS) {
+      await db.insert(aiPrompts).values({
+        name: prompt.name,
+        description: prompt.description,
+        category: prompt.category,
+        provider: prompt.provider,
+        systemPrompt: prompt.systemPrompt,
+        userPrompt: prompt.userPrompt,
+        isDefault: prompt.isDefault,
+        isActive: true
+      });
+    }
   }
 }
 
