@@ -143,6 +143,21 @@ export const relationships = pgTable("relationships", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const locations = pgTable("locations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  description: text("description"),
+  latitude: text("latitude").notNull(), // Store as text for precision
+  longitude: text("longitude").notNull(), // Store as text for precision
+  radius: integer("radius").default(100), // Radius in meters for photo clustering
+  isUserDefined: boolean("is_user_defined").default(false), // true for user-named, false for auto-detected
+  photoCount: integer("photo_count").default(0), // Cached count of photos at this location
+  placeName: text("place_name"), // Reverse geocoded place name (e.g., "Mall of America")
+  placeType: text("place_type"), // Type: business, residence, landmark, etc.
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Relations
 export const mediaAssetsRelations = relations(mediaAssets, ({ many }) => ({
   fileVersions: many(fileVersions),
@@ -196,6 +211,10 @@ export const relationshipsRelations = relations(relationships, ({ one }) => ({
     references: [people.id],
     relationName: "person2",
   }),
+}));
+
+export const locationsRelations = relations(locations, ({ many }) => ({
+  // No direct relations needed - we'll query photos by coordinate proximity
 }));
 
 export const facesRelations = relations(faces, ({ one }) => ({
@@ -278,6 +297,12 @@ export const insertRelationshipSchema = createInsertSchema(relationships).omit({
   createdAt: true,
 });
 
+export const insertLocationSchema = createInsertSchema(locations).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertAIPromptSchema = createInsertSchema(aiPrompts).omit({
   id: true,
   createdAt: true,
@@ -309,6 +334,8 @@ export type GlobalTagLibrary = typeof globalTagLibrary.$inferSelect;
 export type InsertGlobalTagLibrary = typeof insertGlobalTagLibrarySchema._output;
 export type Relationship = typeof relationships.$inferSelect;
 export type InsertRelationship = typeof insertRelationshipSchema._output;
+export type Location = typeof locations.$inferSelect;
+export type InsertLocation = typeof insertLocationSchema._output;
 export type AIPrompt = typeof aiPrompts.$inferSelect;
 export type InsertAIPrompt = typeof insertAIPromptSchema._output;
 

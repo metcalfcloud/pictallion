@@ -14,6 +14,7 @@ import { IgnoredFaces } from "./pages/ignored-faces";
 import People from "@/pages/people";
 
 import Events from "@/pages/events";
+import Locations from "@/pages/locations";
 import Settings from "@/pages/settings";
 import NotFound from "@/pages/not-found";
 import Sidebar from "@/components/sidebar";
@@ -37,6 +38,7 @@ function Router() {
           <Route path="/people" component={People} />
 
           <Route path="/events" component={Events} />
+          <Route path="/locations" component={Locations} />
           <Route path="/settings" component={Settings} />
           <Route component={NotFound} />
         </Switch>

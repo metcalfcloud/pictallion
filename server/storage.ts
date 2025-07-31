@@ -10,6 +10,7 @@ import {
   settings,
   events,
   relationships,
+  locations,
   aiPrompts,
   type User, 
   type InsertUser,
@@ -32,6 +33,8 @@ import {
   type InsertEvent,
   type Relationship,
   type InsertRelationship,
+  type Location,
+  type InsertLocation,
   type AIPrompt,
   type InsertAIPrompt
 } from "@shared/schema";
@@ -136,6 +139,32 @@ export interface IStorage {
   deleteAIPrompt(id: string): Promise<void>;
   getActiveAIPrompts(): Promise<AIPrompt[]>;
   resetAIPromptsToDefaults(): Promise<void>;
+
+  // Location methods
+  createLocation(location: InsertLocation): Promise<Location>;
+  getLocations(): Promise<Location[]>;
+  getLocation(id: string): Promise<Location | undefined>;
+  updateLocation(id: string, updates: Partial<Location>): Promise<Location>;
+  deleteLocation(id: string): Promise<void>;
+  getLocationStats(): Promise<{
+    totalLocations: number;
+    totalPhotosWithLocation: number;
+    topLocations: Location[];
+    recentLocations: Location[];
+    hotspots: Array<{
+      latitude: number;
+      longitude: number;
+      photoCount: number;
+      photos: any[];
+      suggestedName?: string;
+    }>;
+  }>;
+  findLocationHotspots(): Promise<Array<{
+    latitude: number;
+    longitude: number;
+    photoCount: number;
+    photos: any[];
+  }>>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -631,7 +660,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAIPromptsByCategory(category: string): Promise<AIPrompt[]> {
-    return await db.select().from(aiPrompts).where(eq(aiPrompts.category, category));
+    return await db.select().from(aiPrompts).where(sql`${aiPrompts.category} = ${category}`);
   }
 
   async getAIPromptsByProvider(provider: string): Promise<AIPrompt[]> {
@@ -659,6 +688,104 @@ export class DatabaseStorage implements IStorage {
 
   async getActiveAIPrompts(): Promise<AIPrompt[]> {
     return await db.select().from(aiPrompts).where(eq(aiPrompts.isActive, true));
+  }
+
+  // Location methods
+  async createLocation(location: InsertLocation): Promise<Location> {
+    const [newLocation] = await db.insert(locations).values(location).returning();
+    return newLocation;
+  }
+
+  async getLocations(): Promise<Location[]> {
+    return await db.select().from(locations).orderBy(locations.photoCount, locations.name);
+  }
+
+  async getLocation(id: string): Promise<Location | undefined> {
+    const [location] = await db.select().from(locations).where(eq(locations.id, id));
+    return location || undefined;
+  }
+
+  async updateLocation(id: string, updates: Partial<Location>): Promise<Location> {
+    const [updated] = await db
+      .update(locations)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(locations.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteLocation(id: string): Promise<void> {
+    await db.delete(locations).where(eq(locations.id, id));
+  }
+
+  async getLocationStats(): Promise<{
+    totalLocations: number;
+    totalPhotosWithLocation: number;
+    topLocations: Location[];
+    recentLocations: Location[];
+    hotspots: Array<{
+      latitude: number;
+      longitude: number;
+      photoCount: number;
+      photos: any[];
+      suggestedName?: string;
+    }>;
+  }> {
+    const { locationClusteringService } = await import('./services/location-clustering');
+    
+    // Get all locations
+    const allLocations = await this.getLocations();
+    
+    // Get all photos with metadata for hotspot analysis
+    const allPhotos = await this.getAllFileVersionsWithAssets();
+    
+    // Extract photo statistics
+    const photosWithLocation = locationClusteringService.extractCoordinates(allPhotos);
+    
+    // Find hotspots
+    const hotspots = locationClusteringService.findHotspots(allPhotos, 10);
+    
+    // Get top locations by photo count
+    const topLocations = allLocations
+      .sort((a, b) => (b.photoCount || 0) - (a.photoCount || 0))
+      .slice(0, 5);
+    
+    // Get recent locations
+    const recentLocations = allLocations
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 5);
+
+    return {
+      totalLocations: allLocations.length,
+      totalPhotosWithLocation: photosWithLocation.length,
+      topLocations,
+      recentLocations,
+      hotspots,
+    };
+  }
+
+  async findLocationHotspots(): Promise<Array<{
+    latitude: number;
+    longitude: number;
+    photoCount: number;
+    photos: any[];
+  }>> {
+    const { locationClusteringService } = await import('./services/location-clustering');
+    const allPhotos = await this.getAllFileVersionsWithAssets();
+    return locationClusteringService.findHotspots(allPhotos, 10);
+  }
+
+  // Helper method to get all file versions with their media assets
+  async getAllFileVersionsWithAssets(): Promise<Array<FileVersion & { mediaAsset: MediaAsset }>> {
+    const result = await db
+      .select()
+      .from(fileVersions)
+      .leftJoin(mediaAssets, eq(fileVersions.mediaAssetId, mediaAssets.id));
+
+    return result.map(row => ({
+      ...row.file_versions,
+      mediaAsset: row.media_assets!,
+    }));
   }
 
   async resetAIPromptsToDefaults(): Promise<void> {

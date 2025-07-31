@@ -18,6 +18,7 @@ import { insertMediaAssetSchema, insertFileVersionSchema, insertAssetHistorySche
 import { sql } from "drizzle-orm";
 import { db } from "./db";
 import { promptManager } from "./services/promptManager";
+import locationRoutes from "./routes/locations";
 
 // Helper function to calculate bounding box overlap (Intersection over Union)
 function calculateBoundingBoxOverlap(
@@ -2987,6 +2988,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to fetch default prompts" });
     }
   });
+
+  // Location routes
+  app.use("/api/locations", locationRoutes);
 
   const httpServer = createServer(app);
   return httpServer;

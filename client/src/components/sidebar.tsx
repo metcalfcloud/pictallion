@@ -14,7 +14,8 @@ import {
   Zap,
   Sparkles,
   EyeOff,
-  Calendar
+  Calendar,
+  MapPin
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
@@ -30,6 +31,7 @@ const navigationItems = [
   { path: "/collections", label: "Collections", icon: Images },
   { path: "/people", label: "People", icon: Users },
   { path: "/events", label: "Events", icon: Calendar },
+  { path: "/locations", label: "Locations", icon: MapPin },
   { path: "/burst-selection", label: "Burst Photos", icon: Zap },
   { path: "/settings", label: "Settings", icon: Settings },
 ];
