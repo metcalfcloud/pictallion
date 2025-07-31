@@ -87,6 +87,14 @@ The application uses a relational database with four main tables:
 
 ## Recent Changes
 
+### July 31, 2025 - Completed Natural AI Description System with Universal Prompts
+- **Implemented Universal AI Prompts**: Simplified from provider-specific to universal prompts that work with both OpenAI and Ollama
+- **Natural Family-Friendly Descriptions**: Successfully generating warm, conversational descriptions instead of robotic metadata
+- **Clean Settings Interface**: Created simplified prompt management with category tabs (Image Analysis, File Naming, Description Generation)
+- **Proven Results**: Testing shows natural output like "A delightful moment captured with warm smiles all around..." instead of repetitive technical text
+- **User-Friendly Prompt Editing**: Inline editing interface allows easy customization of AI behavior
+- **Comprehensive Prompt Engineering**: Each category has optimized prompts for natural, family-appropriate content generation
+
 ### July 31, 2025 - Fixed AI Reprocess Functionality with Enhanced People Context
 - **Fixed Duplicate File Creation Bug**: Removed duplicate `/api/photos/:id/reprocess` endpoint that was creating new Silver files instead of updating existing ones
 - **Enhanced People Context Integration**: AI reprocess now properly considers detected people, their ages, and relationships when reanalyzing images
