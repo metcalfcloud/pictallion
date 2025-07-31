@@ -64,11 +64,11 @@ export default function BatchOperations({
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/photos"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
-      
+
       setCurrentOperation(null);
       setProgress(0);
       onSelectionChange([]);
-      
+
       toast({
         title: "Operation Complete",
         description: `Successfully processed ${selectedPhotos.length} photos.`,
@@ -77,7 +77,7 @@ export default function BatchOperations({
     onError: (error) => {
       setCurrentOperation(null);
       setProgress(0);
-      
+
       toast({
         title: "Operation Failed",
         description: error.message,
@@ -114,7 +114,7 @@ export default function BatchOperations({
 
     setCurrentOperation(operation);
     setProgress(0);
-    
+
     // Simulate progress for user feedback
     const progressInterval = setInterval(() => {
       setProgress(prev => {
@@ -218,7 +218,7 @@ export default function BatchOperations({
               {selectedPhotos.length} of {photos.length} selected
             </span>
           </div>
-          
+
           {selectedPhotos.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {selectedPhotosData.slice(0, 5).map(photo => (
@@ -238,7 +238,7 @@ export default function BatchOperations({
             </div>
           )}
         </div>
-        
+
         <Button variant="ghost" onClick={onClose}>
           <X className="h-4 w-4" />
         </Button>
@@ -257,7 +257,7 @@ export default function BatchOperations({
 
       {/* Batch Operations */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        
+
         {/* Delete */}
         <div className="p-4 border rounded-lg">
           <div className="flex items-center space-x-2 mb-2">

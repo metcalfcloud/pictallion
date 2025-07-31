@@ -41,6 +41,7 @@ import {
 import { db } from "./db";
 import { eq, desc, and, count, sql } from "drizzle-orm";
 import path from "path";
+import crypto from 'crypto';
 
 export interface IStorage {
   // User methods
@@ -165,7 +166,12 @@ export interface IStorage {
     photoCount: number;
     photos: any[];
   }>>;
+
+  updatePhoto(id: string, updates: any): Promise<any>;
+  getAllTags(): Promise<string[]>;
 }
+
+const globalTagLibrary = 'global_tag_library';
 
 export class DatabaseStorage implements IStorage {
   async getUser(id: string): Promise<User | undefined> {
@@ -745,24 +751,24 @@ export class DatabaseStorage implements IStorage {
     }>;
   }> {
     const { locationClusteringService } = await import('./services/location-clustering');
-    
+
     // Get all locations
     const allLocations = await this.getLocations();
-    
+
     // Get all photos with metadata for hotspot analysis
     const allPhotos = await this.getAllFileVersionsWithAssets();
-    
+
     // Extract photo statistics
     const photosWithLocation = locationClusteringService.extractCoordinates(allPhotos);
-    
+
     // Find hotspots - use a lower threshold since we have fewer photos for testing
     const hotspots = locationClusteringService.findHotspots(allPhotos, 2);
-    
+
     // Get top locations by photo count
     const topLocations = allLocations
       .sort((a, b) => (b.photoCount || 0) - (a.photoCount || 0))
       .slice(0, 5);
-    
+
     // Get recent locations
     const recentLocations = allLocations
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
@@ -806,10 +812,10 @@ export class DatabaseStorage implements IStorage {
   async resetAIPromptsToDefaults(): Promise<void> {
     // Import default prompts
     const { DEFAULT_PROMPTS } = await import("@shared/ai-prompts");
-    
+
     // Clear existing prompts
     await db.delete(aiPrompts);
-    
+
     // Insert default prompts
     for (const prompt of DEFAULT_PROMPTS) {
       await db.insert(aiPrompts).values({
@@ -822,6 +828,59 @@ export class DatabaseStorage implements IStorage {
         isDefault: prompt.isDefault,
         isActive: true
       });
+    }
+  }
+
+  async updatePhoto(id: string, updates: any): Promise<any> {
+    const photo = await db.select().from(mediaAssets).where(eq(mediaAssets.id, id)).limit(1);
+    if (photo.length === 0) {
+      throw new Error('Photo not found');
+    }
+
+    // Handle tags separately if they're included
+    const { tags, ...otherUpdates } = updates;
+
+    await db.update(mediaAssets)
+      .set({
+        ...otherUpdates,
+        ...(tags && { tags: JSON.stringify(tags) }),
+        updatedAt: new Date()
+      })
+      .where(eq(mediaAssets.id, id));
+
+    // Add new tags to the global library
+    if (tags) {
+      for (const tag of tags) {
+        await this.addTagToLibrary(tag);
+      }
+    }
+
+    return this.getMediaAsset(id);
+  }
+
+  async getAllTags(): Promise<string[]> {
+    try {
+      const result = await db.select().from(globalTagLibrary);
+      return result.map(row => row.tagName);
+    } catch (error) {
+      console.error('Error fetching tags:', error);
+      return [];
+    }
+  }
+
+  async addTagToLibrary(tag: string): Promise<void> {
+    try {
+      // Insert only if tag doesn't exist (ignore conflicts)
+      await db.insert(globalTagLibrary)
+        .values({
+          id: crypto.randomUUID(),
+          tagName: tag,
+          createdAt: new Date()
+        })
+        .onConflictDoNothing();
+    } catch (error) {
+      // Ignore conflicts - tag already exists
+      console.log(`Tag '${tag}' already exists in library`);
     }
   }
 }

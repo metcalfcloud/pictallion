@@ -62,7 +62,7 @@ export function AdvancedSearch({
     if (filters.minConfidence) active.push('confidence');
     if (filters.hasGPS) active.push('gps');
     if (filters.isReviewed !== undefined) active.push('reviewed');
-    
+
     setActiveFilters(active);
   }, [filters]);
 
@@ -135,7 +135,7 @@ export function AdvancedSearch({
             onKeyDown={(e) => e.key === 'Enter' && onSearch()}
           />
         </div>
-        
+
         <Button
           variant="outline"
           onClick={() => setIsExpanded(!isExpanded)}
@@ -152,7 +152,7 @@ export function AdvancedSearch({
             </Badge>
           )}
         </Button>
-        
+
         <Button onClick={onSearch}>
           Search
         </Button>
@@ -185,14 +185,14 @@ export function AdvancedSearch({
       <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
         <CollapsibleContent className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            
+
             {/* Basic Filters */}
             <div className="space-y-4">
               <h3 className="font-medium flex items-center gap-2">
                 <Tag className="h-4 w-4" />
                 Basic Filters
               </h3>
-              
+
               <div className="space-y-3">
                 <div>
                   <Label htmlFor="tier">Tier</Label>
@@ -255,7 +255,7 @@ export function AdvancedSearch({
                 <Star className="h-4 w-4" />
                 Rating & Quality
               </h3>
-              
+
               <RatingFilter
                 minRating={filters.rating?.min || 0}
                 maxRating={filters.rating?.max || 5}
@@ -284,7 +284,7 @@ export function AdvancedSearch({
                 <Camera className="h-4 w-4" />
                 Camera & Technical
               </h3>
-              
+
               <div className="space-y-3">
                 <div>
                   <Label htmlFor="camera">Camera</Label>
@@ -314,7 +314,7 @@ export function AdvancedSearch({
                 <MapPin className="h-4 w-4" />
                 Location & Events
               </h3>
-              
+
               <div className="space-y-3">
                 <div>
                   <Label htmlFor="location">Location</Label>
@@ -366,7 +366,7 @@ export function AdvancedSearch({
                 <Calendar className="h-4 w-4" />
                 Date Range
               </h3>
-              
+
               <div className="space-y-3">
                 <div>
                   <Label htmlFor="startDate">From</Label>
@@ -408,7 +408,7 @@ export function AdvancedSearch({
                 <Tag className="h-4 w-4" />
                 Keywords & Tags
               </h3>
-              
+
               <div>
                 <Label htmlFor="keywords">Keywords (comma-separated)</Label>
                 <Input

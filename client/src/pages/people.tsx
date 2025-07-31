@@ -131,7 +131,7 @@ export default function PeoplePage() {
       setNewPersonNotes('');
       setNewPersonBirthdate('');
       toast({ title: "Person created successfully" });
-      
+
       // If we have selected faces and we're in assign mode, assign them to the new person
       if (selectedFaces.length > 0 && isMergeFacesOpen) {
         handleAssignFaces(newPerson.id);
@@ -303,7 +303,7 @@ export default function PeoplePage() {
     <div className="flex-1 overflow-auto bg-background dark:bg-gray-900">
       <div className="p-6">
         <h1 className="text-2xl font-bold text-card-foreground dark:text-white mb-6">People</h1>
-        
+
         {/* Header with view mode tabs */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-2">
@@ -343,7 +343,7 @@ export default function PeoplePage() {
               <span>Ignored</span>
             </Button>
           </div>
-          
+
           {viewMode === 'people' && (
             <Button onClick={() => {
               setNewPersonName('');
@@ -416,7 +416,7 @@ export default function PeoplePage() {
                         <User className="w-8 h-8 text-muted-foreground" />
                       </div>
                     </div>
-                    
+
                     <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-60 transition-all rounded flex items-center justify-center">
                       <Button
                         size="sm"
@@ -429,7 +429,7 @@ export default function PeoplePage() {
                         Restore
                       </Button>
                     </div>
-                    
+
                     <div className="absolute -top-1 -right-1">
                       <div className="bg-red-500 text-white text-xs px-1 rounded">
                         <EyeOff className="w-3 h-3" />
@@ -494,7 +494,7 @@ export default function PeoplePage() {
                           </p>
                         </div>
                       </div>
-                      
+
                       <div className="flex items-center justify-between">
                         <div className="flex space-x-2">
                           <Button
@@ -590,7 +590,7 @@ export default function PeoplePage() {
                     </div>
                   </div>
                 )}
-                
+
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                   {filteredFaces.map((face) => (
                     <div
@@ -617,9 +617,9 @@ export default function PeoplePage() {
                           <User className="w-8 h-8 text-gray-400" />
                         </div>
                       </div>
-                      
+
                       <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all rounded"></div>
-                      
+
                       {/* Selection indicator in top-right corner */}
                       <div className="absolute top-2 right-2">
                         {selectedFaces.includes(face.id) ? (
@@ -628,7 +628,7 @@ export default function PeoplePage() {
                           <Square className="w-5 h-5 text-white opacity-0 group-hover:opacity-100 bg-black bg-opacity-50 rounded" />
                         )}
                       </div>
-                      
+
                       {face.personId && (
                         <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
                       )}
@@ -717,7 +717,7 @@ export default function PeoplePage() {
           <div className="grid grid-cols-6 gap-4 max-h-96 overflow-y-auto">
             {selectedPerson && (() => {
               const personFaces = faces.filter(face => face.personId === selectedPerson);
-              
+
               if (personFaces.length === 0) {
                 return (
                   <div className="text-center text-muted-foreground col-span-6 py-8">
@@ -725,7 +725,7 @@ export default function PeoplePage() {
                   </div>
                 );
               }
-              
+
               return personFaces.map((face) => (
                 <div
                   key={face.id}
@@ -753,7 +753,7 @@ export default function PeoplePage() {
                       <User className="w-8 h-8 text-muted-foreground" />
                     </div>
                   </div>
-                  
+
                   <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all rounded flex items-center justify-center">
                     <Button
                       size="sm"
@@ -769,7 +769,7 @@ export default function PeoplePage() {
                       Select
                     </Button>
                   </div>
-                  
+
                   <div className="mt-2 text-xs text-center text-muted-foreground">
                     {Math.round(face.confidence)}% confidence
                   </div>
@@ -789,13 +789,13 @@ export default function PeoplePage() {
               Update the person's information and manage relationships.
             </DialogDescription>
           </DialogHeader>
-          
+
           <Tabs defaultValue="basic" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="basic">Basic Info</TabsTrigger>
               <TabsTrigger value="relationships">Relationships</TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="basic" className="space-y-4 mt-4">
               <div>
                 <Label htmlFor="edit-person-name">Name</Label>
@@ -836,7 +836,7 @@ export default function PeoplePage() {
                 </Button>
               </div>
             </TabsContent>
-            
+
             <TabsContent value="relationships" className="mt-4">
               {editingPerson && (
                 <RelationshipManager 

@@ -28,17 +28,17 @@ function calculateBoundingBoxOverlap(
 ): number {
   const [x1, y1, w1, h1] = box1;
   const [x2, y2, w2, h2] = box2;
-  
+
   // Calculate overlap area
   const overlapX = Math.max(0, Math.min(x1 + w1, x2 + w2) - Math.max(x1, x2));
   const overlapY = Math.max(0, Math.min(y1 + h1, y2 + h2) - Math.max(y1, y2));
   const overlapArea = overlapX * overlapY;
-  
+
   // Calculate union area
   const area1 = w1 * h1;
   const area2 = w2 * h2;
   const unionArea = area1 + area2 - overlapArea;
-  
+
   // Return intersection over union (IoU)
   return unionArea > 0 ? overlapArea / unionArea : 0;
 }
@@ -58,7 +58,7 @@ function extractPhotoDate(photo: any): Date | undefined {
     // First try EXIF datetime fields with various formats
     if (photo.metadata?.exif) {
       const exif = photo.metadata.exif;
-      
+
       // Try DateTimeOriginal first (most accurate)
       if (exif.dateTimeOriginal) {
         const date = new Date(exif.dateTimeOriginal);
@@ -67,7 +67,7 @@ function extractPhotoDate(photo: any): Date | undefined {
           return date;
         }
       }
-      
+
       // Try CreateDate
       if (exif.createDate) {
         const date = new Date(exif.createDate);
@@ -76,7 +76,7 @@ function extractPhotoDate(photo: any): Date | undefined {
           return date;
         }
       }
-      
+
       // Try DateTime
       if (exif.dateTime) {
         const date = new Date(exif.dateTime);
@@ -229,7 +229,7 @@ const upload = multer({
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize prompt manager first
   await promptManager.initialize();
-  
+
   // Serve uploaded files  
   app.use("/api/files", express.static(path.join(process.cwd(), "data")));
   // Serve temporary files (face crops)  
@@ -292,23 +292,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/faces/photo/:photoId", async (req, res) => {
     try {
       const faces = await storage.getFacesByPhoto(req.params.photoId);
-      
+
       // Get the photo to generate face crop URLs
       const photo = await storage.getFileVersion(req.params.photoId);
       if (!photo) {
         return res.status(404).json({ message: "Photo not found" });
       }
-      
+
       // Enhance faces with person data, face crop URLs, and age-in-photo
       const enhancedFaces: EnhancedFace[] = await Promise.all(
         faces.map(async (face) => {
           let enhancedFace: EnhancedFace = { ...face };
-          
+
           // Add person data if available
           if (face.personId) {
             const person = await storage.getPerson(face.personId);
             enhancedFace.person = person;
-            
+
             // Calculate age in photo if person has birthdate and photo has date
             if (person?.birthdate) {
               const photoDate = extractPhotoDate(photo);
@@ -320,7 +320,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }
             }
           }
-          
+
           // Generate face crop URL
           try {
             const faceCropUrl = await faceDetectionService.generateFaceCrop(
@@ -333,11 +333,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.error('Failed to generate face crop for face:', face.id, error);
             enhancedFace.faceCropUrl = null;
           }
-          
+
           return enhancedFace;
         })
       );
-      
+
       res.json(enhancedFaces);
     } catch (error) {
       console.error("Error fetching faces for photo:", error);
@@ -407,25 +407,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/photos/burst-analysis", async (req, res) => {
     try {
       const limit = parseInt(req.query.limit as string) || 100;
-      
+
       // Get recent photos to analyze for burst sequences
       const recentPhotos = await storage.getRecentPhotos(limit);
-      
+
       // Group photos by time clusters (photos taken within 5 seconds of each other)
       const burstGroups = [];
       const timeThreshold = 5000; // 5 seconds in milliseconds
-      
+
       const sortedPhotos = recentPhotos.sort((a, b) => {
         const aTime = new Date((a.metadata as any)?.exif?.dateTime || a.createdAt).getTime();
         const bTime = new Date((b.metadata as any)?.exif?.dateTime || b.createdAt).getTime();
         return aTime - bTime;
       });
-      
+
       let currentGroup: any[] = [];
       for (let i = 0; i < sortedPhotos.length; i++) {
         const photo = sortedPhotos[i];
         const photoTime = new Date((photo.metadata as any)?.exif?.dateTime || photo.createdAt).getTime();
-        
+
         if (currentGroup.length === 0) {
           currentGroup.push(photo);
         } else {
@@ -433,7 +433,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             (currentGroup[currentGroup.length - 1].metadata as any)?.exif?.dateTime || 
             currentGroup[currentGroup.length - 1].createdAt
           ).getTime();
-          
+
           if (photoTime - lastPhotoTime <= timeThreshold) {
             currentGroup.push(photo);
           } else {
@@ -450,7 +450,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
       }
-      
+
       // Don't forget the last group
       if (currentGroup.length >= 3) {
         burstGroups.push({
@@ -461,7 +461,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           count: currentGroup.length
         });
       }
-      
+
       res.json(burstGroups);
     } catch (error) {
       console.error("Error analyzing burst photos:", error);
@@ -1783,7 +1783,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   detectedObjects: enhancedMetadata.detectedObjects || [],
                   aiTags: enhancedMetadata.aiTags || []
                 },
-                exifMetadata: (photo.metadata && typeof photo.metadata === 'object' && 'exif' in photo.metadata && typeof photo.metadata.exif === 'object')
+                exifMetadata:```text
+(photo.metadata && typeof photo.metadata === 'object' && 'exif' in photo.metadata && typeof photo.metadata.exif === 'object')
                   ? (photo.metadata.exif as { dateTime?: string; dateTimeOriginal?: string; createDate?: string; camera?: string; lens?: string })
                   : undefined,
                 originalFilename: mediaAsset.originalFilename,
@@ -2548,7 +2549,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get existing faces and people information to provide context
       const existingFaces = await storage.getFacesByPhoto(photo.id);
       const peopleContext = [];
-      
+
       for (const face of existingFaces) {
         if (face.personId) {
           const person = await storage.getPerson(face.personId);
@@ -2558,7 +2559,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const asset = await storage.getMediaAsset(photo.mediaAssetId);
             const photoWithAsset = { ...photo, mediaAsset: asset };
             const photoDate = extractPhotoDate(photoWithAsset);
-            
+
             if (person.birthdate && photoDate) {
               const { eventDetectionService } = await import("./services/eventDetection");
               ageInPhoto = eventDetectionService.calculateAgeInPhoto(person.birthdate, photoDate);
@@ -2636,11 +2637,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Match new faces to existing ones based on position similarity
       const matchedFaces = [];
       const unmatchedExistingFaces = [...existingFaces];
-      
+
       for (const newFace of detectedFaces) {
         let bestMatch = null;
         let bestOverlap = 0;
-        
+
         // Find existing face with highest overlap
         for (let i = 0; i < unmatchedExistingFaces.length; i++) {
           const existingFace = unmatchedExistingFaces[i];
@@ -2648,13 +2649,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             newFace.boundingBox as [number, number, number, number],
             existingFace.boundingBox as [number, number, number, number]
           );
-          
+
           if (overlap > bestOverlap && overlap > 0.3) { // 30% overlap threshold
             bestMatch = existingFace;
             bestOverlap = overlap;
           }
         }
-        
+
         if (bestMatch) {
           // Update existing face with new detection data but preserve person assignment
           await storage.updateFace(bestMatch.id, {
@@ -2663,7 +2664,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             embedding: newFace.embedding,
             // Keep existing personId
           });
-          
+
           // Remove from unmatched list
           const index = unmatchedExistingFaces.indexOf(bestMatch);
           unmatchedExistingFaces.splice(index, 1);
@@ -2679,11 +2680,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
       }
-      
+
       // Delete faces that weren't matched (faces that are no longer detected)
       for (const unmatchedFace of unmatchedExistingFaces) {
         await storage.deleteFace(unmatchedFace.id);
-      }
+      }```text
 
       // Log reprocessing
       await storage.createAssetHistory({
@@ -2988,6 +2989,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Location routes
   app.use("/api/locations", locationRoutes);
+
+  // Update photo endpoint
+app.put('/api/photos/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+
+    const updatedPhoto = await storage.updatePhoto(id, updates);
+
+    // Log the update activity
+    await storage.logActivity({
+      id: crypto.randomUUID(),
+      action: 'metadata_updated',
+      mediaAssetId: id,
+      timestamp: new Date(),
+      details: `Updated metadata: ${Object.keys(updates).join(', ')}`
+    });
+
+    res.json(updatedPhoto);
+  } catch (error) {
+    console.error('Error updating photo:', error);
+    res.status(500).json({ error: 'Failed to update photo' });
+  }
+});
+
+// Get available tags endpoint
+app.get('/api/tags/library', async (req, res) => {
+  try {
+    const tags = await storage.getAllTags();
+    res.json(tags);
+  } catch (error) {
+    console.error('Error fetching tags library:', error);
+    res.status(500).json({ error: 'Failed to fetch tags library' });
+  }
+});
+
+// Add tag to library endpoint
+app.post('/api/tags/library', async (req, res) => {
+  try {
+    const { tag } = req.body;
+    await storage.addTagToLibrary(tag);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error adding tag to library:', error);
+    res.status(500).json({ error: 'Failed to add tag to library' });
+  }
+});
 
   const httpServer = createServer(app);
   return httpServer;
