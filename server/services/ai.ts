@@ -45,6 +45,19 @@ class AIService {
   }
 
   async analyzeImage(imagePath: string, preferredProvider?: AIProvider): Promise<AIMetadata> {
+    return this.analyzeImageWithPeopleContext(imagePath, preferredProvider, []);
+  }
+
+  async analyzeImageWithPeopleContext(
+    imagePath: string, 
+    preferredProvider?: AIProvider, 
+    peopleContext?: Array<{
+      name: string;
+      ageInPhoto?: number | null;
+      relationships: Array<{ type: string; otherPersonId: string }>;
+      boundingBox: any;
+    }>
+  ): Promise<AIMetadata> {
     const provider = preferredProvider || this.config.provider;
     
     try {
@@ -52,9 +65,13 @@ class AIService {
       if ((provider === "openai" || provider === "both") && this.config.openai.apiKey) {
         logger.debug("Using OpenAI for image analysis", { hasApiKey: !!this.config.openai.apiKey });
         try {
-          return await this.analyzeWithOpenAI(imagePath);
-        } catch (openaiError) {
+          return await this.analyzeWithOpenAI(imagePath, peopleContext);
+        } catch (openaiError: any) {
           logger.error("OpenAI analysis failed", openaiError);
+          // Check if it's a quota/rate limit error
+          if (openaiError?.status === 429 || openaiError?.code === 'insufficient_quota') {
+            logger.warn("OpenAI quota exceeded, falling back to alternative processing");
+          }
           // Continue to try Ollama if OpenAI fails
         }
       } else {
@@ -66,27 +83,43 @@ class AIService {
         const isOllamaAvailable = await this.checkOllamaAvailability();
         if (isOllamaAvailable) {
           logger.debug("Using Ollama for image analysis");
-          return await this.analyzeWithOllama(imagePath);
+          return await this.analyzeWithOllama(imagePath, peopleContext);
         } else if (provider === "ollama") {
           logger.debug("Ollama not available, falling back to basic metadata");
-          return this.generateBasicMetadata(imagePath);
+          return this.generateBasicMetadata(imagePath, peopleContext);
         }
       }
 
       // Fallback to basic metadata
       logger.debug("No AI providers available, returning basic metadata");
-      return this.generateBasicMetadata(imagePath);
+      return this.generateBasicMetadata(imagePath, peopleContext);
     } catch (error) {
       logger.error("AI analysis failed", error);
-      return this.generateBasicMetadata(imagePath);
+      return this.generateBasicMetadata(imagePath, peopleContext);
     }
   }
 
-  private async analyzeWithOllama(imagePath: string): Promise<AIMetadata> {
+  private async analyzeWithOllama(imagePath: string, peopleContext?: Array<{
+    name: string;
+    ageInPhoto?: number | null;
+    relationships: Array<{ type: string; otherPersonId: string }>;
+    boundingBox: any;
+  }>): Promise<AIMetadata> {
 
       // Read and encode image to base64
       const imageBuffer = await fs.readFile(path.join(process.cwd(), 'data', imagePath));
       const base64Image = imageBuffer.toString('base64');
+
+      // Create context string for known people
+      const peopleContextStr = peopleContext && peopleContext.length > 0 
+        ? `\n\nKNOWN PEOPLE IN THIS IMAGE:\n${peopleContext.map(person => 
+            `- ${person.name}${person.ageInPhoto ? ` (age ${person.ageInPhoto} in this photo)` : ''}${
+              person.relationships.length > 0 
+                ? ` - relationships: ${person.relationships.map(r => r.type).join(', ')}` 
+                : ''
+            }`
+          ).join('\n')}\n\nUse this information to enhance your analysis and descriptions. Consider the people's ages and relationships when describing the image context and generating tags.`
+        : '';
 
       const prompt = `Analyze this image and provide detailed metadata in JSON format:
 {
@@ -106,7 +139,7 @@ Rules:
 - Only specify placeName if you can clearly identify a specific location
 - Provide confidence scores for each analysis type (0.0 to 1.0)
 - Focus on visual elements, composition, lighting, colors, and subject matter
-- Return ONLY valid JSON, no additional text`;
+- Return ONLY valid JSON, no additional text${peopleContextStr}`;
 
       const response = await fetch(`${this.config.ollama.baseUrl}/api/generate`, {
         method: 'POST',
@@ -147,13 +180,29 @@ Rules:
       return metadata;
   }
 
-  private async analyzeWithOpenAI(imagePath: string): Promise<AIMetadata> {
+  private async analyzeWithOpenAI(imagePath: string, peopleContext?: Array<{
+    name: string;
+    ageInPhoto?: number | null;
+    relationships: Array<{ type: string; otherPersonId: string }>;
+    boundingBox: any;
+  }>): Promise<AIMetadata> {
     const OpenAI = (await import("openai")).default;
     const openai = new OpenAI({ apiKey: this.config.openai.apiKey });
 
     // Read and encode image to base64
     const imageBuffer = await fs.readFile(path.join(process.cwd(), 'data', imagePath));
     const base64Image = imageBuffer.toString('base64');
+
+    // Create context string for known people
+    const peopleContextStr = peopleContext && peopleContext.length > 0 
+      ? `\n\nKNOWN PEOPLE IN THIS IMAGE:\n${peopleContext.map(person => 
+          `- ${person.name}${person.ageInPhoto ? ` (age ${person.ageInPhoto} in this photo)` : ''}${
+            person.relationships.length > 0 
+              ? ` - relationships: ${person.relationships.map(r => r.type).join(', ')}` 
+              : ''
+          }`
+        ).join('\n')}\n\nUse this information to enhance your analysis and descriptions. Consider the people's ages and relationships when describing the image context and generating tags.`
+      : '';
 
     const response = await openai.chat.completions.create({
       // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
@@ -183,7 +232,7 @@ Rules:
           - If uncertain about face locations, omit detectedFaces entirely rather than guess
           - For people seen from behind or with obscured faces, do NOT include face detection
           
-          For events, detect holidays, celebrations, activities, and life events. Generate unique faceIds but leave personName null.`
+          For events, detect holidays, celebrations, activities, and life events. Generate unique faceIds but leave personName null.${peopleContextStr}`
         },
         {
           role: "user",
@@ -241,33 +290,70 @@ Rules:
     }
   }
 
-  private async generateBasicMetadata(imagePath: string): Promise<AIMetadata> {
+  private async generateBasicMetadata(imagePath: string, peopleContext?: Array<{
+    name: string;
+    ageInPhoto?: number | null;
+    relationships: Array<{ type: string; otherPersonId: string }>;
+    boundingBox: any;
+  }>): Promise<AIMetadata> {
     // Extract basic info from filename and path
     const filename = path.basename(imagePath);
     const extension = path.extname(filename).toLowerCase();
     
     let tags = ["photo", "image"];
     let shortDescription = "Photo";
+    let longDescription = "Basic metadata generated from filename.";
     
-    // Basic classification based on filename patterns
-    if (filename.toLowerCase().includes('portrait')) {
-      tags.push("portrait", "person");
-      shortDescription = "Portrait photograph";
-    } else if (filename.toLowerCase().includes('landscape')) {
-      tags.push("landscape", "outdoor", "nature");
-      shortDescription = "Landscape photograph";
-    } else if (filename.toLowerCase().includes('food')) {
-      tags.push("food", "cuisine");
-      shortDescription = "Food photograph";
+    // Enhanced classification with people context
+    if (peopleContext && peopleContext.length > 0) {
+      const peopleNames = peopleContext.map(p => p.name).join(", ");
+      tags.push("people", "family");
+      shortDescription = `Photo with ${peopleNames}`;
+      
+      // Add age-based tags
+      if (peopleContext.some(p => p.ageInPhoto && p.ageInPhoto < 18)) {
+        tags.push("children");
+      }
+      if (peopleContext.some(p => p.ageInPhoto && p.ageInPhoto >= 60)) {
+        tags.push("elderly");
+      }
+      
+      // Add relationship-based context
+      const relationships = peopleContext.flatMap(p => p.relationships.map(r => r.type));
+      if (relationships.includes("spouse") || relationships.includes("partner")) {
+        tags.push("couple");
+      }
+      if (relationships.includes("parent") || relationships.includes("child")) {
+        tags.push("family");
+      }
+      
+      longDescription = `A photo featuring ${peopleNames}. ` +
+        (peopleContext.some(p => p.ageInPhoto) 
+          ? `Ages in photo: ${peopleContext.filter(p => p.ageInPhoto).map(p => `${p.name} (${p.ageInPhoto})`).join(", ")}. `
+          : '') +
+        `Metadata enhanced with known people information.`;
     } else {
-      tags.push("photography");
-      shortDescription = "Digital photograph";
+      // Basic classification based on filename patterns
+      if (filename.toLowerCase().includes('portrait')) {
+        tags.push("portrait", "person");
+        shortDescription = "Portrait photograph";
+      } else if (filename.toLowerCase().includes('landscape')) {
+        tags.push("landscape", "outdoor", "nature");
+        shortDescription = "Landscape photograph";
+      } else if (filename.toLowerCase().includes('food')) {
+        tags.push("food", "cuisine");
+        shortDescription = "Food photograph";
+      } else {
+        tags.push("photography");
+        shortDescription = "Digital photograph";
+      }
+      longDescription = "Basic metadata generated from filename. AI analysis requires OpenAI API key or Ollama to be running locally with a vision model like llava:latest.";
     }
 
     return {
       aiTags: tags,
       shortDescription,
-      longDescription: "Basic metadata generated from filename. AI analysis requires Ollama to be running locally with a vision model like llava:latest.",
+      longDescription,
       detectedObjects: [],
       detectedFaces: [],
       detectedEvents: [],
@@ -275,8 +361,8 @@ Rules:
       gpsCoordinates: undefined,
       perceptualHash: await this.generatePerceptualHash(imagePath),
       aiConfidenceScores: {
-        tags: 0.3,
-        description: 0.2,
+        tags: peopleContext && peopleContext.length > 0 ? 0.6 : 0.3,
+        description: peopleContext && peopleContext.length > 0 ? 0.6 : 0.2,
         objects: 0.0,
         faces: 0.0,
         events: 0.0,

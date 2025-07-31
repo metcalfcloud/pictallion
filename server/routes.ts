@@ -2650,8 +2650,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "AI reprocessing only supports images" });
       }
 
-      // Re-run AI analysis
-      const aiMetadata = await aiService.analyzeImage(photo.filePath, "openai");
+      // Get existing faces and people information to provide context
+      const existingFaces = await storage.getFacesByPhoto(photo.id);
+      const peopleContext = [];
+      
+      for (const face of existingFaces) {
+        if (face.personId) {
+          const person = await storage.getPerson(face.personId);
+          if (person) {
+            // Calculate age in photo if birthdate is available
+            let ageInPhoto = null;
+            const asset = await storage.getMediaAsset(photo.mediaAssetId);
+            const photoWithAsset = { ...photo, mediaAsset: asset };
+            const photoDate = extractPhotoDate(photoWithAsset);
+            
+            if (person.birthdate && photoDate) {
+              const { eventDetectionService } = await import("./services/eventDetection");
+              ageInPhoto = eventDetectionService.calculateAgeInPhoto(person.birthdate, photoDate);
+            }
+
+            // Get relationships for this person
+            const relationships = await storage.getRelationshipsByPerson(person.id);
+            const relationshipInfo = relationships.map(rel => {
+              const otherPersonId = rel.person1Id === person.id ? rel.person2Id : rel.person1Id;
+              return {
+                type: rel.relationshipType,
+                otherPersonId: otherPersonId
+              };
+            });
+
+            peopleContext.push({
+              name: person.name,
+              ageInPhoto: ageInPhoto,
+              relationships: relationshipInfo,
+              boundingBox: face.boundingBox
+            });
+          }
+        }
+      }
+
+      // Re-run AI analysis with enhanced context about people
+      const aiMetadata = await aiService.analyzeImageWithPeopleContext(
+        photo.filePath, 
+        "openai", 
+        peopleContext
+      );
       const enhancedMetadata = await aiService.enhanceMetadataWithShortDescription(aiMetadata, photo.filePath);
 
       // Re-detect faces
