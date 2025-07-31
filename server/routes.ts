@@ -258,14 +258,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const faces = await storage.getFacesByPhoto(req.params.photoId);
       
-      // Enhance faces with person data
+      // Get the photo to generate face crop URLs
+      const photo = await storage.getFileVersion(req.params.photoId);
+      if (!photo) {
+        return res.status(404).json({ message: "Photo not found" });
+      }
+      
+      // Enhance faces with person data and face crop URLs
       const enhancedFaces = await Promise.all(
         faces.map(async (face) => {
+          let enhancedFace = { ...face };
+          
+          // Add person data if available
           if (face.personId) {
             const person = await storage.getPerson(face.personId);
-            return { ...face, person };
+            enhancedFace.person = person;
           }
-          return face;
+          
+          // Generate face crop URL
+          try {
+            const faceCropUrl = await faceDetectionService.generateFaceCrop(
+              photo.filePath, 
+              face.boundingBox as [number, number, number, number]
+            );
+            console.log(`Face crop generated for face ${face.id}: ${faceCropUrl}`);
+            enhancedFace.faceCropUrl = faceCropUrl || null;
+          } catch (error) {
+            console.error('Failed to generate face crop for face:', face.id, error);
+            enhancedFace.faceCropUrl = null;
+          }
+          
+          return enhancedFace;
         })
       );
       

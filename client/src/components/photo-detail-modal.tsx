@@ -781,7 +781,7 @@ export default function PhotoDetailModal({
                         <div className="flex items-center gap-3">
                           {face.faceCropUrl ? (
                             <img 
-                              src={face.faceCropUrl} 
+                              src={`/api/files/${face.faceCropUrl}`} 
                               alt={face.person?.name || 'Unknown face'}
                               className="w-12 h-12 rounded-full object-cover border-2 border-cyan-200 dark:border-cyan-700"
                             />
@@ -794,8 +794,17 @@ export default function PhotoDetailModal({
                           <div className="flex-1 space-y-1">
                             {face.boundingBox && (
                               <div className="text-xs text-cyan-600 dark:text-cyan-400">
-                                <div>Position: ({Math.round(face.boundingBox.x || 0)}, {Math.round(face.boundingBox.y || 0)})</div>
-                                <div>Size: {Math.round(face.boundingBox.width || 0)} × {Math.round(face.boundingBox.height || 0)}</div>
+                                {Array.isArray(face.boundingBox) ? (
+                                  <>
+                                    <div>Position: ({Math.round(face.boundingBox[0])}, {Math.round(face.boundingBox[1])})</div>
+                                    <div>Size: {Math.round(face.boundingBox[2])} × {Math.round(face.boundingBox[3])}</div>
+                                  </>
+                                ) : (
+                                  <>
+                                    <div>Position: ({Math.round(face.boundingBox.x || 0)}, {Math.round(face.boundingBox.y || 0)})</div>
+                                    <div>Size: {Math.round(face.boundingBox.width || 0)} × {Math.round(face.boundingBox.height || 0)}</div>
+                                  </>
+                                )}
                               </div>
                             )}
                             
