@@ -253,6 +253,15 @@ export default function PhotoDetailModal({
     enabled: !!photoDate,
   });
 
+  // Query detected faces for this photo
+  const { data: detectedFaces = [] } = useQuery({
+    queryKey: ['/api/faces', photo.id],
+    queryFn: async () => {
+      const response = await apiRequest('GET', `/api/faces/${photo.id}`);
+      return await response.json();
+    },
+  });
+
   // Initialize edited metadata when photo changes
   useEffect(() => {
     setEditedMetadata({
@@ -264,7 +273,7 @@ export default function PhotoDetailModal({
       aiTags: photo.metadata?.ai?.aiTags || [],
       aiDescription: photo.metadata?.ai?.longDescription || ''
     });
-  }, [photo]);
+  }, [photo.id]); // Only depend on photo.id to prevent infinite loops
 
   const getTierBadgeClass = (tier: string) => {
     switch (tier) {
@@ -741,6 +750,57 @@ export default function PhotoDetailModal({
                         >
                           {Math.round(person.confidence)}%
                         </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Detected Faces */}
+              {detectedFaces && detectedFaces.length > 0 && (
+                <div className="bg-cyan-50 dark:bg-cyan-900/20 p-4 rounded-lg border border-cyan-200 dark:border-cyan-800">
+                  <h3 className="text-base font-semibold text-cyan-800 dark:text-cyan-200 mb-3 flex items-center">
+                    <Users className="w-5 h-5 mr-2" />
+                    Detected Faces ({detectedFaces.length})
+                  </h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {detectedFaces.map((face: any, index: number) => (
+                      <div key={face.id} className="bg-white dark:bg-cyan-900/50 rounded-lg border p-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="text-xs font-medium text-cyan-800 dark:text-cyan-200">
+                            Face #{index + 1}
+                          </div>
+                          <Badge 
+                            variant={face.confidence >= 95 ? "default" : face.confidence >= 80 ? "secondary" : "outline"}
+                            className="text-xs"
+                          >
+                            {face.confidence}%
+                          </Badge>
+                        </div>
+                        
+                        {face.personId && face.person && (
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 bg-cyan-100 dark:bg-cyan-800 rounded-full flex items-center justify-center">
+                              <Users className="w-3 h-3 text-cyan-600 dark:text-cyan-300" />
+                            </div>
+                            <div className="text-xs text-cyan-700 dark:text-cyan-300 font-medium">
+                              {face.person.name}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {face.boundingBox && (
+                          <div className="text-xs text-cyan-600 dark:text-cyan-400 space-y-1">
+                            <div>Position: {Math.round(face.boundingBox.x)}, {Math.round(face.boundingBox.y)}</div>
+                            <div>Size: {Math.round(face.boundingBox.width)} × {Math.round(face.boundingBox.height)}</div>
+                          </div>
+                        )}
+                        
+                        {!face.personId && (
+                          <div className="text-xs text-cyan-600 dark:text-cyan-400 italic">
+                            Unidentified
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
