@@ -763,12 +763,12 @@ export default function PhotoDetailModal({
                     <Users className="w-5 h-5 mr-2" />
                     Detected Faces ({detectedFaces.length})
                   </h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {detectedFaces.map((face: any, index: number) => (
-                      <div key={face.id} className="bg-white dark:bg-cyan-900/50 rounded-lg border p-3 space-y-2">
+                      <div key={face.id} className="bg-white dark:bg-cyan-900/50 rounded-lg border p-4 space-y-3">
                         <div className="flex items-center justify-between">
-                          <div className="text-xs font-medium text-cyan-800 dark:text-cyan-200">
-                            Face #{index + 1}
+                          <div className="text-sm font-medium text-cyan-800 dark:text-cyan-200">
+                            {face.personId && face.person ? face.person.name : `Unknown Person ${index + 1}`}
                           </div>
                           <Badge 
                             variant={face.confidence >= 95 ? "default" : face.confidence >= 80 ? "secondary" : "outline"}
@@ -778,29 +778,34 @@ export default function PhotoDetailModal({
                           </Badge>
                         </div>
                         
-                        {face.personId && face.person && (
-                          <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 bg-cyan-100 dark:bg-cyan-800 rounded-full flex items-center justify-center">
-                              <Users className="w-3 h-3 text-cyan-600 dark:text-cyan-300" />
+                        <div className="flex items-center gap-3">
+                          {face.faceCropUrl ? (
+                            <img 
+                              src={face.faceCropUrl} 
+                              alt={face.person?.name || 'Unknown face'}
+                              className="w-12 h-12 rounded-full object-cover border-2 border-cyan-200 dark:border-cyan-700"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 bg-cyan-100 dark:bg-cyan-800 rounded-full flex items-center justify-center border-2 border-cyan-200 dark:border-cyan-700">
+                              <Users className="w-6 h-6 text-cyan-600 dark:text-cyan-300" />
                             </div>
-                            <div className="text-xs text-cyan-700 dark:text-cyan-300 font-medium">
-                              {face.person.name}
-                            </div>
+                          )}
+                          
+                          <div className="flex-1 space-y-1">
+                            {face.boundingBox && (
+                              <div className="text-xs text-cyan-600 dark:text-cyan-400">
+                                <div>Position: ({Math.round(face.boundingBox.x || 0)}, {Math.round(face.boundingBox.y || 0)})</div>
+                                <div>Size: {Math.round(face.boundingBox.width || 0)} × {Math.round(face.boundingBox.height || 0)}</div>
+                              </div>
+                            )}
+                            
+                            {!face.personId && (
+                              <div className="text-xs text-cyan-600 dark:text-cyan-400 italic">
+                                Unidentified face
+                              </div>
+                            )}
                           </div>
-                        )}
-                        
-                        {face.boundingBox && (
-                          <div className="text-xs text-cyan-600 dark:text-cyan-400 space-y-1">
-                            <div>Position: {Math.round(face.boundingBox.x)}, {Math.round(face.boundingBox.y)}</div>
-                            <div>Size: {Math.round(face.boundingBox.width)} × {Math.round(face.boundingBox.height)}</div>
-                          </div>
-                        )}
-                        
-                        {!face.personId && (
-                          <div className="text-xs text-cyan-600 dark:text-cyan-400 italic">
-                            Unidentified
-                          </div>
-                        )}
+                        </div>
                       </div>
                     ))}
                   </div>
