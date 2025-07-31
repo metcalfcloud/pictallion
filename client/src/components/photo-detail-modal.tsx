@@ -190,6 +190,22 @@ export default function PhotoDetailModal({
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  // Format date safely with validation
+  const formatDateSafely = (dateString: string | undefined): string | null => {
+    if (!dateString) return null;
+    
+    try {
+      const date = new Date(dateString);
+      if (!isNaN(date.getTime()) && date.getFullYear() > 1900) {
+        return date.toLocaleDateString();
+      }
+      return null;
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return null;
+    }
+  };
+
   // Extract photo date for event detection
   const extractPhotoDate = (photo: Photo): string | null => {
     try {
@@ -563,9 +579,12 @@ export default function PhotoDetailModal({
                 {photo.metadata?.exif?.imageWidth && photo.metadata?.exif?.imageHeight && (
                   <span>{photo.metadata.exif.imageWidth} × {photo.metadata.exif.imageHeight}</span>
                 )}
-                {photo.metadata?.exif?.dateTimeOriginal && (
-                  <span>{new Date(photo.metadata.exif.dateTimeOriginal).toLocaleDateString()}</span>
-                )}
+                {(() => {
+                  const formattedDate = formatDateSafely(photo.metadata?.exif?.dateTimeOriginal) ||
+                                       formatDateSafely(photo.metadata?.exif?.createDate) ||
+                                       formatDateSafely(photo.metadata?.exif?.dateTime);
+                  return formattedDate ? <span>{formattedDate}</span> : null;
+                })()}
               </div>
             </div>
 
