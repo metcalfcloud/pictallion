@@ -89,12 +89,15 @@ export default function PeoplePage() {
 
   const { data: people = [], isLoading: peopleLoading } = useQuery<Person[]>({
     queryKey: ["/api/people"],
+    staleTime: 30000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: faces = [], isLoading: facesLoading } = useQuery<Face[]>({
     queryKey: ["/api/faces"],
     staleTime: 30000, // Cache for 30 seconds
     refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   const { data: personPhotos = [], isLoading: personPhotosLoading } = useQuery<any[]>({

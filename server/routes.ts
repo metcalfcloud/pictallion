@@ -1297,18 +1297,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const person = people.find((p: any) => p.id === personId);
           if (person) {
             const avgSimilarity = match.totalSimilarity / match.count;
-            // Convert cosine similarity to confidence percentage more accurately
-            // Industry standard: require >85% confidence for face suggestions (0.85+ cosine similarity)
+            // Convert cosine similarity to confidence percentage
             const confidence = Math.round(avgSimilarity * 100);
 
             console.log(`Person ${person.name}: avgSimilarity=${avgSimilarity.toFixed(3)}, confidence=${confidence}%, matches=${match.count}`);
 
-            // Require very high confidence and multiple strong matches to suggest faces
-            if (confidence >= 93 && match.count >= 3) {
+            // Require reasonable confidence for face suggestions (lowered threshold)
+            if (confidence >= 80) {
               // Get representative face for this person
               let representativeFaceUrl = '';
-              if (person.representativeFace) {
-                representativeFaceUrl = person.representativeFace;
+              if (person.selectedThumbnailFaceId) {
+                // Try to get the face crop URL for the selected thumbnail
+                const thumbnailFace = await storage.getFaceById(person.selectedThumbnailFaceId);
+                if (thumbnailFace?.faceCropUrl) {
+                  representativeFaceUrl = thumbnailFace.faceCropUrl;
+                }
               }
 
               faceSuggestions.push({

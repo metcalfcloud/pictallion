@@ -280,10 +280,23 @@ export function UnifiedUpload({
     });
   };
 
-const resolveMutation = {
-  isPending: false,
-  mutate: () => {}
-};
+// Resolve conflicts mutation
+  const resolveMutation = useMutation({
+    mutationFn: async (resolutions: Array<{conflictId: string, action: string, conflict: DuplicateConflict}>) => {
+      const response = await apiRequest('POST', '/api/upload/resolve-conflicts', { resolutions });
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/photos"] });
+      setShowConflicts(false);
+      setConflictResolutions(new Map());
+      toast({ title: "Conflicts resolved successfully" });
+      onConflictResolved?.();
+    },
+    onError: () => {
+      toast({ title: "Failed to resolve conflicts", variant: "destructive" });
+    }
+  });
 
   const handleResolveConflicts = () => {
     const resolutions = Array.from(conflictResolutions.entries()).map(([conflictId, { action, conflict }]) => ({

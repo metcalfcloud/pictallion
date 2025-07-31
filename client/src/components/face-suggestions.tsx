@@ -71,6 +71,8 @@ export function FaceSuggestions() {
   const { data: suggestions = [], isLoading: suggestionsLoading, refetch: refetchSuggestions } = useQuery<FaceSuggestion[]>({
     queryKey: ["/api/faces/suggestions"],
     refetchInterval: false,
+    staleTime: 10000,
+    refetchOnWindowFocus: false,
   });
 
   // Fetch unassigned faces
