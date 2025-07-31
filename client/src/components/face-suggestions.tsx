@@ -165,7 +165,7 @@ export function FaceSuggestions() {
   // Individual assign mutation
   const assignFaceMutation = useMutation({
     mutationFn: async ({ faceId, personId }: { faceId: string, personId: string }) => {
-      return await apiRequest('POST', '/api/faces/assign', { faceId, personId });
+      return await apiRequest('POST', '/api/faces/assign-single', { faceId, personId });
     },
     onSuccess: (_, { faceId, personId }) => {
       // Remove from selected assignments if it was there

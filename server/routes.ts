@@ -1408,7 +1408,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Assign a single face to a person
-  app.post("/api/faces/assign", async (req, res) => {
+  app.post("/api/faces/assign-single", async (req, res) => {
     try {
       const { faceId, personId } = req.body;
       await storage.assignFaceToPerson(faceId, personId);
