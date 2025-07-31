@@ -19,11 +19,11 @@ export type AIPrompt = z.infer<typeof aiPromptSchema>;
 // Default prompts for out-of-the-box functionality
 export const DEFAULT_PROMPTS: AIPrompt[] = [
   {
-    id: 'openai-image-analysis',
-    name: 'OpenAI Image Analysis',
+    id: 'universal-image-analysis',
+    name: 'Image Analysis',
     description: 'Comprehensive image analysis for family photos with warm, natural descriptions',
     category: 'analysis',
-    provider: 'openai',
+    provider: 'both',
     systemPrompt: `You are an expert family photo analyst. Create warm, natural descriptions perfect for a family album. When people are identified, write descriptions as if this is a cherished family memory.
 
 Analyze the image and return a JSON object with this structure:
@@ -47,72 +47,26 @@ DESCRIPTION GUIDELINES:
 - For group photos, describe the gathering warmly
 - Avoid robotic phrases like "Metadata enhanced with known people information"
 
-FACE DETECTION INSTRUCTIONS:
+FACE DETECTION INSTRUCTIONS (OpenAI only):
 - Only include detectedFaces if you can clearly see human faces
 - Bounding box format: [x, y, width, height] where x,y is top-left corner
 - Coordinates must be in absolute pixels, not relative values
 - Double-check coordinates point to actual faces before including them
 - If uncertain about face locations, omit detectedFaces entirely
 
-For events, detect holidays, celebrations, activities, and life events.`,
-    userPrompt: `Analyze this family photo and provide comprehensive metadata in the specified JSON format. Focus on creating warm, natural descriptions that would be perfect for a family album. For face detection, be extremely careful about coordinate accuracy.`,
+For events, detect holidays, celebrations, activities, and life events.
+Return ONLY valid JSON, no additional text.`,
+    userPrompt: `Analyze this family photo and provide comprehensive metadata in the specified JSON format. Focus on creating warm, natural descriptions that would be perfect for a family album.`,
     isDefault: true,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   },
   {
-    id: 'ollama-image-analysis',
-    name: 'Ollama Image Analysis',
-    description: 'Local image analysis optimized for family photos',
-    category: 'analysis',
-    provider: 'ollama',
-    systemPrompt: `Analyze this image and provide detailed metadata optimized for family photo management in JSON format:
-{
-  "aiTags": ["tag1", "tag2", "tag3", "tag4", "tag5"],
-  "shortDescription": "Brief description under 100 characters",
-  "longDescription": "Warm family-friendly description of the image",
-  "detectedObjects": [{"name": "object_name", "confidence": 0.95}],
-  "placeName": "Location or place name if identifiable",
-  "aiConfidenceScores": {"tags": 0.9, "description": 0.85, "objects": 0.8, "place": 0.7}
-}
-
-Rules:
-- Write descriptions as family memories, not technical analysis
-- Use warm, natural language appropriate for a family album
-- Provide 5-8 relevant tags describing content, mood, and setting
-- Keep short description under 100 characters
-- Make long description warm and detailed (200-500 characters)
-- Focus on emotions, relationships, and special moments
-- Only include highly confident object detections (>0.7 confidence)
-- Only specify placeName if you can clearly identify a specific location
-- Return ONLY valid JSON, no additional text`,
-    userPrompt: `Please analyze this family photo and provide warm, natural metadata in the specified JSON format.`,
-    isDefault: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: 'openai-short-description',
-    name: 'OpenAI Short Description Generator',
-    description: 'Generates concise 2-3 word descriptions for file naming using OpenAI',
+    id: 'universal-short-description',
+    name: 'File Naming',
+    description: 'Generates concise 2-3 word descriptions for file naming',
     category: 'naming',
-    provider: 'openai',
-    systemPrompt: `Generate a very short 2-3 word description for this image in PascalCase format (e.g., SunsetBeach, FamilyDinner, MountainHike). 
-
-Focus on the main subject or scene. Be concise and descriptive. For family photos, use names when known or general terms like FamilyTime, PlayDate, etc.
-
-Respond with JSON format: {"description": "YourDescription"}`,
-    userPrompt: `Generate a short PascalCase description for this image perfect for file naming.`,
-    isDefault: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: 'ollama-short-description',
-    name: 'Ollama Short Description Generator',
-    description: 'Generates concise 2-3 word descriptions for file naming using local Ollama',
-    category: 'naming',
-    provider: 'ollama',
+    provider: 'both',
     systemPrompt: `Generate a very short 2-3 word description for this image in PascalCase format (e.g., SunsetBeach, FamilyDinner, MountainHike). 
 
 Focus on the main subject or scene. Be concise and descriptive. For family photos, use names when known or general terms like FamilyTime, PlayDate, etc.
@@ -125,7 +79,7 @@ No additional text or explanations.`,
     updatedAt: new Date().toISOString()
   },
   {
-    id: 'family-description-generator',
+    id: 'universal-family-description',
     name: 'Family Description Generator',
     description: 'Creates natural family album descriptions when people are identified',
     category: 'description',
