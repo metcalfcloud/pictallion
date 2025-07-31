@@ -583,9 +583,9 @@ export default function PhotoDetailModal({
           </div>
         )}
 
-        <div className="flex h-full">
+        <div className="flex h-full max-h-[90vh] overflow-hidden">
           {/* Left Panel - Image */}
-          <div className="w-1/2 bg-white dark:bg-gray-900 p-6 flex flex-col">
+          <div className="w-1/2 bg-white dark:bg-gray-900 p-6 flex flex-col overflow-y-auto">
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
@@ -610,7 +610,7 @@ export default function PhotoDetailModal({
             </div>
 
             {/* Main Image */}
-            <div className="flex-1 flex items-center justify-center bg-gray-50 dark:bg-gray-800 rounded-lg overflow-hidden relative"
+            <div className="flex-shrink-0 flex items-center justify-center bg-gray-50 dark:bg-gray-800 rounded-lg overflow-hidden relative max-h-[45vh]"
              onLoad={(e) => {
               setImageWidth(e.currentTarget.offsetWidth);
               setImageHeight(e.currentTarget.offsetHeight);
@@ -663,7 +663,7 @@ export default function PhotoDetailModal({
             </div>
 
             {/* Image Info */}
-            <div className="mt-4 space-y-2">
+            <div className="mt-4 space-y-2 flex-shrink-0">
               <div className="text-lg font-semibold text-gray-800 dark:text-gray-200 truncate">
                 {photo.mediaAsset?.originalFilename}
               </div>
@@ -685,7 +685,7 @@ export default function PhotoDetailModal({
 
             {/* Action Buttons */}
             {!isEditing && (
-              <div className="mt-4 space-y-3">
+              <div className="mt-4 space-y-3 flex-shrink-0">
                 <div className="flex gap-2">
                   {photo.tier !== 'bronze' && (
                     <Button 
