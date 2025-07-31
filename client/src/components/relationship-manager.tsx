@@ -36,13 +36,13 @@ interface RelationshipManagerProps {
 }
 
 const RELATIONSHIP_TYPES = [
-  { value: "spouse", label: "Spouse" },
-  { value: "partner", label: "Partner" },
-  { value: "sibling", label: "Sibling" },
-  { value: "parent", label: "Parent" },
-  { value: "child", label: "Child" },
-  { value: "friend", label: "Friend" },
-  { value: "relative", label: "Other Relative" },
+  { value: "spouse", label: "Spouse of" },
+  { value: "partner", label: "Partner of" },
+  { value: "sibling", label: "Sibling of" },
+  { value: "parent", label: "Parent of" },
+  { value: "child", label: "Child of" },
+  { value: "friend", label: "Friend of" },
+  { value: "relative", label: "Other Relative of" },
 ];
 
 const getRelationshipDisplayText = (
@@ -52,7 +52,7 @@ const getRelationshipDisplayText = (
   const isCurrentPersonPerson1 = relationship.person1Id === currentPersonId;
   const otherPerson = isCurrentPersonPerson1 ? relationship.person2 : relationship.person1;
   
-  // Get the relationship type from the current person's perspective
+  // Get the relationship type from the current person's perspective with directional clarity
   let relationshipLabel = relationship.relationshipType;
   
   // For parent/child relationships, we need to invert if the current person is person2
@@ -62,8 +62,19 @@ const getRelationshipDisplayText = (
     relationshipLabel = "parent";
   }
   
+  // Add directional "of" to make it clear
+  const labelMap: Record<string, string> = {
+    spouse: "Spouse of",
+    partner: "Partner of", 
+    sibling: "Sibling of",
+    parent: "Parent of",
+    child: "Child of",
+    friend: "Friend of",
+    relative: "Other Relative of"
+  };
+  
   return {
-    label: relationshipLabel,
+    label: labelMap[relationshipLabel] || relationshipLabel,
     otherPerson
   };
 };
@@ -197,10 +208,10 @@ export function RelationshipManager({ personId, personName }: RelationshipManage
                   <div key={relationship.id} className="flex items-center justify-between p-3 border rounded-lg">
                     <div className="flex-1">
                       <div className="flex items-center space-x-2">
-                        <span className="font-medium">{otherPerson?.name || "Unknown Person"}</span>
                         <Badge variant="secondary" className="capitalize">
                           {label}
                         </Badge>
+                        <span className="font-medium">{otherPerson?.name || "Unknown Person"}</span>
                       </div>
                       {relationship.notes && (
                         <p className="text-sm text-muted-foreground mt-1">{relationship.notes}</p>
@@ -229,7 +240,7 @@ export function RelationshipManager({ personId, personName }: RelationshipManage
           <DialogHeader>
             <DialogTitle>Add Relationship</DialogTitle>
             <DialogDescription>
-              Add a family or friend relationship for {personName}.
+              Define how {personName} is related to another person. For example, selecting "Parent of" means {personName} is the parent of the selected person.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">

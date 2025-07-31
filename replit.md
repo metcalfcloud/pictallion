@@ -87,6 +87,13 @@ The application uses a relational database with four main tables:
 
 ## Recent Changes
 
+### July 31, 2025 - Enhanced Family Relationship UI with Directional Clarity
+- **Improved Relationship Direction Display**: Updated RelationshipManager to show clear directional relationships (e.g., "Parent of John Smith" instead of "John Smith [Parent]")
+- **Enhanced Add Relationship Dialog**: Added explanatory text to clarify that selecting "Parent of" means the current person is the parent of the selected person
+- **Better Visual Organization**: Reordered relationship display to show relationship type first, then person name for clearer understanding
+- **Complete Family Tree Feature**: Fully functional relationship management with gender-neutral terms integrated into people edit page via tabs
+- **Database Integration**: All relationship operations working with proper CRUD functionality and inverse relationship handling
+
 ### July 30, 2025 - Silver File Immutability Policy
 - **Implemented Silver File Immutability** - Silver tier files are now completely immutable and cannot be renamed or moved during reprocessing
 - **Fixed Duplicate Creation Issue** - Resolved bug where reprocessing silver photos created duplicates with renamed files
