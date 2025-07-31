@@ -103,4 +103,15 @@ Pictallion is a comprehensive photo and video management application built with 
 5. **File System Organization**: Date-based directory structure for scalability
 6. **Neural Face Detection**: Industry-standard accuracy over heuristic methods
 
+## Upload Experience
+
+When users upload photos, the system provides immediate feedback and processing:
+
+1. **Direct to Silver Processing**: Photos are processed directly into Silver tier during upload
+2. **Automatic Basic Processing**: Face detection and EXIF metadata extraction happen automatically at upload
+3. **Manual AI Processing**: AI descriptions, tags, and advanced analysis require manual trigger after upload
+4. **Immediate Visibility**: Photos appear in Silver tier gallery immediately with face detection completed
+5. **Processing Indicators**: Clear status badges show "Needs AI Processing" vs "AI Processed" states
+6. **Progressive Enhancement**: Users can trigger AI processing individually or in batches when ready
+
 The application prioritizes reliability, user experience, and professional-grade photo management capabilities while maintaining clean separation of concerns and easy deployment across platforms.
