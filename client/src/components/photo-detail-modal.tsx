@@ -1207,7 +1207,7 @@ export default function PhotoDetailModal({
                     <SelectContent>
                       {people.map((person: any) => (
                         <SelectItem key={person.id} value={person.id}>
-                          {person.name} ({person.faceCount || 0} photos)
+                          {person.name} ({person.photoCount || 0} {(person.photoCount || 0) === 1 ? 'photo' : 'photos'})
                         </SelectItem>
                       ))}
                     </SelectContent>

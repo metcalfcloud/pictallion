@@ -490,7 +490,7 @@ export default function PeoplePage() {
                         <div>
                           <h3 className="font-semibold text-card-foreground dark:text-white">{person.name}</h3>
                           <p className="text-sm text-muted-foreground">
-                            {person.faceCount || 0} faces • {person.photoCount || 0} photos
+                            {person.photoCount || 0} {(person.photoCount || 0) === 1 ? 'photo' : 'photos'}
                           </p>
                         </div>
                       </div>
