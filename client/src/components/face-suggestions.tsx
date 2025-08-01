@@ -1,32 +1,22 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
-import { Progress } from "@/components/ui/progress";
 import { 
   RefreshCw, 
-  Users, 
-  UserCheck, 
   UserPlus, 
-  Check, 
-  X, 
-  Sparkles,
-  Eye,
-  AlertCircle,
   CheckCircle2,
   User,
-  Search,
   EyeOff,
-  Loader2
+  Loader2,
+  Sparkles,
+  X
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { ProcessingStateBadge } from "./ui/processing-state-badge";
 
 interface FaceSuggestion {
   faceId: string;
@@ -41,10 +31,9 @@ interface FaceSuggestion {
 interface Face {
   id: string;
   photoId: string;
-  boundingBox: [number, number, number, number]; // [x, y, width, height]
+  boundingBox: [number, number, number, number];
   confidence: number;
-  faceCropUrl?: string; // URL to cropped face image
-  faceCrop?: string; // filename for the face crop image
+  faceCrop?: string;
   personId?: string;
   photo?: {
     id: string;
@@ -79,6 +68,7 @@ interface FaceSuggestionsProps {
 
 export function FaceSuggestions({ isOpen, faceSuggestions = [], isLoading = false, onClose }: FaceSuggestionsProps) {
   const [selectedAssignments, setSelectedAssignments] = useState<Assignment[]>([]);
+  const [expandedFace, setExpandedFace] = useState<string | null>(null);
   const [isCreatePersonOpen, setIsCreatePersonOpen] = useState(false);
   const [selectedFaceForNewPerson, setSelectedFaceForNewPerson] = useState<string | null>(null);
   const [newPersonName, setNewPersonName] = useState("");
@@ -99,12 +89,13 @@ export function FaceSuggestions({ isOpen, faceSuggestions = [], isLoading = fals
 
   // Create person mutation
   const createPersonMutation = useMutation({
-    mutationFn: async (data: { name: string }) => {
-      const response = await apiRequest('/api/people', {
+    mutationFn: async (data: { name: string }): Promise<Person> => {
+      const response = await fetch('/api/people', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       });
-      return response;
+      return response.json();
     },
     onSuccess: (person: Person) => {
       if (selectedFaceForNewPerson) {
@@ -118,25 +109,18 @@ export function FaceSuggestions({ isOpen, faceSuggestions = [], isLoading = fals
         title: "Success",
         description: `Created person "${person.name}"`
       });
-    },
-    onError: (error: any) => {
-      console.error('Error creating person:', error);
-      toast({
-        title: "Error",
-        description: `Failed to create person: ${error.message || 'Unknown error'}`,
-        variant: "destructive"
-      });
     }
   });
 
   // Assign face mutation
   const assignFaceMutation = useMutation({
     mutationFn: async (data: { faceId: string; personId: string }) => {
-      const response = await apiRequest('/api/face-assignments', {
+      const response = await fetch('/api/face-assignments', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       });
-      return response;
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/faces'] });
@@ -146,24 +130,16 @@ export function FaceSuggestions({ isOpen, faceSuggestions = [], isLoading = fals
         title: "Success",
         description: "Face assigned successfully"
       });
-    },
-    onError: (error: any) => {
-      console.error('Error assigning face:', error);
-      toast({
-        title: "Error",
-        description: `Failed to assign face: ${error.message || 'Unknown error'}`,
-        variant: "destructive"
-      });
     }
   });
 
   // Ignore face mutation
   const ignoreFaceMutation = useMutation({
     mutationFn: async (faceId: string) => {
-      const response = await apiRequest(`/api/faces/${faceId}/ignore`, {
+      const response = await fetch(`/api/faces/${faceId}/ignore`, {
         method: 'POST'
       });
-      return response;
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/faces'] });
@@ -172,26 +148,16 @@ export function FaceSuggestions({ isOpen, faceSuggestions = [], isLoading = fals
         title: "Success",
         description: "Face ignored successfully"
       });
-    },
-    onError: (error: any) => {
-      console.error('Error ignoring face:', error);
-      toast({
-        title: "Error",
-        description: `Failed to ignore face: ${error.message || 'Unknown error'}`,
-        variant: "destructive"
-      });
     }
   });
 
   const handleSuggestionAction = (faceId: string, personId: string, action: 'accept' | 'reject') => {
     if (action === 'accept') {
-      // Update local selection
       setSelectedAssignments(prev => {
         const filtered = prev.filter(a => a.faceId !== faceId);
         return [...filtered, { faceId, personId }];
       });
       
-      // Submit to server
       assignFaceMutation.mutate({ faceId, personId });
     }
   };
@@ -199,6 +165,10 @@ export function FaceSuggestions({ isOpen, faceSuggestions = [], isLoading = fals
   const handleCreateNewPerson = (faceId: string) => {
     setSelectedFaceForNewPerson(faceId);
     setIsCreatePersonOpen(true);
+  };
+
+  const handleFaceClick = (faceId: string) => {
+    setExpandedFace(expandedFace === faceId ? null : faceId);
   };
 
   if (!isOpen) return null;
@@ -251,170 +221,116 @@ export function FaceSuggestions({ isOpen, faceSuggestions = [], isLoading = fals
         )}
       </div>
 
-      <div className="space-y-4">
+      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-4">
         {faceSuggestions.map((item) => {
           const face = faces.find(f => f.id === item.faceId);
           const isSelected = selectedAssignments.some(a => a.faceId === item.faceId);
           const selectedPerson = selectedAssignments.find(a => a.faceId === item.faceId);
+          const isExpanded = expandedFace === item.faceId;
 
           return (
-            <div 
-              key={item.faceId} 
-              className={`w-full rounded-xl border bg-card/50 backdrop-blur-sm shadow-lg transition-all duration-300 hover:shadow-xl ${isSelected ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-950/20' : ''}`}
-            >
-              <div className="p-4">
-                <div className="flex items-start gap-3">
-                  {/* Face crop */}
-                  <div className="relative flex-shrink-0">
-                    {face ? (
-                      <>
-                        <div className="relative w-20 h-20 rounded-lg overflow-hidden bg-muted">
-                          <img
-                            src={`/api/files/${face.faceCrop}`}
-                            alt="Face crop"
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.currentTarget.style.display = 'none';
-                              const nextElement = e.currentTarget.nextElementSibling as HTMLElement;
-                              if (nextElement) {
-                                nextElement.classList.remove('hidden');
-                              }
-                            }}
-                          />
-                          <User className="hidden w-8 h-8 text-muted-foreground absolute inset-0 m-auto" />
-                        </div>
-                        
-                        {/* Processing state overlay */}
-                        {(assignFaceMutation.isPending || ignoreFaceMutation.isPending) && (
-                          <div className="absolute inset-0 bg-black/20 rounded-lg flex items-center justify-center">
-                            <Loader2 className="h-4 w-4 animate-spin text-white" />
-                          </div>
-                        )}
-                        
-                        {/* Processing state badge */}
-                        <div className="absolute -top-1 -right-1">
-                          <ProcessingStateBadge 
-                            isPending={assignFaceMutation.isPending || ignoreFaceMutation.isPending}
-                            isSelected={isSelected}
-                          />
-                        </div>
-                      </>
-                    ) : (
-                      <div className="w-20 h-20 rounded-lg bg-muted flex items-center justify-center">
-                        <User className="w-8 h-8 text-muted-foreground" />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Face info */}
-                  <div className="min-w-0 flex-1">
-                    <h3 className="font-medium text-sm">
-                      {face ? 'Unassigned Face' : 'Face (Missing Data)'}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      {face?.photo?.mediaAsset.originalFilename ? 
-                        `From: ${face.photo.mediaAsset.originalFilename}` : 
-                        `Face ID: ${item.faceId}`
-                      }
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {face ? `Confidence: ${Math.round(face.confidence)}%` : 'Face data missing'} • {item.suggestions.length} suggestion{item.suggestions.length !== 1 ? 's' : ''}
-                    </p>
-                    {isSelected && selectedPerson && (
-                      <p className="text-xs text-green-600 font-medium">
-                        → Will assign to: {people.find(p => p.id === selectedPerson.personId)?.name}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                
-                {/* Content section */}
-                <div className="mt-4 space-y-2">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Users className="h-4 w-4" />
-                    <span className="text-sm font-medium">Suggested People:</span>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                    {item.suggestions.slice(0, 5).map((suggestion) => {
-                      const isThisSelected = selectedPerson?.personId === suggestion.personId;
-
-                      return (
-                        <div 
-                          key={suggestion.personId} 
-                          onClick={() => handleSuggestionAction(item.faceId, suggestion.personId, 'accept')}
-                          className={`p-3 border rounded-lg transition-all cursor-pointer hover:shadow-md hover:scale-105 ${
-                            isThisSelected ? 'border-green-500 bg-green-50 dark:bg-green-950 ring-2 ring-green-200' : 'border-border hover:border-blue-300 hover:bg-blue-50/50 dark:hover:bg-blue-950/50'
-                          } ${assignFaceMutation.isPending ? 'opacity-50 pointer-events-none' : ''}`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center overflow-hidden">
-                              {suggestion.representativeFace ? (
-                                <img
-                                  src={`/api/files/${suggestion.representativeFace}`}
-                                  alt={suggestion.personName}
-                                  className="w-full h-full object-cover"
-                                  onError={(e) => {
-                                    e.currentTarget.style.display = 'none';
-                                    const nextElement = e.currentTarget.nextElementSibling as HTMLElement;
-                                    if (nextElement) {
-                                      nextElement.classList.remove('hidden');
-                                    }
-                                  }}
-                                />
-                              ) : null}
-                              <User className={`w-6 h-6 text-muted-foreground ${suggestion.representativeFace ? 'hidden' : ''}`} />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between">
-                                <p className="font-medium text-sm truncate">{suggestion.personName}</p>
-                                {isThisSelected && <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />}
-                              </div>
-                              <p className="text-xs text-muted-foreground">
-                                {Math.round(suggestion.confidence)}% match
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-
-                    {/* Create new person option */}
-                    <div 
-                      onClick={() => handleCreateNewPerson(item.faceId)}
-                      className="p-3 border border-dashed border-blue-300 rounded-lg transition-all cursor-pointer hover:border-blue-500 hover:bg-blue-50/50 dark:hover:bg-blue-950/50 flex items-center gap-3"
-                    >
-                      <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
-                        <UserPlus className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm text-blue-600 dark:text-blue-400">Create New Person</p>
-                        <p className="text-xs text-muted-foreground">
-                          Add as new person
-                        </p>
-                      </div>
+            <div key={item.faceId} className="space-y-2">
+              {/* Compact face card - exactly the size of the face crop */}
+              <div className="relative">
+                <div 
+                  onClick={() => handleFaceClick(item.faceId)}
+                  className={`relative w-20 h-20 mx-auto rounded-lg overflow-hidden bg-muted cursor-pointer transition-all duration-300 hover:scale-105 ${
+                    isSelected ? 'ring-2 ring-blue-500' : 'hover:ring-2 hover:ring-blue-300'
+                  }`}
+                >
+                  {face ? (
+                    <>
+                      <img
+                        src={`/api/files/${face.faceCrop}`}
+                        alt="Face crop"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          const nextElement = e.currentTarget.nextElementSibling as HTMLElement;
+                          if (nextElement) {
+                            nextElement.classList.remove('hidden');
+                          }
+                        }}
+                      />
+                      <User className="hidden w-8 h-8 text-muted-foreground absolute inset-0 m-auto" />
+                    </>
+                  ) : (
+                    <User className="w-8 h-8 text-muted-foreground absolute inset-0 m-auto" />
+                  )}
+                  
+                  {/* Selection overlay directly on face image */}
+                  {isSelected && (
+                    <div className="absolute inset-0 bg-blue-500/30 flex items-center justify-center">
+                      <CheckCircle2 className="h-5 w-5 text-white bg-blue-600 rounded-full" />
                     </div>
-                  </div>
-
-                  <div className="pt-2 border-t">
-                    <div className="flex justify-between items-center">
-                      <p className="text-xs text-muted-foreground">
-                        Click on a person to assign, or create new person
-                      </p>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => ignoreFaceMutation.mutate(item.faceId)}
-                        disabled={ignoreFaceMutation.isPending}
-                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive"
-                      >
-                        <EyeOff className="h-3 w-3" />
-                        Ignore
-                      </Button>
+                  )}
+                  
+                  {/* Processing overlay */}
+                  {(assignFaceMutation.isPending || ignoreFaceMutation.isPending) && (
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                      <Loader2 className="h-4 w-4 animate-spin text-white" />
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
+              
+              {/* Compact info below face */}
+              <div className="text-center text-xs text-muted-foreground">
+                <div>{item.suggestions.length} match{item.suggestions.length !== 1 ? 'es' : ''}</div>
+                {isSelected && selectedPerson && (
+                  <div className="text-green-600 font-medium truncate">
+                    {people.find(p => p.id === selectedPerson.personId)?.name}
+                  </div>
+                )}
+              </div>
+
+              {/* Expanded suggestions */}
+              {isExpanded && (
+                <div className="absolute z-50 bg-white dark:bg-gray-800 border rounded-lg shadow-lg p-3 mt-2 min-w-48 left-0">
+                  <div className="space-y-2">
+                    <div className="text-sm font-medium">Suggestions:</div>
+                    {item.suggestions.slice(0, 3).map((suggestion) => (
+                      <div 
+                        key={suggestion.personId}
+                        onClick={() => handleSuggestionAction(item.faceId, suggestion.personId, 'accept')}
+                        className="flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer"
+                      >
+                        <div className="w-8 h-8 bg-muted rounded-full overflow-hidden">
+                          {suggestion.representativeFace ? (
+                            <img
+                              src={`/api/files/${suggestion.representativeFace}`}
+                              alt={suggestion.personName}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <User className="w-4 h-4 text-muted-foreground m-auto mt-2" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium truncate">{suggestion.personName}</div>
+                          <div className="text-xs text-muted-foreground">{Math.round(suggestion.confidence)}%</div>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    <div 
+                      onClick={() => handleCreateNewPerson(item.faceId)}
+                      className="flex items-center gap-2 p-2 hover:bg-blue-50 dark:hover:bg-blue-950 rounded cursor-pointer text-blue-600"
+                    >
+                      <UserPlus className="w-4 h-4" />
+                      <span className="text-sm">Create New Person</span>
+                    </div>
+                    
+                    <div 
+                      onClick={() => ignoreFaceMutation.mutate(item.faceId)}
+                      className="flex items-center gap-2 p-2 hover:bg-red-50 dark:hover:bg-red-950 rounded cursor-pointer text-red-600"
+                    >
+                      <EyeOff className="w-4 h-4" />
+                      <span className="text-sm">Ignore Face</span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           );
         })}
