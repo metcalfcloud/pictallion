@@ -1468,6 +1468,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get grouped faces for better organization
   app.get("/api/faces/grouped", async (req, res) => {
     try {
+      // Face similarity configuration - industry standard thresholds
+      const SIMILARITY_THRESHOLD = 0.95;  // 95% similarity for grouping (very conservative)
+      const PAIR_THRESHOLD = 0.97;        // 97% similarity for 2-face groups
+      const MIN_GROUP_SIZE = 3;            // Minimum faces needed for automatic grouping
       const allFaces = await storage.getAllFaces();
       const people = await storage.getPeople();
       
@@ -1529,8 +1533,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           continue;
         }
 
-        // Find similar faces using a higher threshold for grouping (0.85)
-        const similarFaces = await faceDetectionService.findSimilarFaces(face.embedding, 0.85);
+        // Find similar faces using the conservative threshold
+        const similarFaces = await faceDetectionService.findSimilarFaces(face.embedding, SIMILARITY_THRESHOLD);
         
         // Filter to only include unassigned faces from our current list
         const similarUnassignedFaces = similarFaces.filter(sf => 
@@ -1550,16 +1554,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
 
-        // Only create groups with multiple faces (2+) or single faces without matches
-        if (groupFaces.length >= 2) {
+        // Only create similarity groups with minimum required faces to be conservative
+        // This reduces false positives by requiring stronger evidence of similarity
+        if (groupFaces.length >= MIN_GROUP_SIZE) {
           unassignedGroups.push({
             type: 'similarity',
             groupId: `similar_${face.id}`,
-            groupName: `Similar Faces (${groupFaces.length})`,
+            groupName: `Likely Same Person (${groupFaces.length} faces)`,
             faces: groupFaces,
             avgConfidence: similarUnassignedFaces.length > 0 ? 
               Math.round(similarUnassignedFaces.reduce((sum, sf) => sum + sf.similarity, 0) / similarUnassignedFaces.length * 100) : 0
           });
+        } else if (groupFaces.length === 2) {
+          // Pairs with very high confidence (95%+)
+          const avgSimilarity = similarUnassignedFaces.length > 0 ? 
+            similarUnassignedFaces.reduce((sum, sf) => sum + sf.similarity, 0) / similarUnassignedFaces.length : 0;
+          
+          if (avgSimilarity >= PAIR_THRESHOLD) { // Very high confidence required for pairs
+            unassignedGroups.push({
+              type: 'similarity',
+              groupId: `similar_${face.id}`,
+              groupName: `Possible Match (${Math.round(avgSimilarity * 100)}% confident)`,
+              faces: groupFaces,
+              avgConfidence: Math.round(avgSimilarity * 100)
+            });
+          } else {
+            // Split into individual faces if confidence isn't high enough
+            for (const singleFace of groupFaces) {
+              if (!processedFaceIds.has(singleFace.id)) {
+                unassignedGroups.push({
+                  type: 'single',
+                  groupId: `single_${singleFace.id}`,
+                  groupName: 'Unmatched Face',
+                  faces: [singleFace],
+                  avgConfidence: 0
+                });
+                processedFaceIds.add(singleFace.id);
+              }
+            }
+            continue; // Skip adding to processedFaceIds below
+          }
         } else {
           // Single faces that don't match others
           unassignedGroups.push({
