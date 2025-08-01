@@ -277,7 +277,7 @@ export default function Dashboard() {
                   status: 'pending' as const,
                   progress: 0,
                 }));
-                
+
                 // Set preloaded files and open modal
                 setPreloadedFiles(uploadFiles);
                 setIsUploadModalOpen(true);
