@@ -22,21 +22,17 @@ export default defineConfig({
     outDir: path.resolve(__dirname, "dist/public"),
     emptyOutDir: true,
   },
+  optimizeDeps: {
+    noDiscovery: true,
+    include: []
+  },
   server: {
-    host: "0.0.0.0",
+    host: '0.0.0.0',
     port: 5173,
+    strictPort: false,
     hmr: {
       port: 443,
-      clientPort: 443,
-    },
-    allowedHosts: [
-      "localhost",
-      ".replit.dev",
-      "3e624656-e3b6-4a34-9586-db6d05f7181a-00-1s155afxkxjum.worf.replit.dev"
-    ],
-    fs: {
-      strict: true,
-      deny: ["**/.*"],
-    },
+      clientPort: 443
+    }
   },
 });
