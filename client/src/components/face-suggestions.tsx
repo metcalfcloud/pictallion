@@ -398,7 +398,7 @@ export function FaceSuggestions() {
 
           return (
             <Card key={item.faceId} className={`transition-all ${isSelected ? 'ring-2 ring-blue-500 bg-blue-50' : ''}`}>
-              <CardHeader>
+              <CardHeader className="p-4">
                 <div className="flex items-center gap-4">
                   {/* Face crop */}
                   <div className="relative">
@@ -459,25 +459,25 @@ export function FaceSuggestions() {
                 </div>
               </CardHeader>
 
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 mb-3">
+              <CardContent className="p-4 pt-0">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 mb-2">
                     <Users className="h-4 w-4" />
                     <span className="text-sm font-medium">Suggested People:</span>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
                     {item.suggestions.slice(0, 6).map((suggestion) => {
                       const isThisSelected = selectedPerson?.personId === suggestion.personId;
 
                       return (
                         <div 
                           key={suggestion.personId} 
-                          className={`p-3 border rounded-lg transition-all cursor-pointer hover:shadow-md ${
+                          className={`p-2 border rounded-lg transition-all cursor-pointer hover:shadow-md ${
                             isThisSelected ? 'border-green-500 bg-green-50 dark:bg-green-950' : 'border-border hover:border-muted-foreground'
                           }`}
                         >
-                          <div className="flex items-center gap-3 mb-2">
+                          <div className="flex items-center gap-3 mb-1">
                             <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center overflow-hidden">
                               {suggestion.representativeFace ? (
                                 <img
