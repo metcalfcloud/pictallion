@@ -127,8 +127,7 @@ export class EnhancedDuplicateDetectionService {
     try {
       const fs = await import('fs/promises');
       const path = await import('path');
-      const ExifModule = await import('exif');
-      const ExifImage = ExifModule.ExifImage || ExifModule.default?.ExifImage || ExifModule.default;
+      const ExifImage = (await import('exif')).default;
       
       // Log to file to bypass console truncation
       const logFile = 'debug-metadata.log';
@@ -167,7 +166,7 @@ export class EnhancedDuplicateDetectionService {
         // Check file header for JPEG signature
         const buffer = await fs.readFile(filePath);
         const header = buffer.subarray(0, 4);
-        isImage = (header[0] === 0xFF && header[1] === 0xD8 && header[2] === 0xFF);
+        isImage = !!(header[0] === 0xFF && header[1] === 0xD8 && header[2] === 0xFF);
         log(`No extension, checking file header: ${Array.from(header).map(b => '0x' + b.toString(16).padStart(2, '0')).join(' ')}`);
         log(`Is JPEG by header: ${isImage}`);
       }
@@ -399,21 +398,21 @@ export class EnhancedDuplicateDetectionService {
                       const existingMetadata = photo.metadata || { exif: {} };
                       
                       // Ensure exif object exists
-                      if (!existingMetadata.exif) {
-                        existingMetadata.exif = {};
+                      if (!(existingMetadata as any).exif) {
+                        (existingMetadata as any).exif = {};
                       }
                       
                       // If dateTaken is missing, try to extract fresh EXIF data from the actual file
-                      if (!existingMetadata.exif.dateTaken) {
+                      if (!(existingMetadata as any).exif.dateTaken) {
                         try {
                           console.log(`Extracting fresh EXIF data for existing file: ${photo.filePath}`);
                           const freshMetadata = await this.extractFileMetadata(photo.filePath);
                           if (freshMetadata && freshMetadata.exif && freshMetadata.exif.dateTaken) {
-                            existingMetadata.exif.dateTaken = freshMetadata.exif.dateTaken;
-                            console.log(`Added dateTaken from fresh EXIF: ${existingMetadata.exif.dateTaken}`);
+                            (existingMetadata as any).exif.dateTaken = freshMetadata.exif.dateTaken;
+                            console.log(`Added dateTaken from fresh EXIF: ${(existingMetadata as any).exif.dateTaken}`);
                           } else if (freshMetadata && freshMetadata.exif && freshMetadata.exif.dateTime) {
-                            existingMetadata.exif.dateTaken = freshMetadata.exif.dateTime;
-                            console.log(`Added dateTaken from fresh dateTime: ${existingMetadata.exif.dateTaken}`);
+                            (existingMetadata as any).exif.dateTaken = freshMetadata.exif.dateTime;
+                            console.log(`Added dateTaken from fresh dateTime: ${(existingMetadata as any).exif.dateTaken}`);
                           }
                         } catch (error) {
                           console.log(`Could not extract fresh EXIF for ${photo.filePath}:`, error);
@@ -747,7 +746,7 @@ export class EnhancedDuplicateDetectionService {
     
     if (mimeType.startsWith('image/')) {
       try {
-        const { aiService } = await import("./aiService");
+        const { aiService } = await import("./ai");
         aiMetadata = await aiService.analyzeImage(silverPath, "openai");
         aiShortDescription = aiMetadata.shortDescription;
       } catch (aiError) {
