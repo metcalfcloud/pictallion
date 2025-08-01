@@ -53,7 +53,7 @@ function extractPhotoDate(photo: any): Date | undefined {
   try {
 
     if (photo.metadata?.exif) {
-      const exif = photo.metadata.exif;
+      const exif = (photo.metadata as any)?.exif;
 
       // Try DateTimeOriginal first (most accurate)
       if (exif.dateTimeOriginal) {
@@ -1672,9 +1672,9 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
                   const detectedEvents = await eventDetectionService.detectEvents(photoDate);
                   if (detectedEvents.length > 0) {
                     const bestEvent = detectedEvents.reduce((max, event) => 
-                      event.confidence > max.confidence ? event : max
+                      (event.confidence || 0) > (max.confidence || 0) ? event : max
                     );
-                    if (bestEvent.confidence >= 80) {
+                    if ((bestEvent.confidence || 0) >= 80) {
                       eventType = bestEvent.eventType;
                       eventName = bestEvent.eventName;
                     }
@@ -1734,7 +1734,7 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
                 originalFilename: mediaAsset.originalFilename,
                 aiMetadata: enhancedMetadata,
                 exifMetadata: photo.metadata?.exif
-                  ? (photo.metadata.exif as { dateTime?: string; dateTimeOriginal?: string; createDate?: string; camera?: string; lens?: string })
+                  ? ((photo.metadata as any)?.exif as { dateTime?: string; dateTimeOriginal?: string; createDate?: string; camera?: string; lens?: string })
                   : undefined,
               };
               const finalPattern = namingPattern === 'custom' ? customPattern : namingPattern;
@@ -1755,9 +1755,9 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
                 const detectedEvents = await eventDetectionService.detectEvents(photoDate);
                 if (detectedEvents.length > 0) {
                   const bestEvent = detectedEvents.reduce((max, event) => 
-                    event.confidence > max.confidence ? event : max
+                    (event.confidence || 0) > (max.confidence || 0) ? event : max
                   );
-                  if (bestEvent.confidence >= 80) { // Only use high-confidence matches
+                  if ((bestEvent.confidence || 0) >= 80) { // Only use high-confidence matches
                     eventType = bestEvent.eventType;
                     eventName = bestEvent.eventName;
                   }
@@ -1866,7 +1866,7 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
                 originalFilename: mediaAsset.originalFilename,
                 aiMetadata: enhancedMetadata,
                 exifMetadata: photo.metadata?.exif
-                  ? (photo.metadata.exif as { dateTime?: string; dateTimeOriginal?: string; createDate?: string; camera?: string; lens?: string })
+                  ? ((photo.metadata as any)?.exif as { dateTime?: string; dateTimeOriginal?: string; createDate?: string; camera?: string; lens?: string })
                   : undefined,
               };
               const finalPattern = namingPattern === 'custom' ? customPattern : namingPattern;
@@ -1888,9 +1888,9 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
                 const detectedEvents = await eventDetectionService.detectEvents(photoDate);
                 if (detectedEvents.length > 0) {
                   const bestEvent = detectedEvents.reduce((max, event) => 
-                    event.confidence > max.confidence ? event : max
+                    (event.confidence || 0) > (max.confidence || 0) ? event : max
                   );
-                  if (bestEvent.confidence >= 80) { // Only use high-confidence matches
+                  if ((bestEvent.confidence || 0) >= 80) { // Only use high-confidence matches
                     eventType = bestEvent.eventType;
                     eventName = bestEvent.eventName;
                   }
@@ -2081,7 +2081,7 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
       }
 
       // Embed metadata and create Gold version
-      const goldPath = await metadataEmbedding.embedMetadataToFile(photo.filePath, photo.metadata);
+      const goldPath = await metadataEmbedding.embedMetadataToFile(photo.filePath);
 
       // Create Gold file version
       const goldVersion = await storage.createFileVersion({
@@ -2246,9 +2246,9 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
           const detectedEvents = await eventDetectionService.detectEvents(photoDate);
           if (detectedEvents.length > 0) {
             const bestEvent = detectedEvents.reduce((max, event) => 
-              event.confidence > max.confidence ? event : max
+              (event.confidence || 0) > (max.confidence || 0) ? event : max
             );
-            if (bestEvent.confidence >= 80) {
+            if ((bestEvent.confidence || 0) >= 80) {
               eventType = bestEvent.eventType;
               eventName = bestEvent.eventName;
             }
@@ -2359,9 +2359,9 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
               const detectedEvents = await eventDetectionService.detectEvents(photoDate);
               if (detectedEvents.length > 0) {
                 const bestEvent = detectedEvents.reduce((max, event) => 
-                  event.confidence > max.confidence ? event : max
+                  (event.confidence || 0) > (max.confidence || 0) ? event : max
                 );
-                if (bestEvent.confidence >= 80) {
+                if ((bestEvent.confidence || 0) >= 80) {
                   eventType = bestEvent.eventType;
                   eventName = bestEvent.eventName;
                 }
@@ -2377,9 +2377,13 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
           };
 
           await storage.updateFileVersion(photo.id, {
+            metadata: combinedMetadata
           });
 
           await storage.createAssetHistory({
+            mediaAssetId: photo.mediaAssetId,
+            action: 'ai_processing',
+            details: 'AI metadata processing completed'
           });
 
           processed++;
@@ -2440,9 +2444,7 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
             const namingContext = {
               originalFilename: asset?.originalFilename || '',
               aiMetadata: enhancedMetadata,
-              exifMetadata: photo.metadata?.exif
-                ? (photo.metadata.exif as { dateTime?: string; dateTimeOriginal?: string; createDate?: string; camera?: string; lens?: string })
-                : undefined,
+              exifMetadata: (photo.metadata as any)?.exif,
             };
             const finalPattern = namingPattern === 'custom' ? customPattern : namingPattern;
             newFilename = await generateSilverFilename(namingContext, finalPattern);
@@ -2462,9 +2464,9 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
               const detectedEvents = await eventDetectionService.detectEvents(photoDate);
               if (detectedEvents.length > 0) {
                 const bestEvent = detectedEvents.reduce((max, event) => 
-                  event.confidence > max.confidence ? event : max
+                  (event.confidence || 0) > (max.confidence || 0) ? event : max
                 );
-                if (bestEvent.confidence >= 80) {
+                if ((bestEvent.confidence || 0) >= 80) {
                   eventType = bestEvent.eventType;
                   eventName = bestEvent.eventName;
                 }
@@ -2484,15 +2486,30 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
 
           // Create Silver file version
           const silverVersion = await storage.createFileVersion({
+            mediaAssetId: photo.mediaAssetId,
+            tier: 'silver' as const,
+            filePath: silverPath,
+            fileHash: photo.fileHash,
+            fileSize: photo.fileSize,
+            mimeType: photo.mimeType,
+            metadata: combinedMetadata,
+            processingState: 'processed' as const
           });
 
           for (const face of detectedFaces) {
             await storage.createFace({
+              photoId: silverVersion.id,
+              boundingBox: face.bbox || face.boundingBox || [0, 0, 100, 100],
+              confidence: Math.round((face.confidence || 50) * 100),
+              embedding: face.embedding
             });
           }
 
           // Log promotion
           await storage.createAssetHistory({
+            mediaAssetId: photo.mediaAssetId,
+            action: 'promote_to_silver',
+            details: 'Promoted from Bronze to Silver tier'
           });
 
           processed++;
@@ -2534,10 +2551,21 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
 
           // Create Gold file version
           await storage.createFileVersion({
+            mediaAssetId: photo.mediaAssetId,
+            tier: 'gold' as const,
+            filePath: goldPath,
+            fileHash: photo.fileHash,
+            fileSize: photo.fileSize,
+            mimeType: photo.mimeType,
+            metadata: photo.metadata,
+            processingState: 'processed' as const
           });
 
           // Log promotion
           await storage.createAssetHistory({
+            mediaAssetId: photo.mediaAssetId,
+            action: 'promote_to_gold',
+            details: 'Promoted from Silver to Gold tier'
           });
 
           promoted++;
@@ -2584,14 +2612,20 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
 
       // Log demotion
       await storage.createAssetHistory({
+        mediaAssetId: photo.mediaAssetId,
+        action: 'demote',
+        details: `Demoted from ${photo.tier} tier`
       });
 
       const asset = await storage.getMediaAsset(targetVersion!.mediaAssetId);
       const enhancedAsset = {
         ...asset,
+        currentVersion: targetVersion
       };
 
       res.json({ 
+        success: true,
+        asset: enhancedAsset
       });
     } catch (error) {
       console.error("Error demoting photo:", error);
@@ -2665,9 +2699,9 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
           const detectedEvents = await eventDetectionService.detectEvents(photoDate);
           if (detectedEvents.length > 0) {
             const bestEvent = detectedEvents.reduce((max, event) => 
-              event.confidence > max.confidence ? event : max
+              (event.confidence || 0) > (max.confidence || 0) ? event : max
             );
-            if (bestEvent.confidence >= 80) {
+            if ((bestEvent.confidence || 0) >= 80) {
               eventType = bestEvent.eventType;
               eventName = bestEvent.eventName;
             }
@@ -2723,6 +2757,10 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
         } else {
           // Create new face for unmatched detection
           await storage.createFace({
+            photoId: photo.id,
+            boundingBox: newFace.boundingBox,
+            confidence: Math.round((newFace.confidence || 50) * 100),
+            embedding: newFace.embedding
           });
         }
       }
@@ -2734,10 +2772,14 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
 
       // Log reprocessing
       await storage.createAssetHistory({
+        mediaAssetId: photo.mediaAssetId,
+        action: 'reprocess',
+        details: 'Photo reprocessed with updated AI analysis'
       });
 
       res.json({ 
-        updatedPhoto 
+        success: true,
+        updatedPhoto: photo
       });
     } catch (error) {
       console.error("Error reprocessing photo:", error);
@@ -3033,6 +3075,9 @@ app.put('/api/photos/:id', async (req, res) => {
 
     // Log the update activity
     await storage.createAssetHistory({
+      mediaAssetId: updatedPhoto.mediaAssetId,
+      action: 'update',
+      details: 'Photo metadata updated'
     });
 
     res.json(updatedPhoto);
