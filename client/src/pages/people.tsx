@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { useLocation } from "wouter";
 import { FaceSuggestions } from "@/components/face-suggestions";
 import { RelationshipManager } from "@/components/relationship-manager";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -86,6 +87,7 @@ export default function PeoplePage() {
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const [, navigate] = useLocation();
 
   const { data: people = [], isLoading: peopleLoading } = useQuery<Person[]>({
     queryKey: ["/api/people"],
@@ -511,8 +513,7 @@ export default function PeoplePage() {
                           variant="outline"
                           onClick={(e) => {
                             e.stopPropagation();
-                            setSelectedPerson(person.id);
-                            setIsViewPhotosOpen(true);
+                            navigate(`/gallery?person=${person.id}`);
                           }}
                         >
                           <Eye className="w-4 h-4" />

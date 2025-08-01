@@ -3,9 +3,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import * as React from "react";
-import { Search, Grid, List, Filter, Bot, Star, Eye, CheckSquare, Square, MoreHorizontal, Sparkles } from "lucide-react";
+import { Search, Grid, List, Filter, Bot, Star, Eye, CheckSquare, Square, MoreHorizontal, Sparkles, Users, X } from "lucide-react";
+import { useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import PhotoGrid from "@/components/photo-grid";
 import PhotoDetailModal from "@/components/photo-detail-modal";
@@ -23,6 +24,8 @@ export default function Gallery() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [tierFilter, setTierFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [peopleFilter, setPeopleFilter] = useState<string | null>(null);
+  const [location] = useLocation();
   const [selectedPhotos, setSelectedPhotos] = useState<string[]>([]);
   const [showBatchOperations, setShowBatchOperations] = useState(false);
   const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
@@ -33,9 +36,29 @@ export default function Gallery() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  // Handle URL parameters for people filter
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const personId = urlParams.get('person');
+    if (personId !== peopleFilter) {
+      setPeopleFilter(personId);
+    }
+  }, [location, peopleFilter]);
+
   const { data: photos, isLoading } = useQuery<Photo[]>({
     queryKey: ["/api/photos", tierFilter !== 'all' ? { tier: tierFilter } : {}],
     refetchInterval: isBatchProcessing ? 2000 : false, // Auto-refresh every 2 seconds during batch processing
+  });
+
+  const { data: people } = useQuery({
+    queryKey: ["/api/people"],
+  });
+
+  // Get photos for the selected person when filtering by people
+  const { data: personPhotos } = useQuery({
+    queryKey: ["/api/people", peopleFilter, "photos"],
+    queryFn: () => peopleFilter ? fetch(`/api/people/${peopleFilter}/photos`).then(res => res.json()) : null,
+    enabled: !!peopleFilter,
   });
 
   const processPhotoMutation = useMutation({
@@ -166,14 +189,26 @@ export default function Gallery() {
   }, [bulkPromoteMutation, toast]);
 
   const filteredPhotos = photos?.filter(photo => {
+    // Search query filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       const filename = photo.mediaAsset.originalFilename.toLowerCase();
       const tags = photo.metadata?.ai?.aiTags?.join(' ').toLowerCase() || '';
       const description = photo.metadata?.ai?.longDescription?.toLowerCase() || '';
 
-      return filename.includes(query) || tags.includes(query) || description.includes(query);
+      if (!(filename.includes(query) || tags.includes(query) || description.includes(query))) {
+        return false;
+      }
     }
+
+    // People filter - check if photo is in the person's photos
+    if (peopleFilter && personPhotos) {
+      const isInPersonPhotos = personPhotos.some((personPhoto: any) => personPhoto.id === photo.id);
+      if (!isInPersonPhotos) {
+        return false;
+      }
+    }
+
     return true;
   }) || [];
 
@@ -278,6 +313,29 @@ export default function Gallery() {
                 <SelectItem value="silver">Silver (AI Processed)</SelectItem>
               </SelectContent>
             </Select>
+
+            {/* People Filter */}
+            {peopleFilter ? (
+              <div className="flex items-center bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg px-3 py-2">
+                <Users className="w-4 h-4 text-blue-600 mr-2" />
+                <span className="text-sm text-blue-900 dark:text-blue-100 mr-2">
+                  {people?.find((p: any) => p.id === peopleFilter)?.name || 'Unknown Person'}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setPeopleFilter(null);
+                    const url = new URL(window.location.href);
+                    url.searchParams.delete('person');
+                    window.history.replaceState({}, '', url.toString());
+                  }}
+                  className="h-auto p-1 text-blue-600 hover:text-blue-800"
+                >
+                  <X className="w-3 h-3" />
+                </Button>
+              </div>
+            ) : null}
 
             <Button 
               variant="outline" 
