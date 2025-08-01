@@ -636,25 +636,34 @@ export default function PhotoDetailModal({
               const [x, y, width, height] = face.boundingBox || [0, 0, 0, 0];
               const scaleX = imageWidth / (photo.metadata?.exif?.imageWidth || imageWidth);
               const scaleY = imageHeight / (photo.metadata?.exif?.imageHeight || imageHeight);
+              const isHovered = hoveredFace === face.id;
 
               return (
                 <div
                   key={face.id}
-                  className={`absolute border-2 ${
-                    face.personId ? 'border-green-400' : 'border-yellow-400'
-                  } bg-black/20 transition-all duration-200`}
+                  className={`absolute border-2 transition-all duration-200 ${
+                    isHovered 
+                      ? 'border-cyan-400 bg-cyan-400/20 shadow-lg animate-pulse' 
+                      : face.personId 
+                        ? 'border-green-400 bg-black/20' 
+                        : 'border-yellow-400 bg-black/20'
+                  }`}
                   style={{
                     left: `${(x * scaleX)}px`,
                     top: `${(y * scaleY)}px`,
                     width: `${(width * scaleX)}px`,
                     height: `${(height * scaleY)}px`,
+                    zIndex: isHovered ? 10 : 1,
                   }}
                   title={face.personId ? `${face.person?.name || 'Unknown'} (${Math.round(face.confidence)}%)` : `Unassigned face (${Math.round(face.confidence)}%)`}
                 >
-                  {face.personId && (
-                    <div className="absolute -top-6 left-0 bg-green-600 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+                  {(face.personId || isHovered) && (
+                    <div className={`absolute -top-6 left-0 text-white text-xs px-2 py-1 rounded whitespace-nowrap ${
+                      isHovered ? 'bg-cyan-400' : 'bg-green-600'
+                    }`}>
                       {face.person?.name || 'Unknown'}
                       {face.ageInPhoto && ` (${face.ageInPhoto})`}
+                      {isHovered && !face.personId && ' - Unassigned'}
                     </div>
                   )}
                 </div>
@@ -958,7 +967,16 @@ export default function PhotoDetailModal({
                 {detectedFaces && detectedFaces.length > 0 && (
                   <div className="grid grid-cols-2 gap-2">
                     {detectedFaces.map((face: any) => (
-                      <div key={face.id} className="flex items-center gap-2 p-2 border rounded">
+                      <div 
+                        key={face.id} 
+                        className={`flex items-center gap-2 p-2 border rounded cursor-pointer transition-all duration-200 ${
+                          hoveredFace === face.id 
+                            ? 'border-cyan-400 bg-cyan-50 dark:bg-cyan-900/30 shadow-md' 
+                            : 'hover:border-cyan-300 hover:bg-cyan-25 dark:hover:bg-cyan-900/20'
+                        }`}
+                        onMouseEnter={() => setHoveredFace(face.id)}
+                        onMouseLeave={() => setHoveredFace(null)}
+                      >
                         {face.faceCropUrl && (
                           <img 
                             src={`/api/files/${face.faceCropUrl}`}
