@@ -397,9 +397,10 @@ export function FaceSuggestions() {
           const selectedPerson = selectedAssignments.find(a => a.faceId === item.faceId);
 
           return (
-            <Card key={item.faceId} className={`transition-all ${isSelected ? 'ring-2 ring-blue-500 bg-blue-50' : ''}`}>
+            <div key={item.faceId} className="w-fit">
+              <Card className={`transition-all ${isSelected ? 'ring-2 ring-blue-500 bg-blue-50' : ''}`}>
               <CardHeader className="p-4">
-                <div className="flex items-start gap-3">
+                <div className="flex items-start gap-3 w-fit">
                   {/* Face crop */}
                   <div className="relative flex-shrink-0">
                     {face ? (
@@ -432,29 +433,27 @@ export function FaceSuggestions() {
                   </div>
 
                   {/* Face info and selection status */}
-                  <div className="min-w-0 flex-grow">
-                    <div className="flex items-start justify-between">
-                      <div className="min-w-0">
-                        <h3 className="font-medium text-sm">
-                          {face ? 'Unassigned Face' : 'Face (Missing Data)'}
-                        </h3>
-                        <p className="text-sm text-muted-foreground truncate">
-                          {face?.photo?.mediaAsset.originalFilename ? 
-                            `From: ${face.photo.mediaAsset.originalFilename}` : 
-                            `Face ID: ${item.faceId}`
-                          }
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {face ? `Confidence: ${Math.round(face.confidence)}%` : 'Face data missing'} • {item.suggestions.length} suggestion{item.suggestions.length !== 1 ? 's' : ''}
-                        </p>
-                      </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-medium text-sm">
+                      {face ? 'Unassigned Face' : 'Face (Missing Data)'}
+                    </h3>
+                    <p className="text-sm text-muted-foreground truncate">
+                      {face?.photo?.mediaAsset.originalFilename ? 
+                        `From: ${face.photo.mediaAsset.originalFilename}` : 
+                        `Face ID: ${item.faceId}`
+                      }
+                    </p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs text-muted-foreground">
+                        {face ? `Confidence: ${Math.round(face.confidence)}%` : 'Face data missing'} • {item.suggestions.length} suggestion{item.suggestions.length !== 1 ? 's' : ''}
+                      </p>
                       
                       {/* Selection status */}
                       {isSelected && selectedPerson && (
-                        <div className="flex items-center gap-1 text-green-600 flex-shrink-0 ml-2">
-                          <CheckCircle2 className="h-4 w-4" />
+                        <div className="flex items-center gap-1 text-green-600">
+                          <CheckCircle2 className="h-3 w-3" />
                           <span className="text-xs font-medium">
-                            Assigned to: {people.find(p => p.id === selectedPerson.personId)?.name}
+                            {people.find(p => p.id === selectedPerson.personId)?.name}
                           </span>
                         </div>
                       )}
@@ -554,6 +553,7 @@ export function FaceSuggestions() {
                 </div>
               </CardContent>
             </Card>
+            </div>
           );
         })}
       </div>
