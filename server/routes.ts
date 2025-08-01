@@ -777,7 +777,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Resolve duplicate conflicts
+  app.post("/api/upload/resolve-conflicts", async (req, res) => {
+    try {
+      const { resolutions } = req.body;
+      
+      if (!Array.isArray(resolutions)) {
+        return res.status(400).json({ error: "Resolutions must be an array" });
+      }
 
+      const { enhancedDuplicateService } = await import("./services/enhancedDuplicateDetection.js");
+      const results: any[] = [];
+      
+      for (const resolution of resolutions) {
+        const { conflictId, action, conflict } = resolution;
+        
+        try {
+          const result = await enhancedDuplicateService.processDuplicateResolution(
+            conflictId,
+            action,
+            conflict
+          );
+          
+          results.push({
+            conflictId,
+            ...result
+          });
+        } catch (error) {
+          console.error(`Error resolving conflict ${conflictId}:`, error);
+          results.push({
+            conflictId,
+            success: false,
+            message: `Failed to resolve conflict: ${error instanceof Error ? error.message : 'Unknown error'}`
+          });
+        }
+      }
+      
+      const successCount = results.filter(r => r.success).length;
+      const failureCount = results.length - successCount;
+      
+      res.json({
+        success: failureCount === 0,
+        message: `Resolved ${successCount} conflicts${failureCount > 0 ? `, ${failureCount} failed` : ''}`,
+        results
+      });
+    } catch (error) {
+      console.error("Error in resolve-conflicts endpoint:", error);
+      res.status(500).json({ error: "Failed to resolve conflicts" });
+    }
+  });
 
   // Update photo metadata
   app.patch("/api/photos/:id/metadata", async (req, res) => {
