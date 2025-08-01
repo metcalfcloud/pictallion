@@ -713,9 +713,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           // Detect faces (non-LLM processing) if it's an image
           if (file.mimetype.startsWith('image/')) {
-            // Run face detection
+            // Run face detection on the processed Silver file
             console.log('Running face detection on uploaded photo...');
-            const faceDetectionResult = await faceDetectionService.detectFaces(file.path);
+            const faceDetectionResult = await faceDetectionService.detectFaces(silverPath);
             const detectedFaces = faceDetectionResult.faces;
 
             // Update photo metadata with face detection status

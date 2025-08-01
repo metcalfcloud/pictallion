@@ -76,6 +76,7 @@ Pictallion is a comprehensive photo and video management application built with 
 - **98% Threshold**: Professional similarity detection with 99.9% conflict threshold for non-bursts
 
 ### Recent Fixes
+- Fixed face detection during upload: Now runs on processed Silver files instead of temporary upload files
 - Fixed face assignment preservation during AI reprocessing
 - Resolved duplicate file creation during reprocessing
 - Enhanced upload queue management with conflict detection
