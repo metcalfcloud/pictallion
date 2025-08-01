@@ -6,9 +6,15 @@ export interface EventMatch {
   personId?: string;
   personName?: string;
   age?: number; // For birthdays
+  confidence?: number; // Event detection confidence
+  eventType?: string; // Type of event (holiday, birthday, etc.)
+  eventName?: string; // Name of the event
 }
 
 export interface HolidayDefinition {
+  name: string;
+  month: number;
+  day: number;
   country?: string;
   region?: string;
 }
@@ -220,6 +226,10 @@ export class EventDetectionService {
       const existing = await storage.getSettingByKey('enabled_holidays');
       if (!existing) {
         await storage.createSetting({
+          key: 'enabled_holidays',
+          value: JSON.stringify(['US']),
+          description: 'Enabled holiday country codes',
+          category: 'events'
         });
       }
     } catch (err) {

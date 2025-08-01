@@ -1,8 +1,16 @@
 
 interface LogLevel {
+  ERROR: number;
+  WARN: number;
+  INFO: number;
+  DEBUG: number;
 }
 
 const LOG_LEVELS: LogLevel = {
+  ERROR: 0,
+  WARN: 1,
+  INFO: 2,
+  DEBUG: 3
 };
 
 class Logger {

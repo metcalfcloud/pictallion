@@ -375,6 +375,7 @@ export class DatabaseStorage implements IStorage {
 
     return photos.map(row => ({
       ...row.file_versions!,
+      mediaAsset: row.media_assets!,
     }));
   }
 
@@ -722,9 +723,8 @@ export class DatabaseStorage implements IStorage {
 
   async getLocationStats(): Promise<{
     total: number;
-    topLocations: Location[];
-    recentLocations: Location[];
-    hotspots: Array<{ lat: number; lng: number; count: number; name?: string; suggestedName?: string }>;
+    byCountry: Array<{ country: string; count: number }>;
+    recent: Array<{ name: string; usageCount: number; suggestedName?: string }>;
   }> {
     const { locationClusteringService } = await import('./services/location-clustering');
 
@@ -732,25 +732,33 @@ export class DatabaseStorage implements IStorage {
 
     const allPhotos = await this.getAllFileVersionsWithAssets();
 
-    const photosWithLocation = locationClusteringService.extractCoordinates(allPhotos);
+    const byCountry = allLocations
+      .reduce((acc, location) => {
+        // Extract country from location name or use placeholder
+        const countryName = location.placeName?.split(', ').pop() || 'Unknown';
+        const existing = acc.find(item => item.country === countryName);
+        if (existing) {
+          existing.count += location.photoCount || 0;
+        } else {
+          acc.push({ country: countryName, count: location.photoCount || 0 });
+        }
+        return acc;
+      }, [] as Array<{ country: string; count: number }>)
+      .sort((a, b) => b.count - a.count);
 
-    const hotspots = locationClusteringService.findHotspots(allPhotos, 2);
-
-    const topLocations = allLocations
-      .sort((a, b) => (b.photoCount || 0) - (a.photoCount || 0))
-      .slice(0, 5);
-
-    const recentLocations = allLocations
+    const recent = allLocations
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      .slice(0, 5);
-
-
+      .slice(0, 5)
+      .map(location => ({
+        name: location.name,
+        usageCount: location.photoCount || 0,
+        suggestedName: location.placeName || undefined
+      }));
 
     return {
       total: allLocations.length,
-      topLocations,
-      recentLocations,
-      hotspots,
+      byCountry,
+      recent,
     };
   }
 
@@ -759,10 +767,18 @@ export class DatabaseStorage implements IStorage {
     lng: number;
     count: number;
     name?: string;
+    suggestedName?: string;
   }>> {
     const { locationClusteringService } = await import('./services/location-clustering');
     const allPhotos = await this.getAllFileVersionsWithAssets();
-    return locationClusteringService.findHotspots(allPhotos, 2);
+    const hotspots = locationClusteringService.findHotspots(allPhotos, 2);
+    return hotspots.map((hotspot: any) => ({
+      lat: parseFloat(hotspot.latitude) || 0,
+      lng: parseFloat(hotspot.longitude) || 0,
+      count: hotspot.photoCount || 0,
+      name: hotspot.name,
+      suggestedName: hotspot.placeName
+    }));
   }
 
   async getAllFileVersionsWithAssets(): Promise<Array<FileVersion & { mediaAsset: MediaAsset }>> {
@@ -772,7 +788,8 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(mediaAssets, eq(fileVersions.mediaAssetId, mediaAssets.id));
 
     return result.map(row => ({
-      ...row.file_versions,
+      ...row.file_versions!,
+      mediaAsset: row.media_assets!,
     }));
   }
 
@@ -782,8 +799,7 @@ export class DatabaseStorage implements IStorage {
     await db.delete(aiPrompts);
 
     for (const prompt of DEFAULT_PROMPTS) {
-      await db.insert(aiPrompts).values({
-      });
+      await db.insert(aiPrompts).values(prompt);
     }
   }
 
@@ -828,6 +844,7 @@ export class DatabaseStorage implements IStorage {
       // Insert only if tag doesn't exist (ignore conflicts)
       await db.insert(globalTagLibrary)
         .values({
+          tag: tag
         })
         .onConflictDoNothing();
     } catch (error) {

@@ -604,6 +604,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             if (exactDuplicate) {
               console.log(`Auto-skipping MD5 identical file: ${file.originalname}`);
               results.push({
+                status: 'skipped',
+                filename: file.originalname,
+                reason: 'MD5 duplicate - exact same file already exists',
+                duplicateId: exactDuplicate.id
               });
               continue;
             }
@@ -616,12 +620,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
             })));
 
             results.push({
+              status: 'conflict',
+              filename: file.originalname,
+              conflicts: duplicateConflicts
             });
             continue;
           }
 
           // No conflicts - proceed with normal upload
           const mediaAsset = await storage.createMediaAsset({
+            originalFilename: file.originalname
           });
 
           // Process file directly to Silver tier with basic processing only
@@ -632,7 +640,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           // Create Silver file version with basic metadata only
           const fileVersion = await storage.createFileVersion({
+            mediaAssetId: mediaAsset.id,
+            tier: "silver" as const,
+            filePath: silverPath,
             fileHash,
+            fileSize: (await fs.stat(silverPath)).size,
+            mimeType: file.mimetype,
+            metadata: metadata
           });
 
           if (file.mimetype.startsWith('image/')) {
@@ -651,22 +665,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
             for (const face of detectedFaces) {
               await storage.createFace({
+                photoId: fileVersion.id,
+                boundingBox: face.bbox || face.boundingBox || [0, 0, 100, 100],
+                confidence: Math.round((face.confidence || 50) * 100),
+                embedding: face.embedding
               });
             }
           }
 
           // Log ingestion
           await storage.createAssetHistory({
+            mediaAssetId: mediaAsset.id,
+            action: 'upload_silver',
+            details: `Uploaded ${file.originalname} to Silver tier with face detection`
           });
 
           console.log(`Successfully uploaded ${file.originalname} to Silver tier with basic processing and face detection. Asset ID: ${mediaAsset.id}`);
 
           results.push({
+            status: 'success',
+            filename: file.originalname,
+            mediaAssetId: mediaAsset.id,
+            fileVersionId: fileVersion.id
           });
 
         } catch (fileError) {
           console.error(`Error processing file ${file.originalname}:`, fileError);
           results.push({
+            status: 'error',
+            filename: file.originalname,
+            error: fileError instanceof Error ? fileError.message : 'Unknown error'
           });
         }
       }
@@ -827,8 +855,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (const face of detectedFaces) {
         const savedFace = await storage.createFace({
           photoId: photo.id,
-          boundingBox: face.boundingBox,
-          confidence: face.confidence
+          boundingBox: face.bbox || face.boundingBox || [0, 0, 100, 100],
+          confidence: Math.round((face.confidence || 50) * 100),
+          embedding: face.embedding
         });
         savedFaces.push(savedFace);
       }
@@ -1209,6 +1238,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }
 
               faceSuggestions.push({
+                personId: personId,
+                personName: person.name,
+                confidence: confidence,
+                representativeFaceUrl: representativeFaceUrl
               });
             }
           }
@@ -1219,6 +1252,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           faceSuggestions.sort((a, b) => b.confidence - a.confidence);
 
           suggestions.push({
+            faceId: face.id,
+            suggestions: faceSuggestions.slice(0, 3)
           });
 
           console.log(`Created ${faceSuggestions.length} suggestions for face ${face.id}`);
@@ -1239,6 +1274,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const suggestions = await faceDetectionService.reprocessUnassignedFaces();
       res.json({ 
+        success: true,
+        suggestions: suggestions
       });
     } catch (error) {
       console.error("Error reprocessing faces:", error);
@@ -1567,12 +1604,12 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
       const allPhotos = await storage.getAllFileVersions();
       const photosWithAssets = [];
 
-          photo: {
-            mediaAsset: asset
+      for (const photo of allPhotos) {
         const asset = await storage.getMediaAsset(photo.mediaAssetId);
         if (asset) {
           photosWithAssets.push({
             ...photo,
+            mediaAsset: asset
           });
         }
       }
@@ -1653,11 +1690,17 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
               };
 
               await storage.updateFileVersion(photo.id, {
+                metadata: combinedMetadata,
+                processingState: "processed" as const
               });
 
               await storage.deleteFacesByPhoto(photo.id);
               for (const face of detectedFaces) {
                 await storage.createFace({
+                  photoId: photo.id,
+                  boundingBox: face.bbox || face.boundingBox || [0, 0, 100, 100],
+                  confidence: Math.round((face.confidence || 50) * 100),
+                  embedding: face.embedding
                 });
               }
 
@@ -1730,24 +1773,35 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
             };
 
             const silverVersion = await storage.createFileVersion({
-              ...photo,
-              tier: "silver",
+              mediaAssetId: photo.mediaAssetId,
+              tier: "silver" as const,
               filePath: silverPath,
-              processingStatus: "completed",
+              fileHash: photo.fileHash,
+              fileSize: photo.fileSize,
+              mimeType: photo.mimeType,
+              processingState: "processed" as const,
               metadata: combinedMetadata
             });
 
             for (const face of detectedFaces) {
               await storage.createFace({
+                photoId: silverVersion.id,
+                boundingBox: face.bbox || face.boundingBox || [0, 0, 100, 100],
+                confidence: Math.round((face.confidence || 50) * 100),
+                embedding: face.embedding
               });
             }
 
             // Mark bronze photo as promoted
             await storage.updateFileVersion(photo.id, {
+              processingState: "promoted" as const
             });
 
             // Log promotion
             await storage.createAssetHistory({
+              mediaAssetId: photo.mediaAssetId,
+              action: 'promote_to_silver',
+              details: `Promoted from Bronze to Silver tier`
             });
 
             promoted++;
@@ -1768,13 +1822,14 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
             }
           }
           const analysis = await burstPhotoService.analyzeBurstPhotos(photosWithAssets);
-          const group = analysis.groups.find(g => g.id === groupId);
+          const group = (analysis as any).groups?.find((g: any) => g.id === groupId);
 
           if (group) {
             for (const groupPhoto of group.photos) {
               const fileVersion = await storage.getFileVersion(groupPhoto.id);
               if (!selectedPhotoIds.includes(groupPhoto.id) && fileVersion?.tier === 'bronze') {
                 await storage.updateFileVersion(groupPhoto.id, {
+                  processingState: "processed" as const
                 });
               }
             }
@@ -1853,18 +1908,34 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
             };
 
             const silverVersion = await storage.createFileVersion({
+              mediaAssetId: photo.mediaAssetId,
+              tier: "silver" as const,
+              filePath: photo.filePath,
+              fileHash: photo.fileHash,
+              fileSize: photo.fileSize,
+              mimeType: photo.mimeType,
+              processingState: "processed" as const,
+              metadata: combinedMetadata
             });
 
             for (const face of detectedFaces) {
               await storage.createFace({
+                photoId: silverVersion.id,
+                boundingBox: face.bbox || face.boundingBox || [0, 0, 100, 100],
+                confidence: Math.round((face.confidence || 50) * 100),
+                embedding: face.embedding
               });
             }
 
             // Mark bronze photo as promoted
             await storage.updateFileVersion(photo.id, {
+              processingState: "promoted" as const
             });
 
             await storage.createAssetHistory({
+              mediaAssetId: photo.mediaAssetId,
+              action: 'promote_ungrouped_to_silver',
+              details: `Promoted ungrouped photo to Silver tier`
             });
 
             promoted++;
@@ -1896,6 +1967,7 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
         if (asset) {
           photosWithAssets.push({
             ...photo,
+            mediaAsset: asset
           });
         }
       }
@@ -2009,18 +2081,18 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
       }
 
       // Embed metadata and create Gold version
-      const goldPath = await metadataEmbedding.embedMetadataToFile(
-        photo,
-        photo.metadata || {},
-        { preserveOriginal: true }
-      );
+      const goldPath = await metadataEmbedding.embedMetadataToFile(photo.filePath, photo.metadata);
 
       // Create Gold file version
       const goldVersion = await storage.createFileVersion({
-        ...photo,
-        tier: 'gold',
+        mediaAssetId: photo.mediaAssetId,
+        tier: 'gold' as const,
         filePath: goldPath,
-        processingStatus: 'completed'
+        fileHash: photo.fileHash,
+        fileSize: photo.fileSize,
+        mimeType: photo.mimeType,
+        metadata: photo.metadata,
+        processingState: 'processed' as const
       });
 
       // Save tags to global library
@@ -2041,6 +2113,9 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
 
       // Log the embedding
       await storage.createAssetHistory({
+        mediaAssetId: photo.mediaAssetId,
+        action: 'promote_to_gold',
+        details: 'Metadata embedded and promoted to Gold tier'
       });
 
       res.json({ success: true, goldVersion });
@@ -2079,10 +2154,21 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
 
       // Create Gold file version with embedded metadata
       const goldVersion = await storage.createFileVersion({
+        mediaAssetId: photo.mediaAssetId,
+        tier: 'gold' as const,
+        filePath: goldPath,
+        fileHash: photo.fileHash,
+        fileSize: photo.fileSize,
+        mimeType: photo.mimeType,
+        metadata: photo.metadata,
+        processingState: 'processed' as const
       });
 
       // Log promotion
       await storage.createAssetHistory({
+        mediaAssetId: photo.mediaAssetId,
+        action: 'promote_to_gold',
+        details: 'Promoted from Silver to Gold tier'
       });
 
       res.json(goldVersion);
@@ -2177,13 +2263,19 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
       };
 
       await storage.updateFileVersion(photo.id, {
+        metadata: combinedMetadata
       });
 
       // Log AI processing
       await storage.createAssetHistory({
+        mediaAssetId: photo.mediaAssetId,
+        action: 'ai_processing',
+        details: 'Added AI metadata and tags'
       });
 
       res.json({ 
+        success: true,
+        metadata: combinedMetadata
       });
     } catch (error) {
       console.error("Error in AI processing:", error);

@@ -48,9 +48,12 @@ class AIService {
   }
 
   async analyzeImageWithPeopleContext(
+    imagePath: string,
     preferredProvider?: AIProvider, 
     peopleContext?: Array<{
+      name?: string;
       ageInPhoto?: number | null;
+      relationships?: Array<{ type: string }>;
     }>
   ): Promise<AIMetadata> {
     const provider = preferredProvider || this.config.provider;
@@ -90,7 +93,9 @@ class AIService {
   }
 
   private async analyzeWithOllama(imagePath: string, peopleContext?: Array<{
+    name?: string;
     ageInPhoto?: number | null;
+    relationships?: Array<{ type: string }>;
   }>): Promise<AIMetadata> {
 
       // Read and encode image to base64
@@ -102,8 +107,8 @@ class AIService {
       const peopleContextStr = peopleContext && peopleContext.length > 0 
         ? `\n\nKNOWN PEOPLE IN THIS IMAGE:\n${peopleContext.map(person => 
             `- ${person.name}${person.ageInPhoto ? ` (age ${person.ageInPhoto} in this photo)` : ''}${
-              person.relationships.length > 0 
-                ? ` - relationships: ${person.relationships.map(r => r.type).join(', ')}` 
+              person.relationships && person.relationships.length > 0 
+                ? ` - relationships: ${person.relationships.map((r: any) => r.type).join(', ')}` 
                 : ''
             }`
           ).join('\n')}\n\nUse this information to enhance your analysis and descriptions. Consider the people's ages and relationships when describing the image context and generating tags.`
@@ -165,7 +170,9 @@ class AIService {
   }
 
   private async analyzeWithOpenAI(imagePath: string, peopleContext?: Array<{
+    name?: string;
     ageInPhoto?: number | null;
+    relationships?: Array<{ type: string }>;
   }>): Promise<AIMetadata> {
     const OpenAI = (await import("openai")).default;
     const openai = new OpenAI({ apiKey: this.config.openai.apiKey });
@@ -179,8 +186,8 @@ class AIService {
     const peopleContextStr = peopleContext && peopleContext.length > 0 
       ? `\n\nKNOWN PEOPLE IN THIS IMAGE:\n${peopleContext.map(person => 
           `- ${person.name}${person.ageInPhoto ? ` (age ${person.ageInPhoto} in this photo)` : ''}${
-            person.relationships.length > 0 
-              ? ` - relationships: ${person.relationships.map(r => r.type).join(', ')}` 
+            person.relationships && person.relationships.length > 0 
+              ? ` - relationships: ${person.relationships.map((r: any) => r.type).join(', ')}` 
               : ''
           }`
         ).join('\n')}\n\nUse this information to enhance your analysis and descriptions. Consider the people's ages and relationships when describing the image context and generating tags.`
@@ -278,7 +285,9 @@ For events, detect holidays, celebrations, activities, and life events.`;
   }
 
   private async generateBasicMetadata(imagePath: string, peopleContext?: Array<{
+    name?: string;
     ageInPhoto?: number | null;
+    relationships?: Array<{ type: string }>;
   }>): Promise<AIMetadata> {
     // Extract basic info from filename and path
     const filename = path.basename(imagePath);
@@ -292,7 +301,7 @@ For events, detect holidays, celebrations, activities, and life events.`;
       // Use the prompt manager to generate a natural family description
       const familyDescription = await promptManager.generateFamilyDescription(peopleContext);
       
-      const peopleNames = peopleContext.map(p => p.name);
+      const peopleNames = peopleContext.map(p => p.name).filter(name => name);
       const displayNames = peopleNames.length <= 3 
         ? peopleNames.join(", ")
         : `${peopleNames.slice(0, 2).join(", ")} and ${peopleNames.length - 2} others`;
@@ -319,7 +328,7 @@ For events, detect holidays, celebrations, activities, and life events.`;
       if (adults.length > 0) tags.push("adults");
       if (seniors.length > 0) tags.push("grandparents", "generations");
       
-      const relationships = peopleContext.flatMap(p => p.relationships.map(r => r.type));
+      const relationships = peopleContext.flatMap(p => p.relationships?.map((r: any) => r.type) || []);
       if (relationships.includes("spouse") || relationships.includes("partner")) {
         tags.push("couple", "love");
       }
@@ -333,7 +342,7 @@ For events, detect holidays, celebrations, activities, and life events.`;
       // Create warm, natural long description
       longDescription = familyDescription;
       
-      const agesInfo = peopleContext.filter(p => p.ageInPhoto).map(p => `${p.name} (${p.ageInPhoto})`);
+      const agesInfo = peopleContext.filter(p => p.ageInPhoto && p.name).map(p => `${p.name} (${p.ageInPhoto})`);
       if (agesInfo.length > 0 && agesInfo.length <= 4) {
         longDescription += ` Everyone captured beautifully - ${agesInfo.join(", ")}.`;
       }
@@ -363,7 +372,7 @@ For events, detect holidays, celebrations, activities, and life events.`;
       shortDescription,
       longDescription,
       detectedObjects: [],
-      placeName: null,
+      placeName: undefined,
       aiConfidenceScores: {
         tags: 0.7,
         description: 0.8,
@@ -508,6 +517,8 @@ Return ONLY a JSON array like: ["tag1", "tag2", "tag3"]`,
     ]);
     
     return {
+      ollama: ollamaAvailable,
+      openai: Boolean(this.config.openai.apiKey)
     };
   }
 
