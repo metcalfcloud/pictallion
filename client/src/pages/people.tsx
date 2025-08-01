@@ -456,7 +456,7 @@ export default function PeoplePage() {
         {viewMode === 'people' && (
           <div className="space-y-4">
             {peopleLoading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                 {Array.from({ length: 6 }).map((_, i) => (
                   <Card key={i} className="h-48 animate-pulse">
                     <CardContent className="p-4">
@@ -468,7 +468,7 @@ export default function PeoplePage() {
                 ))}
               </div>
             ) : filteredPeople.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                 {filteredPeople.map((person) => (
                   <Card key={person.id} className="hover:shadow-lg transition-shadow">
                     <CardContent className="p-4">
