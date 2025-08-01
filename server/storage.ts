@@ -134,10 +134,15 @@ export interface IStorage {
   updateLocation(id: string, updates: Partial<Location>): Promise<Location | null>;
   deleteLocation(id: string): Promise<boolean>;
   getLocationStats(): Promise<{
-      suggestedName?: string;
-    }>;
+    total: number;
+    byCountry: Array<{ country: string; count: number }>;
+    recent: Array<{ name: string; usageCount: number; suggestedName?: string }>;
   }>;
   findLocationHotspots(): Promise<Array<{
+    lat: number;
+    lng: number;
+    count: number;
+    name?: string;
   }>>;
 
   updatePhoto(id: string, updates: any): Promise<any>;
@@ -312,6 +317,7 @@ export class DatabaseStorage implements IStorage {
 
     return results.map(result => ({
       ...result.file_versions,
+      mediaAsset: {
         ...result.media_assets!,
       }
     }));
@@ -715,8 +721,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getLocationStats(): Promise<{
-      suggestedName?: string;
-    }>;
+    total: number;
+    topLocations: Location[];
+    recentLocations: Location[];
+    hotspots: Array<{ lat: number; lng: number; count: number; name?: string; suggestedName?: string }>;
   }> {
     const { locationClusteringService } = await import('./services/location-clustering');
 
@@ -739,6 +747,7 @@ export class DatabaseStorage implements IStorage {
 
 
     return {
+      total: allLocations.length,
       topLocations,
       recentLocations,
       hotspots,
@@ -746,6 +755,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async findLocationHotspots(): Promise<Array<{
+    lat: number;
+    lng: number;
+    count: number;
+    name?: string;
   }>> {
     const { locationClusteringService } = await import('./services/location-clustering');
     const allPhotos = await this.getAllFileVersionsWithAssets();

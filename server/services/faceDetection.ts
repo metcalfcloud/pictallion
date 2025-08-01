@@ -51,6 +51,11 @@ class FaceDetectionService {
 
   async detectFaces(imagePath: string): Promise<{ faces: DetectedFace[], metadata: any }> {
     const metadata = {
+      faceDetection: {
+        timestamp: new Date().toISOString(),
+        confidence: 0,
+        method: 'unknown',
+        failed: false
       }
     };
 
@@ -117,11 +122,14 @@ class FaceDetectionService {
         const detection = detections[i];
         const box = detection.detection.box;
         const faceData: any = {
+          bbox: [
             Math.round(box.x),
             Math.round(box.y),
             Math.round(box.width),
             Math.round(box.height)
           ],
+          confidence: detection.detection.score || 0.8,
+          landmarks: detection.landmarks ? detection.landmarks.positions : []
         };
 
         faces.push(faceData);
@@ -158,6 +166,9 @@ class FaceDetectionService {
       for (let i = 0; i < candidateRegions.length; i++) {
         const region = candidateRegions[i];
         faces.push({
+          bbox: region.boundingBox,
+          confidence: region.confidence,
+          landmarks: []
         });
       }
 
@@ -184,11 +195,13 @@ class FaceDetectionService {
 
       for (const region of skinToneRegions) {
         const scaledRegion = {
+          boundingBox: [
             Math.round(region.x * scaleFactor),
             Math.round(region.y * scaleFactor),
             Math.round(region.width * scaleFactor),
             Math.round(region.height * scaleFactor)
           ] as [number, number, number, number],
+          confidence: region.confidence || 0.7
         };
 
         const faceArea = scaledRegion.boundingBox[2] * scaledRegion.boundingBox[3];
@@ -368,6 +381,10 @@ class FaceDetectionService {
 
     // Define search area (upper 70% of image where faces typically appear)
     const searchArea = {
+      startX: 0,
+      endX: width,
+      startY: 0,
+      endY: height * 0.7
     };
 
     if (width > height * 1.3) {
@@ -383,11 +400,13 @@ class FaceDetectionService {
         if (pos.x >= searchArea.startX && pos.x <= searchArea.endX &&
             pos.y >= searchArea.startY && pos.y <= searchArea.endY) {
           regions.push({
+            boundingBox: [
               Math.round(pos.x - faceSize/2),
               Math.round(pos.y - faceSize/2),
               Math.round(faceSize),
               Math.round(faceSize)
             ],
+            confidence: 0.6
           });
         }
       }
@@ -398,11 +417,13 @@ class FaceDetectionService {
       const faceY = height * 0.4; // Face typically in upper-middle area
 
       regions.push({
+        boundingBox: [
           Math.round(centerX - faceSize/2),
           Math.round(faceY - faceSize/2),
           Math.round(faceSize),
           Math.round(faceSize)
         ],
+        confidence: 0.7
       });
     }
 

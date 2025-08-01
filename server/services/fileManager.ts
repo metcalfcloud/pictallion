@@ -194,7 +194,9 @@ class FileManager {
       // For now, extract basic file info
       const stats = await fs.stat(fullPath);
       const metadata: CombinedMetadata = {
-        }
+        fileSize: stats.size,
+        lastModified: stats.mtime,
+        dimensions: { width: 0, height: 0 }
       };
 
       if (path.extname(fullPath).toLowerCase().match(/\.(jpg|jpeg|tiff)$/)) {

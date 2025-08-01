@@ -26,12 +26,16 @@ export interface SearchFilters {
 }
 
 export interface SortOptions {
+  field?: 'createdAt' | 'rating' | 'filename' | 'size';
+  direction?: 'asc' | 'desc';
 }
 
 export interface SearchResult {
-    metadata?: any;
-  }>;
-  };
+  photos: Array<any>;
+  facets: any;
+  total: number;
+  offset: number;
+  limit: number;
 }
 
 class AdvancedSearchService {
@@ -40,6 +44,10 @@ class AdvancedSearchService {
    * Perform comprehensive search across all photos with filters and facets
    */
   async searchPhotos(
+    filters: SearchFilters = {},
+    sort: SortOptions = { field: 'createdAt', direction: 'desc' },
+    offset: number = 0,
+    limit: number = 50
   ): Promise<SearchResult> {
     
     let allPhotos = await storage.getAllFileVersions();
@@ -155,8 +163,10 @@ class AdvancedSearchService {
     const facets = this.generateSimpleFacets(allPhotos);
 
     return {
-      })),
-      totalCount,
+      photos: paginatedPhotos,
+      total: totalCount,
+      offset,
+      limit,
       facets
     };
   }
@@ -165,6 +175,9 @@ class AdvancedSearchService {
    * Find visually similar photos using perceptual hash
    */
   async findSimilarPhotos(
+    photoId: string,
+    threshold: number = 85,
+    limit: number = 10
   ): Promise<Array<{ id: string; similarity: number; [key: string]: any }>> {
     // Get the perceptual hash of the source photo
     const sourcePhoto = await db
@@ -181,6 +194,10 @@ class AdvancedSearchService {
 
     const allPhotos = await db
       .select({
+        id: fileVersions.id,
+        perceptualHash: fileVersions.perceptualHash,
+        filePath: fileVersions.filePath,
+        mediaAssetId: fileVersions.mediaAssetId
       })
       .from(fileVersions)
       .leftJoin(mediaAssets, eq(fileVersions.mediaAssetId, mediaAssets.id))
@@ -192,6 +209,7 @@ class AdvancedSearchService {
     const similarPhotos = allPhotos
       .map((photo: any) => ({
         ...photo,
+        similarity: this.calculateHashSimilarity(sourceHash, photo.perceptualHash)
       }))
       .filter((photo: any) => photo.similarity >= threshold)
       .sort((a: any, b: any) => b.similarity - a.similarity)
@@ -223,6 +241,9 @@ class AdvancedSearchService {
         if (matchingPhotos.length > 0) {
           await db.insert(collectionPhotos).values(
             matchingPhotos.map(photoId => ({
+              collectionId: collection.id,
+              photoId,
+              addedAt: new Date()
             }))
           );
         }
@@ -257,6 +278,10 @@ class AdvancedSearchService {
    * Build SQL condition from smart collection rule
    */
   private buildRuleCondition(rule: any): any {
+    if (!rule || !rule.field || !rule.operator) {
+      return null;
+    }
+    
     const { field, operator, value } = rule;
 
     switch (field) {

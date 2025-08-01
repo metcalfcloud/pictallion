@@ -19,18 +19,42 @@ export interface NamingContext {
 }
 
 export interface NamingPattern {
+  id: string;
+  name: string;
+  pattern: string;
+  description: string;
 }
 
 export const BUILTIN_NAMING_PATTERNS: NamingPattern[] = [
   {
+    id: 'ai-short',
+    name: 'AI Short Description',
+    pattern: '{aiShortDescription}',
+    description: 'Use AI-generated short description'
   },
   {
+    id: 'date-ai',
+    name: 'Date + AI Description',
+    pattern: '{YYYY}{MM}{DD}_{aiShortDescription}',
+    description: 'Date followed by AI description'
   },
   {
+    id: 'timestamp',
+    name: 'Full Timestamp',
+    pattern: '{YYYY}{MM}{DD}_{HHMMSS}',
+    description: 'Full date and time'
   },
   {
+    id: 'date-only',
+    name: 'Date Only',
+    pattern: '{YYYY}{MM}{DD}',
+    description: 'Date only format'
   },
   {
+    id: 'custom',
+    name: 'Custom Pattern',
+    pattern: '{YYYY}-{MM}-{DD}_{aiShortDescription}',
+    description: 'Custom pattern with dashes'
   }
 ];
 
@@ -40,18 +64,30 @@ export const BUILTIN_NAMING_PATTERNS: NamingPattern[] = [
 export async function generateAIShortDescription(base64Image: string): Promise<string> {
   try {
     const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
         {
+          role: "system",
+          content: `Generate a 2-3 word description in PascalCase for this image.
           Focus on the main subject or scene. Be concise and descriptive. Respond with JSON format: {"description": "YourDescription"}`
         },
         {
+          role: "user",
+          content: [
             {
+              type: "text",
+              text: "Analyze this image and provide a short description."
             },
             {
+              type: "image_url",
+              image_url: {
+                url: `data:image/jpeg;base64,${base64Image}`
               }
             }
           ]
         }
       ],
+      max_tokens: 100
     });
 
     const result = JSON.parse(response.choices[0].message.content || '{}');
@@ -88,7 +124,7 @@ export function applyNamingPattern(pattern: string, context: NamingContext): str
   }
   
   if (date.getTime() === new Date().getTime()) {
-    const filename = context.originalFilename;
+    const filename = (context as any).originalFilename;
     const timestampMatch = filename.match(/^(\d{8})_(\d{6})/);
     if (timestampMatch) {
       const dateStr = timestampMatch[1]; // YYYYMMDD
@@ -126,7 +162,7 @@ export function applyNamingPattern(pattern: string, context: NamingContext): str
   filename = filename.replace('{aiDescription}', aiDescription);
   
   // Replace original filename (without extension)
-  const originalName = context.originalFilename.replace(/\.[^/.]+$/, '');
+  const originalName = ((context as any).originalFilename || '').replace(/\.[^/.]+$/, '');
   filename = filename.replace('{originalFilename}', originalName);
   
   filename = filename.replace(/[{}]/g, '');
@@ -141,6 +177,8 @@ export function applyNamingPattern(pattern: string, context: NamingContext): str
  * Generate filename based on current Silver tier naming settings
  */
 export async function generateSilverFilename(
+  context: NamingContext & { originalFilename: string },
+  namingPattern: string = 'ai-short'
 ): Promise<string> {
   const pattern = BUILTIN_NAMING_PATTERNS.find(p => p.id === namingPattern)?.pattern || namingPattern;
   

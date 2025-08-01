@@ -9,12 +9,26 @@ import { promptManager } from "./promptManager";
 export type AIProvider = "ollama" | "openai" | "both";
 
 interface AIConfig {
+  provider: AIProvider;
+  openai: {
+    apiKey: string;
+    model: string;
   };
+  ollama: {
+    baseUrl: string;
+    model: string;
   };
 }
 
 const DEFAULT_CONFIG: AIConfig = {
+  provider: "openai",
+  openai: {
+    apiKey: process.env.OPENAI_API_KEY || "",
+    model: "gpt-4o"
   },
+  ollama: {
+    baseUrl: "http://localhost:11434",
+    model: "llava"
   }
 };
 
@@ -119,9 +133,16 @@ class AIService {
       const fullPrompt = systemPrompt + peopleContextStr + "\n\n" + userPrompt;
 
       const response = await fetch(`${this.config.ollama.baseUrl}/api/generate`, {
+        method: 'POST',
+        headers: {
           'Content-Type': 'application/json',
         },
-        }),
+        body: JSON.stringify({
+          model: this.config.ollama.model,
+          prompt: fullPrompt,
+          images: [base64Image],
+          stream: false
+        })
       });
 
       if (!response.ok) {
@@ -132,7 +153,12 @@ class AIService {
       const aiResult = JSON.parse(data.response || '{}');
 
       const metadata: AIMetadata = {
-        }
+        aiTags: aiResult.aiTags || [],
+        shortDescription: aiResult.shortDescription || '',
+        longDescription: aiResult.longDescription || '',
+        detectedObjects: aiResult.detectedObjects || [],
+        placeName: aiResult.placeName || null,
+        aiConfidenceScores: aiResult.aiConfidenceScores || {}
       };
 
       return metadata;
@@ -196,16 +222,29 @@ For events, detect holidays, celebrations, activities, and life events.`;
     const userPrompt = aiPrompt?.userPrompt || "Analyze this family photo and provide comprehensive metadata in the specified JSON format. Focus on creating warm, natural descriptions that would be perfect for a family album.";
 
     const response = await openai.chat.completions.create({
+      model: this.config.openai.model,
+      messages: [
         {
+          role: "system",
+          content: systemPrompt + peopleContextStr
         },
         {
+          role: "user",
+          content: [
             {
+              type: "text",
+              text: userPrompt
             },
             {
+              type: "image_url",
+              image_url: {
+                url: `data:image/jpeg;base64,${base64Image}`
+              }
             }
-          ],
-        },
+          ]
+        }
       ],
+      max_tokens: 1000
     });
 
     const aiResult = JSON.parse(response.choices[0].message.content || '{}');
@@ -214,13 +253,23 @@ For events, detect holidays, celebrations, activities, and life events.`;
     const perceptualHash = await this.generatePerceptualHash(imagePath);
 
     return {
-      }
+      aiTags: aiResult.aiTags || [],
+      shortDescription: aiResult.shortDescription || '',
+      longDescription: aiResult.longDescription || '',
+      detectedObjects: aiResult.detectedObjects || [],
+      detectedFaces: aiResult.detectedFaces || [],
+      detectedEvents: aiResult.detectedEvents || [],
+      placeName: aiResult.placeName || null,
+      gpsCoordinates: aiResult.gpsCoordinates || null,
+      perceptualHash,
+      aiConfidenceScores: aiResult.aiConfidenceScores || {}
     };
   }
 
   private async checkOllamaAvailability(): Promise<boolean> {
     try {
       const response = await fetch(`${this.config.ollama.baseUrl}/api/tags`, {
+        method: 'GET'
       });
       return response.ok;
     } catch (error: any) {
@@ -310,8 +359,16 @@ For events, detect holidays, celebrations, activities, and life events.`;
     }
 
     return {
+      aiTags: tags,
       shortDescription,
       longDescription,
+      detectedObjects: [],
+      placeName: null,
+      aiConfidenceScores: {
+        tags: 0.7,
+        description: 0.8,
+        objects: 0.6,
+        place: 0.5
       }
     };
   }
@@ -334,6 +391,7 @@ For events, detect holidays, celebrations, activities, and life events.`;
         
         return {
           ...metadata,
+          shortDescription
         };
       }
       
@@ -403,9 +461,13 @@ For events, detect holidays, celebrations, activities, and life events.`;
     try {
       if ((provider === "ollama" || provider === "both") && await this.checkOllamaAvailability()) {
         const response = await fetch(`${this.config.ollama.baseUrl}/api/generate`, {
-
-
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: this.config.ollama.model,
+            prompt: `Generate 5-8 relevant photo tags for: "${description}". 
 Return ONLY a JSON array like: ["tag1", "tag2", "tag3"]`,
+            stream: false
           }),
         });
 
@@ -421,9 +483,12 @@ Return ONLY a JSON array like: ["tag1", "tag2", "tag3"]`,
         const openai = new OpenAI({ apiKey: this.config.openai.apiKey });
         
         const response = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: [
             { role: "system", content: "Generate 5-8 relevant tags for the given image description. Return as JSON array of strings." },
             { role: "user", content: `Generate tags for: ${description}` }
           ],
+          max_tokens: 100
         });
 
         const result = JSON.parse(response.choices[0].message.content || '{"tags": []}');

@@ -5,16 +5,28 @@ import path from "path";
 import { error } from "@shared/logger";
 
 export interface BurstGroup {
+  id: string;
+  photos: Array<{
+    id: string;
+    filePath: string;
+    createdAt: Date;
     metadata?: any;
-    };
     fileSize?: number;
   }>;
+  burstSequence: number;
+  similarity: number;
+  timeSpan: number;
 }
 
 export interface BurstAnalysis {
+  totalPhotos: number;
+  burstGroups: BurstGroup[];
+  statistics: {
+    totalBursts: number;
+    averageBurstSize: number;
+    largestBurstSize: number;
     metadata?: any;
-    fileSize?: number;
-  }>;
+  };
 }
 
 export class BurstPhotoDetectionService {
@@ -140,6 +152,13 @@ export class BurstPhotoDetectionService {
       }
 
       return {
+        totalPhotos: allPhotos.length,
+        burstGroups: [],
+        statistics: {
+          totalBursts: 0,
+          averageBurstSize: 0,
+          largestBurstSize: 0
+        }
       };
 
     } catch (err) {
@@ -348,15 +367,29 @@ export class BurstPhotoDetectionService {
     }
 
     return {
+      id: crypto.randomBytes(16).toString('hex'),
+      photos: photos.map(p => ({
+        id: p.id,
+        filePath: p.filePath,
+        createdAt: p.createdAt,
+        metadata: p.metadata,
+        fileSize: p.fileSize
       })),
-      averageSimilarity,
-      timeSpan,
-      groupReason
+      burstSequence: photos.length,
+      similarity: averageSimilarity,
+      timeSpan
     };
   }
 
   private generateEmptyAnalysis(): BurstAnalysis {
     return {
+      totalPhotos: 0,
+      burstGroups: [],
+      statistics: {
+        totalBursts: 0,
+        averageBurstSize: 0,
+        largestBurstSize: 0
+      }
     };
   }
 }
