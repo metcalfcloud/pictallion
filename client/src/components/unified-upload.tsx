@@ -315,7 +315,7 @@ export function UnifiedUpload({
       return;
     }
 
-    // resolveMutation.mutate(resolutions);
+    resolveMutation.mutate(resolutions);
   };
 
   const closeModal = () => {
@@ -547,7 +547,7 @@ export function UnifiedUpload({
                         <AlertCircle className="w-5 h-5 text-orange-600" />
                         {getConflictTypeLabel(conflict.conflictType)}
                         <Badge variant="outline" className="ml-2">
-                          {Math.round(conflict.similarity * 100)}% match
+                          {Math.round(conflict.similarity)}% match
                         </Badge>
                       </CardTitle>
                       <Badge variant="secondary">

@@ -366,9 +366,9 @@ export class EnhancedDuplicateDetectionService {
 
               // For perceptual duplicates, we need higher similarity threshold since different MD5 
               // means some bytes are different (metadata, compression, etc.)
-              // Industry standard: burst photos can have 95-99% similarity and should be preserved
+              // Require 100% perceptual match to avoid false positives with burst photos
               console.log(`Similarity check: ${similarity}% between ${originalFilename} and ${photoAsset.originalFilename}`);
-              if (similarity >= 98.0) {
+              if (similarity >= 100.0) {
                 // Check if this might be a burst photo using industry-standard detection
                 const isBurstPhoto = await this.isBurstPhoto(originalFilename, photoAsset.originalFilename, photo.createdAt.toISOString(), photo.metadata, newFileMetadata);
                 
@@ -377,13 +377,9 @@ export class EnhancedDuplicateDetectionService {
                   continue; // Skip conflict creation for confirmed burst photos
                 }
                 
-                // Only create conflicts for non-burst photos with very high similarity
-                // This reduces false positives for burst photography
-                if (similarity >= 99.9) {
-                  console.log(`Extremely high similarity non-burst conflict: ${originalFilename} vs ${photoAsset.originalFilename} (${similarity}%)`);
-                } else {
-                  console.log(`High similarity potential duplicate: ${originalFilename} vs ${photoAsset.originalFilename} (${similarity}%)`);
-                }
+                // Only create conflicts for 100% perceptual matches that aren't burst photos
+                console.log(`Perfect perceptual match non-burst conflict: ${originalFilename} vs ${photoAsset.originalFilename} (${similarity}%)`);
+                
                 console.log(`Creating conflict for ${originalFilename} vs ${photoAsset.originalFilename}`);
                 console.log(`ABOUT TO EXTRACT METADATA FOR NEW FILE: ${tempFilePath}`);
                 const reasoning = this.analyzeMetadataDifferences(
