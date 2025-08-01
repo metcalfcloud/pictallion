@@ -605,25 +605,7 @@ export default function PeoplePage() {
               </div>
             ) : groupedFaces ? (
               <>
-                {selectedFaces.length > 0 && (
-                  <div className="flex items-center justify-between bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-                    <span className="text-sm text-blue-700 dark:text-blue-300">
-                      {selectedFaces.length} faces selected
-                    </span>
-                    <div className="flex space-x-2">
-                      <Button size="sm" onClick={() => setSelectedFaces([])}>
-                        Clear Selection
-                      </Button>
-                      <Button size="sm" onClick={() => {
-                        setAssignFacesSearchQuery('');
-                        setIsMergeFacesOpen(true);
-                      }}>
-                        <Merge className="w-4 h-4 mr-2" />
-                        Assign to Person
-                      </Button>
-                    </div>
-                  </div>
-                )}
+
 
                 {/* Stats */}
                 <div className="flex gap-4 text-sm text-muted-foreground">
@@ -771,6 +753,82 @@ export default function PeoplePage() {
                             </div>
                           ))}
                         </div>
+                        
+                        {/* Inline Assignment Controls */}
+                        {group.faces.some(f => selectedFaces.includes(f.id)) && (
+                          <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                                {group.faces.filter(f => selectedFaces.includes(f.id)).length} selected in this group
+                              </span>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => {
+                                  const groupFaceIds = group.faces.map(f => f.id);
+                                  setSelectedFaces(prev => prev.filter(id => !groupFaceIds.includes(id)));
+                                }}
+                                className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                              >
+                                Clear Selection
+                              </Button>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {/* Quick assign to existing people */}
+                              {people.slice(0, 5).map((person) => (
+                                <Button
+                                  key={person.id}
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    const selectedInGroup = group.faces.filter(f => selectedFaces.includes(f.id)).map(f => f.id);
+                                    if (selectedInGroup.length > 0) {
+                                      assignFacesToPersonMutation.mutate({ 
+                                        faceIds: selectedInGroup, 
+                                        personId: person.id 
+                                      });
+                                    }
+                                  }}
+                                  className="flex items-center gap-1"
+                                >
+                                  <User className="w-3 h-3" />
+                                  {person.name}
+                                </Button>
+                              ))}
+                              
+                              {/* Create new person button */}
+                              <Button
+                                size="sm"
+                                onClick={() => {
+                                  setNewPersonName('');
+                                  setNewPersonNotes('');
+                                  setNewPersonBirthdate('');
+                                  setIsCreatePersonOpen(true);
+                                }}
+                                className="flex items-center gap-1"
+                              >
+                                <UserPlus className="w-3 h-3" />
+                                New Person
+                              </Button>
+                              
+                              {/* More people button if there are more */}
+                              {people.length > 5 && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setAssignFacesSearchQuery('');
+                                    setIsMergeFacesOpen(true);
+                                  }}
+                                  className="flex items-center gap-1"
+                                >
+                                  <MoreHorizontal className="w-3 h-3" />
+                                  More ({people.length - 5})
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </Card>
                     ))}
                   </div>
