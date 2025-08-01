@@ -16,9 +16,9 @@ interface OptimizedImageProps {
 }
 
 const THUMBNAIL_SIZES = {
-  small: 150,
-  medium: 300,
-  large: 600
+  small: 200,
+  medium: 400,
+  large: 800
 } as const;
 
 const QUALITY_VALUES = {
@@ -41,22 +41,20 @@ export function OptimizedImage({
 }: OptimizedImageProps) {
   const [imageError, setImageError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [showHighQuality, setShowHighQuality] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
 
   // Generate optimized image URL
-  const getOptimizedSrc = (originalSrc: string, requestedQuality?: string) => {
+  const getOptimizedSrc = (originalSrc: string) => {
     if (!originalSrc) return '';
     
     const size = THUMBNAIL_SIZES[thumbnailSize];
-    const qualityValue = requestedQuality ? parseInt(requestedQuality) : QUALITY_VALUES[quality];
     
     // Check if the src is already an API route
     if (originalSrc.startsWith('/api/files/')) {
       // Add thumbnail parameters to existing API route
       try {
         const url = new URL(originalSrc, window.location.origin);
-        url.searchParams.set('quality', requestedQuality || quality);
+        url.searchParams.set('quality', quality);
         url.searchParams.set('w', size.toString());
         url.searchParams.set('h', size.toString());
         return url.pathname + url.search;
@@ -69,7 +67,6 @@ export function OptimizedImage({
   };
 
   const optimizedSrc = getOptimizedSrc(src);
-  const lowQualitySrc = getOptimizedSrc(src, '30');
   
   const {
     ref: lazyRef,
@@ -109,15 +106,7 @@ export function OptimizedImage({
     }
   }, [finalImageSrc, onLoad, onError]);
 
-  useEffect(() => {
-    if (lazyIsLoaded && !isLoading) {
-      // Delay before loading high quality image
-      const timer = setTimeout(() => {
-        setShowHighQuality(true);
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [lazyIsLoaded, isLoading]);
+
 
   if (imageError) {
     return (
@@ -150,33 +139,17 @@ export function OptimizedImage({
         )} />
       )}
 
-      {/* Low quality image for progressive loading */}
-      {loading === 'lazy' && isInView && !showHighQuality && (
-        <img
-          src={lowQualitySrc}
-          alt={alt}
-          className={cn(
-            "absolute inset-0 w-full h-full object-cover transition-opacity duration-300",
-            aspectRatio === 'square' && "aspect-square"
-          )}
-          style={{ filter: 'blur(2px)' }}
-        />
-      )}
-
       {/* Main optimized image */}
-      {finalImageSrc && (shouldLoadEagerly || (loading === 'lazy' && (showHighQuality || isInView))) && (
+      {finalImageSrc && (shouldLoadEagerly || (loading === 'lazy' && isInView)) && (
         <img
           ref={imgRef}
-          src={showHighQuality ? finalImageSrc : (shouldLoadEagerly ? finalImageSrc : lowQualitySrc)}
+          src={finalImageSrc}
           alt={alt}
           className={cn(
-            "w-full h-full object-cover transition-opacity duration-300",
+            "w-full h-full object-cover transition-opacity duration-200",
             aspectRatio === 'square' && "aspect-square",
             isLoading && "opacity-0"
           )}
-          style={{
-            filter: (!shouldLoadEagerly && !showHighQuality) ? 'blur(2px)' : undefined
-          }}
         />
       )}
 

@@ -217,7 +217,7 @@ export default function Gallery() {
   // Add pagination for better performance with large photo collections
   const pagination = usePagination({
     data: filteredPhotos,
-    itemsPerPage: 50 // Show 50 photos per page
+    itemsPerPage: 20 // Show 20 photos per page for faster loading
   });
 
   const handleProcessPhoto = (photoId: string) => {

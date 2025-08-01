@@ -255,22 +255,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "File not found" });
       }
 
-      // Handle thumbnail requests
-      if (quality && quality !== 'full') {
+      // Handle thumbnail requests with width/height parameters
+      if (w || h || quality !== undefined) {
         try {
-          const thumbnailOptions = thumbnailService.getQualityPreset(quality as any);
+          const thumbnailSize = parseInt(w || h || '300');
+          const thumbnailQuality = quality === 'low' ? 60 : quality === 'high' ? 90 : 80;
           
-          // Override with custom dimensions if provided
-          if (w) thumbnailOptions.width = parseInt(w);
-          if (h) thumbnailOptions.height = parseInt(h);
+          const thumbnailOptions = {
+            size: thumbnailSize,
+            quality: thumbnailQuality,
+            format: 'jpeg' as const
+          };
 
-          const thumbnailPath = await thumbnailService.getThumbnail(fullPath, thumbnailOptions);
+          const thumbnailPath = await thumbnailService.generateThumbnail(fullPath, thumbnailOptions);
           
           if (thumbnailPath) {
             // Set appropriate headers for caching
             res.setHeader('Cache-Control', 'public, max-age=604800'); // 1 week
             res.setHeader('Content-Type', 'image/jpeg');
-            return res.sendFile(thumbnailPath);
+            res.setHeader('ETag', `"${path.basename(thumbnailPath)}"`);
+            return res.sendFile(path.resolve(thumbnailPath));
           }
         } catch (error) {
           console.warn('Thumbnail generation failed, falling back to original:', error);
