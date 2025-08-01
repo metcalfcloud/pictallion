@@ -21,11 +21,8 @@ export async function setupVite(app: Express, server: Server) {
 
   const vite = await createViteServer({
     ...viteConfig,
-      ...viteLogger,
-        viteLogger.error(msg, options);
-        process.exit(1);
-      },
-    },
+    server: serverOptions,
+    logger: viteLogger,
   });
 
   app.use(vite.middlewares);

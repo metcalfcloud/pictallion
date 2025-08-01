@@ -1,4 +1,5 @@
 import { apiRequest } from "./queryClient";
+import type { Photo } from '../../../shared/types';
 
 export interface UploadResult {
   filename: string;
@@ -60,7 +61,10 @@ export const api = {
   },
 
   // Get photos
-  getPhotos: async (tier?: 'bronze' | 'silver' | 'gold' | 'unprocessed' | 'all_versions', showAllVersions?: boolean): Promise<Photo[]> {
+  getPhotos: async (
+    tier?: 'bronze' | 'silver' | 'gold' | 'unprocessed' | 'all_versions',
+    showAllVersions?: boolean
+  ): Promise<Photo[]> => {
     const params = new URLSearchParams();
     if (tier) {
       params.set('tier', tier);

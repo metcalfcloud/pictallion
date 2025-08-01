@@ -3,9 +3,11 @@ import { api } from "@/lib/api";
 import { useToast } from "./use-toast";
 
 export function usePhotos(tier?: string) {
+  const allowedTiers = ["bronze", "silver", "gold", "unprocessed", "all_versions"];
+  const safeTier = allowedTiers.includes(tier as string) ? (tier as "bronze" | "silver" | "gold" | "unprocessed" | "all_versions") : undefined;
   return useQuery({
-    queryKey: ["/api/photos", tier ? { tier } : {}],
-    queryFn: () => api.getPhotos(tier),
+    queryKey: ["/api/photos", safeTier ? { tier: safeTier } : {}],
+    queryFn: () => api.getPhotos(safeTier),
   });
 }
 

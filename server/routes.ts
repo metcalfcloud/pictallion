@@ -558,7 +558,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({
         photo: {
-          mediaAsset: enhancedAsset
+          mediaAsset: asset
         },
         history
       });

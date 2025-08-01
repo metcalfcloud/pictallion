@@ -5,16 +5,22 @@ import path from "path";
 import sharp from "sharp";
 
 export interface DuplicateConflict {
-    perceptualHash?: string;
-    metadata?: any;
-    };
+  perceptualHash?: string;
+  metadata?: {
+    existing: any;
+    newFile: any;
   };
-    perceptualHash?: string;
-    metadata?: any;
+  similarity?: number;
+  reasoning?: string;
+  existingPhoto?: any;
+  newFile?: {
+    tempPath: string;
+    originalFilename: string;
   };
 }
 
 export interface PerceptualHashResult {
+  // Define as needed
 }
 
 export class EnhancedDuplicateDetectionService {
@@ -119,14 +125,12 @@ export class EnhancedDuplicateDetectionService {
       const stats = await fs.stat(filePath);
       log(`File stats: ${JSON.stringify({ size: stats.size, mtime: stats.mtime })}`);
       
-      const metadata: any = {
-        }
-      };
+      const metadata: any = {};
 
       const ext = path.extname(filePath).toLowerCase();
       log(`File extension: ${ext}`);
       
-      let isImage = ext.match(/\.(jpg|jpeg|tiff)$/);
+      let isImage = /\.(jpg|jpeg|tiff)$/.test(ext);
       if (!isImage && !ext) {
         const buffer = await fs.readFile(filePath);
         const header = buffer.subarray(0, 4);
@@ -145,7 +149,7 @@ export class EnhancedDuplicateDetectionService {
           const exifData = await new Promise((resolve, reject) => {
             try {
               log(`ExifImage constructor type: ${typeof ExifImage}`);
-              new ExifImage({ image: fileBuffer }, (error: any, data: any) => {
+              new ExifImage({ image: filePath }, (error: any, data: any) => {
                 if (error) {
                   log(`EXIF extraction failed: ${error.message}`);
                   reject(error);
@@ -236,141 +240,81 @@ export class EnhancedDuplicateDetectionService {
   /**
    * Check for duplicates during upload process
    * Returns conflicts that need user resolution
+   * @param fileHash - hash of the new file
+   * @param originalFilename - name of the new file
+   * @param tempFilePath - path to the new file
    */
-  async checkForDuplicates(
-  ): Promise<DuplicateConflict[]> {
-    // Removed // === DUPLICATE CHECK START: ${originalFilename} with hash ${fileHash} ===`);
+  async checkForDuplicates(fileHash: string, originalFilename: string, tempFilePath: string): Promise<DuplicateConflict[]> {
     const conflicts: DuplicateConflict[] = [];
-
     try {
       const exactDuplicate = await storage.getFileByHash(fileHash);
       if (exactDuplicate) {
         const asset = await storage.getMediaAsset(exactDuplicate.mediaAssetId);
         if (asset) {
-          // Removed // === FOUND EXACT MD5 DUPLICATE ===`);
-          // Removed // Existing file: ${asset.originalFilename} (hash: ${exactDuplicate.fileHash})`);
-          // Removed // New file: ${originalFilename} (hash: ${fileHash})`);
-          // Removed // Auto-skipping MD5 identical file: ${originalFilename}`);
-          // Removed // === AUTO-SKIP TRIGGERED ===`);
           return [];
         }
       }
-
       // Check for perceptual duplicates (only for images)
       const ext = path.extname(originalFilename).toLowerCase();
       const isImage = ['.jpg', '.jpeg', '.png', '.tiff'].includes(ext);
-
       if (isImage) {
         const newPerceptualHash = await this.generatePerceptualHash(tempFilePath);
         if (newPerceptualHash) {
           const allPhotos = await storage.getAllFileVersions();
-          // Removed // Found ${allPhotos.length} existing photos to compare against`);
-          
-          // Track which perceptual hashes we've already created conflicts for (to avoid duplicates)
           const conflictedHashes = new Set<string>();
-
           for (const photo of allPhotos) {
-            if (photo.fileHash === fileHash) {
-              // Removed // Skipping exact duplicate comparison: ${photo.fileHash} === ${fileHash}`);
-              continue;
-            }
-
+            if (photo.fileHash === fileHash) continue;
             if (!photo.mimeType?.startsWith('image/')) continue;
-
             let existingPerceptualHash = photo.perceptualHash;
-
             if (!existingPerceptualHash) {
               const fullPath = path.join(process.cwd(), 'data', photo.filePath);
               try {
                 await fs.access(fullPath);
                 existingPerceptualHash = await this.generatePerceptualHash(fullPath);
-
                 if (existingPerceptualHash) {
                   await storage.updateFileVersionPerceptualHash(photo.id, existingPerceptualHash);
                 }
               } catch (error) {
-                continue; // Skip if file doesn't exist
-              }
-            }
-
-            if (existingPerceptualHash) {
-              const similarity = this.calculatePerceptualSimilarity(newPerceptualHash, existingPerceptualHash);
-
-              const photoAsset = await storage.getMediaAsset(photo.mediaAssetId);
-              if (!photoAsset) continue;
-
-              // Skip if we've already created a conflict for this perceptual hash (avoid multiple conflicts for same visual content)
-              if (conflictedHashes.has(existingPerceptualHash)) {
-                // Removed // Skipping duplicate conflict for hash ${existingPerceptualHash} - already conflicted`);
                 continue;
               }
-
-              // For perceptual duplicates, we need higher similarity threshold since different MD5 
-              // means some bytes are different (metadata, compression, etc.)
-              // Removed // Similarity check: ${similarity}% between ${originalFilename} and ${photoAsset.originalFilename}`);
+            }
+            if (existingPerceptualHash) {
+              const similarity = this.calculatePerceptualSimilarity(newPerceptualHash, existingPerceptualHash);
+              const photoAsset = await storage.getMediaAsset(photo.mediaAssetId);
+              if (!photoAsset) continue;
+              if (conflictedHashes.has(existingPerceptualHash)) continue;
               if (similarity >= 99.5) {
-                // Check if this might be a burst photo - but be more lenient for high similarity
                 const isBurstPhoto = await this.isBurstPhoto(originalFilename, photoAsset.originalFilename, photo.createdAt.toISOString());
-                
-                if (similarity >= 99.8) {
-                  // Removed // High similarity conflict detected: ${originalFilename} vs ${photoAsset.originalFilename} (${similarity}%)`);
-                } else if (isBurstPhoto) {
-                  // Removed // Skipping moderate similarity burst photo: ${originalFilename} vs ${photoAsset.originalFilename} (${similarity}%)`);
-                  continue;
+                if (similarity < 99.8 && isBurstPhoto) continue;
+                let existingMetadata = photo.metadata || { exif: {} };
+                if (!(existingMetadata as any).exif) (existingMetadata as any).exif = {};
+                if (!(existingMetadata as any).exif.dateTaken) {
+                  try {
+                    const freshMetadata = await this.extractFileMetadata(photo.filePath);
+                    if (freshMetadata && freshMetadata.exif && freshMetadata.exif.dateTaken) {
+                      (existingMetadata as any).exif.dateTaken = freshMetadata.exif.dateTaken;
+                    } else if (freshMetadata && freshMetadata.exif && freshMetadata.exif.dateTime) {
+                      (existingMetadata as any).exif.dateTaken = freshMetadata.exif.dateTime;
+                    }
+                  } catch {}
                 }
-                // Removed // Creating conflict for ${originalFilename} vs ${photoAsset.originalFilename}`);
-                // Removed // ABOUT TO EXTRACT METADATA FOR NEW FILE: ${tempFilePath}`);
-                const reasoning = this.analyzeMetadataDifferences(
-                  photo.metadata,
-                  originalFilename,
-                  photoAsset.originalFilename
-                );
-
+                let newFileMetadata;
+                try {
+                  newFileMetadata = await this.extractDirectMetadata(tempFilePath);
+                } catch {
+                  newFileMetadata = { exif: { dateTime: new Date().toISOString() } };
+                }
+                const reasoning = this.analyzeMetadataDifferences(existingMetadata, originalFilename, photoAsset.originalFilename);
                 const conflict: DuplicateConflict = {
-                      // Enhance existing photo metadata to include dateTaken if missing
-                      const existingMetadata = photo.metadata || { exif: {} };
-                      
-                      if (!(existingMetadata as any).exif) {
-                        (existingMetadata as any).exif = {};
-                      }
-                      
-                      if (!(existingMetadata as any).exif.dateTaken) {
-                        try {
-                          // Removed // Extracting fresh EXIF data for existing file: ${photo.filePath}`);
-                          const freshMetadata = await this.extractFileMetadata(photo.filePath);
-                          if (freshMetadata && freshMetadata.exif && freshMetadata.exif.dateTaken) {
-                            (existingMetadata as any).exif.dateTaken = freshMetadata.exif.dateTaken;
-                            // Removed // Added dateTaken from fresh EXIF: ${(existingMetadata as any).exif.dateTaken}`);
-                          } else if (freshMetadata && freshMetadata.exif && freshMetadata.exif.dateTime) {
-                            (existingMetadata as any).exif.dateTaken = freshMetadata.exif.dateTime;
-                            // Removed // Added dateTaken from fresh dateTime: ${(existingMetadata as any).exif.dateTaken}`);
-                          }
-                        } catch (error) {
-                          // Removed // Could not extract fresh EXIF for ${photo.filePath}:`, error);
-                        }
-                      }
-                      
-                      return existingMetadata;
-                    })(),
-                    },
-                  },
-                    originalFilename,
-                    fileHash,
-                      // Removed // === EXTRACTING METADATA FOR NEW FILE: ${tempFilePath} ===`);
-                      try {
-                        const result = await this.extractDirectMetadata(tempFilePath);
-                        // Removed // === METADATA EXTRACTION RESULT ===`);
-                        // log(JSON.stringify(result, null, 2));
-                        // Removed // === END METADATA EXTRACTION ===`);
-                        return result;
-                      } catch (error) {
-                        // error(`=== METADATA EXTRACTION ERROR ===`, error);
-                        return { exif: { dateTime: new Date().toISOString() } };
-                      }
-                    })()
+                  perceptualHash: existingPerceptualHash,
+                  metadata: {
+                    existing: existingMetadata,
+                    newFile: newFileMetadata
                   },
                   similarity,
-                  reasoning
+                  reasoning,
+                  existingPhoto: photo,
+                  newFile: { tempPath: tempFilePath, originalFilename },
                 };
                 conflicts.push(conflict);
                 conflictedHashes.add(existingPerceptualHash);
@@ -379,11 +323,8 @@ export class EnhancedDuplicateDetectionService {
           }
         }
       }
-
-      // Removed // === DUPLICATE CHECK COMPLETE: ${originalFilename} - ${conflicts.length} conflicts found ===`);
       return conflicts;
     } catch (error) {
-      // error('Error checking for duplicates:', error);
       return [];
     }
   }
@@ -391,8 +332,7 @@ export class EnhancedDuplicateDetectionService {
   /**
    * Analyze metadata differences to determine likely original
    */
-  private analyzeMetadataDifferences(
-  ): string {
+  private analyzeMetadataDifferences(existingMetadata: any, newFilename: string, existingFilename: string): string {
     const reasons = [];
 
     // Check filename patterns that suggest editing
@@ -450,30 +390,23 @@ export class EnhancedDuplicateDetectionService {
   /**
    * Process user's resolution of duplicate conflicts
    */
-  async processDuplicateResolution(
-  ): Promise<{ success: boolean; message: string; assetId?: string }> {
+  async processDuplicateResolution(action: string, conflict: DuplicateConflict): Promise<{ success: boolean; message: string; assetId?: string }> {
     try {
       switch (action) {
         case 'keep_existing':
-          await fs.unlink(conflict.newFile.tempPath);
+          await fs.unlink(conflict.newFile!.tempPath);
           const existingFile = await storage.getFileVersion(conflict.existingPhoto.id);
-          return {
-          };
-
+          return { success: true, message: 'Kept existing file', assetId: existingFile?.mediaAssetId };
         case 'replace_with_new':
           return await this.replaceExistingFile(conflict);
-
         case 'keep_both':
-          // Import as new file despite similarity
           return await this.importAsNewFile(conflict);
-
+        default:
           throw new Error('Invalid action');
       }
     } catch (error) {
-      // error('Error processing duplicate resolution:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      return {
-      };
+      return { success: false, message: errorMessage };
     }
   }
 
@@ -494,9 +427,11 @@ export class EnhancedDuplicateDetectionService {
       // log('Old file already removed or not found');
     }
 
+    const tempPath = conflict.newFile!.tempPath;
+    const originalFilename = conflict.newFile!.originalFilename;
     const silverPath = await fileManager.processToSilver(
-      conflict.newFile.tempPath, 
-      conflict.newFile.originalFilename
+      tempPath, 
+      originalFilename
     );
 
     const metadata = await fileManager.extractMetadata(silverPath);
@@ -514,9 +449,15 @@ export class EnhancedDuplicateDetectionService {
     });
 
     await storage.createAssetHistory({
+      mediaAssetId: existingFile.mediaAssetId,
+      action: 'replace',
+      details: null,
     });
 
     return {
+      success: true,
+      message: 'File replaced successfully',
+      assetId: existingFile.mediaAssetId,
     };
   }
 
@@ -591,7 +532,7 @@ export class EnhancedDuplicateDetectionService {
       
       const date = new Date(year, month, day, hour, minute, second);
       return isNaN(date.getTime()) ? null : date;
-    } catch (error) {
+    } catch {
       return null;
     }
   }
@@ -602,12 +543,16 @@ export class EnhancedDuplicateDetectionService {
   private async importAsNewFile(conflict: DuplicateConflict): Promise<{ success: boolean; message: string; assetId: string }> {
     const { fileManager } = await import("./fileManager.js");
 
+    const tempPath = conflict.newFile!.tempPath;
+    const originalFilename = conflict.newFile!.originalFilename;
+
     const mediaAsset = await storage.createMediaAsset({
+      originalFilename,
     });
 
     const silverPath = await fileManager.processToSilver(
-      conflict.newFile.tempPath, 
-      conflict.newFile.originalFilename
+      tempPath, 
+      originalFilename
     );
 
     // Extract metadata with AI processing
@@ -615,9 +560,8 @@ export class EnhancedDuplicateDetectionService {
     
     let aiMetadata = null;
     let aiShortDescription = null;
-    const mimeType = path.extname(conflict.newFile.originalFilename).toLowerCase().includes('jpg') ? 'image/jpeg' : 
-                     path.extname(conflict.newFile.originalFilename).toLowerCase().includes('png') ? 'image/png' : 
-                     'image/jpeg';
+    const ext = path.extname(originalFilename).toLowerCase();
+    const mimeType = ext.includes('jpg') ? 'image/jpeg' : ext.includes('png') ? 'image/png' : 'image/jpeg';
     
     if (mimeType.startsWith('image/')) {
       try {
@@ -634,16 +578,20 @@ export class EnhancedDuplicateDetectionService {
     };
 
     const fileVersion = await storage.createFileVersion({
-                path.extname(conflict.newFile.originalFilename).toLowerCase().includes('png') ? 'image/png' : 
-                'image/jpeg', // default
+      mediaAssetId: mediaAsset.id,
+      tier: 'silver',
+      filePath: silverPath,
+      fileHash: '', // Provide actual hash if available
+      fileSize: 0, // Provide actual size if available
+      mimeType,
+      metadata: combinedMetadata,
+      isReviewed: false,
       aiShortDescription,
     });
 
-    await storage.createAssetHistory({
-    });
+    await storage.createAssetHistory({ mediaAssetId: mediaAsset.id, action: 'import', details: null });
 
-    return {
-    };
+    return { success: true, message: 'File imported as new', assetId: mediaAsset.id };
   }
 }
 

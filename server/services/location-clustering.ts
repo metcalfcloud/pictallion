@@ -1,14 +1,23 @@
 import type { FileVersion, MediaAsset, CombinedMetadata } from "@shared/schema";
 
 interface PhotoWithLocation {
+  id: string;
+  latitude: number;
+  longitude: number;
   metadata?: CombinedMetadata;
 }
 
 interface LocationCluster {
+  photos: PhotoWithLocation[];
+  centerLatitude?: number;
+  centerLongitude?: number;
+  // Add other properties as needed
 }
 
 interface LocationHotspot {
   suggestedName?: string;
+  photoCount: number;
+  // Add other properties as needed
 }
 
 export class LocationClusteringService {
@@ -60,6 +69,7 @@ export class LocationClusteringService {
           latitude >= -90 && latitude <= 90 &&
           longitude >= -180 && longitude <= 180) {
         photosWithLocation.push({
+          id: (photo as any).id,
           latitude,
           longitude,
           metadata,
@@ -78,8 +88,7 @@ export class LocationClusteringService {
     for (const photo of photos) {
       if (visited.has(photo.id)) continue;
 
-      const cluster: LocationCluster = {
-      };
+      const cluster: LocationCluster = { photos: [photo] };
 
       visited.add(photo.id);
 
@@ -131,8 +140,10 @@ export class LocationClusteringService {
         const suggestedName = this.generateSuggestedName(cluster);
 
         hotspots.push({
-          })),
+          // Add other relevant properties from cluster if needed
+          ...cluster,
           suggestedName,
+          photoCount: cluster.photos.length,
         });
       }
     }
@@ -189,13 +200,11 @@ export class LocationClusteringService {
   }
 
   // Calculate location statistics
-  public calculateLocationStats(
-  ): {
-  } {
+  public calculateLocationStats(photos: Array<FileVersion & { mediaAsset: MediaAsset }>, existingLocations: any[]): { ratio: number } {
     const photosWithLocation = this.extractCoordinates(photos);
     
     return {
-        photosWithLocation.length / existingLocations.length : 0,
+      ratio: existingLocations.length > 0 ? photosWithLocation.length / existingLocations.length : 0,
     };
   }
 }

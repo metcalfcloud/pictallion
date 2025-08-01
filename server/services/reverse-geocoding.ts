@@ -17,12 +17,17 @@ interface GeocodingResult {
   };
 }
 
+interface ReverseGeocodeResult {
+  placeName: string;
+  placeType: string;
+}
+
 export class ReverseGeocodingService {
   private readonly baseUrl = 'https://nominatim.openstreetmap.org/reverse';
   private readonly requestDelay = 1000; // 1 second delay between requests per Nominatim usage policy
   private lastRequestTime = 0;
 
-  async reverseGeocode(latitude: number, longitude: number): Promise<GeocodingResult | null> {
+  async reverseGeocode(latitude: number, longitude: number): Promise<ReverseGeocodeResult | null> {
     try {
       // Rate limiting to respect Nominatim usage policy
       const now = Date.now();
@@ -36,6 +41,7 @@ export class ReverseGeocodingService {
       });
 
       const response = await fetch(`${this.baseUrl}?${params}`, {
+        headers: {
           'User-Agent': 'Pictallion Photo Management System/1.0'
         }
       });
@@ -56,7 +62,7 @@ export class ReverseGeocodingService {
 
       return {
         placeName,
-        placeType,
+        placeType
       };
     } catch (error) {
       // error('Reverse geocoding error:', error);
@@ -107,8 +113,8 @@ export class ReverseGeocodingService {
     return 'location';
   }
 
-  async batchReverseGeocode(coordinates: Array<{latitude: number, longitude: number}>): Promise<Array<GeocodingResult | null>> {
-    const results: Array<GeocodingResult | null> = [];
+  async batchReverseGeocode(coordinates: Array<{latitude: number, longitude: number}>): Promise<Array<ReverseGeocodeResult | null>> {
+    const results: Array<ReverseGeocodeResult | null> = [];
     
     for (const coord of coordinates) {
       const result = await this.reverseGeocode(coord.latitude, coord.longitude);
@@ -118,8 +124,7 @@ export class ReverseGeocodingService {
     return results;
   }
 
-  static areCoordinatesSimilar(
-  ): boolean {
+  static areCoordinatesSimilar(lat1: number, lon1: number, lat2: number, lon2: number, toleranceMeters: number): boolean {
     const R = 6371000; // Earth's radius in meters
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;

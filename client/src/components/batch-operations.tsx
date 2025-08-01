@@ -164,7 +164,7 @@ export default function BatchOperations({
     startOperation('promote', { tier });
   };
 
-  const handleProcessWithAI = () => {
+  const handleProcessWithAI = async () => {
     try {
       const response = await fetch('/api/photos/batch-ai-process', {
         method: 'POST',
