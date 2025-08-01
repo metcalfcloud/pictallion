@@ -470,7 +470,17 @@ export default function PeoplePage() {
             ) : filteredPeople.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                 {filteredPeople.map((person) => (
-                  <Card key={person.id} className="hover:shadow-lg transition-shadow">
+                  <Card 
+                    key={person.id} 
+                    className="hover:shadow-lg transition-shadow cursor-pointer"
+                    onClick={() => {
+                      setEditingPerson(person);
+                      setNewPersonName(person.name);
+                      setNewPersonNotes(person.notes || '');
+                      setNewPersonBirthdate(person.birthdate ? person.birthdate.split('T')[0] : '');
+                      setIsEditPersonOpen(true);
+                    }}
+                  >
                     <CardContent className="p-4">
                       <div className="flex items-center space-x-3 mb-3">
                         <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center overflow-hidden">
@@ -496,35 +506,22 @@ export default function PeoplePage() {
                       </div>
 
                       <div className="flex items-center justify-between">
-                        <div className="flex space-x-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setSelectedPerson(person.id);
-                              setIsViewPhotosOpen(true);
-                            }}
-                          >
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setEditingPerson(person);
-                              setNewPersonName(person.name);
-                              setNewPersonNotes(person.notes || '');
-                              setNewPersonBirthdate(person.birthdate ? person.birthdate.split('T')[0] : '');
-                              setIsEditPersonOpen(true);
-                            }}
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                        </div>
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedPerson(person.id);
+                            setIsViewPhotosOpen(true);
+                          }}
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={(e) => {
+                            e.stopPropagation();
                             setEditingPerson(person);
                             setSelectedPerson(person.id);
                             setIsSelectThumbnailOpen(true);
