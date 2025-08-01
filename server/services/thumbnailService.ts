@@ -56,9 +56,10 @@ export class ThumbnailService {
             kernel: sharp.kernel.nearest // Faster resizing
           })
           .jpeg({ 
-            quality, 
+            quality: Math.min(quality, 60), // Force lower quality for speed
             progressive: false, // Faster loading
-            mozjpeg: true // Better compression
+            mozjpeg: true, // Better compression
+            optimiseScans: true // Optimize encoding
           })
 
         await sharpInstance.toFile(cachePath);

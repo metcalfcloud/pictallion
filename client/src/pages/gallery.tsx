@@ -13,8 +13,8 @@ import PhotoDetailModal from "@/components/photo-detail-modal";
 import { AdvancedSearch } from "@/components/advanced-search";
 import BatchOperations from "@/components/batch-operations";
 import SmartCollections from "@/components/smart-collections";
-import { Pagination } from "@/components/pagination";
-import { usePagination } from "@/hooks/use-pagination";
+import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
+import { useImagePreloader } from "@/hooks/use-image-preloader";
 import { ProcessingStateBadge, getProcessingState } from "@/components/ui/processing-state-badge";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -214,10 +214,25 @@ export default function Gallery() {
     return true;
   }) || [];
 
-  // Add pagination for better performance with large photo collections
-  const pagination = usePagination({
+  // Use infinite scroll for seamless browsing experience
+  const {
+    displayedItems: displayedPhotos,
+    hasMore,
+    isLoading: isLoadingMore,
+    sentinelRef
+  } = useInfiniteScroll({
     data: filteredPhotos,
-    itemsPerPage: 12 // Show 12 photos per page for instant loading
+    itemsPerPage: 20 // Load 20 photos at a time for smooth scrolling
+  });
+
+  // Preload upcoming images for instant display
+  const upcomingImages = filteredPhotos
+    .slice(displayedPhotos.length, displayedPhotos.length + 20)
+    .map(photo => `/api/files/${photo.mediaAsset.filePath}?quality=low&w=250&h=250`);
+  
+  useImagePreloader({ 
+    images: upcomingImages, 
+    preloadCount: 15 
   });
 
   const handleProcessPhoto = (photoId: string) => {
@@ -456,9 +471,10 @@ export default function Gallery() {
         {/* Results Summary */}
         <div className="mb-6">
           <p className="text-sm text-muted-foreground">
-            Showing {pagination.currentItems.length} of {filteredPhotos.length} photos
+            Showing {displayedPhotos.length} of {filteredPhotos.length} photos
             {tierFilter !== 'all' && ` in ${tierFilter} tier`}
             {searchQuery && ` matching "${searchQuery}"`}
+            {hasMore && ' • Scroll down for more'}
           </p>
         </div>
 
@@ -472,7 +488,7 @@ export default function Gallery() {
         ) : filteredPhotos.length > 0 ? (
           <div className="space-y-6">
             <PhotoGrid 
-              photos={pagination.currentItems}
+              photos={displayedPhotos}
               viewMode={viewMode}
               onPhotoClick={setSelectedPhoto}
               onProcessPhoto={handleProcessPhoto}
@@ -487,15 +503,19 @@ export default function Gallery() {
               }}
             />
             
-            {/* Pagination */}
-            <Pagination
-              currentPage={pagination.currentPage}
-              totalPages={pagination.totalPages}
-              onPageChange={pagination.goToPage}
-              startIndex={pagination.startIndex}
-              endIndex={pagination.endIndex}
-              totalItems={pagination.totalItems}
-            />
+            {/* Infinite Scroll Sentinel */}
+            {hasMore && (
+              <div ref={sentinelRef} className="py-8 text-center">
+                {isLoadingMore ? (
+                  <div className="flex items-center justify-center space-x-2">
+                    <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                    <span className="text-muted-foreground">Loading more photos...</span>
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">Scroll down to load more photos</p>
+                )}
+              </div>
+            )}
           </div>
         ) : (
           <Card>
