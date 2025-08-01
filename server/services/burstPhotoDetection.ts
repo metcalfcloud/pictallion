@@ -40,7 +40,7 @@ export class BurstPhotoDetectionService {
   
   /**
    * Analyze photos from all tiers for burst sequences
-   * Groups photos with 95%+ similarity taken within ±1 minute
+   * Groups photos with 95%+ similarity taken within ±10 seconds
    * Handles cross-tier detection and mixed-tier groups
    */
   async analyzeBurstPhotos(allPhotos: any[]): Promise<BurstAnalysis> {
@@ -95,8 +95,8 @@ export class BurstPhotoDetectionService {
           continue;
         }
 
-        // Find photos within 1 minute window using extracted timestamps
-        const timeWindow = 60 * 1000; // 1 minute in milliseconds
+        // Find photos within 10 seconds window using extracted timestamps
+        const timeWindow = 10 * 1000; // 10 seconds in milliseconds
         const getPhotoTime = (photo: any) => {
           // First try EXIF datetime fields
           if (photo.metadata?.exif?.dateTime) {
@@ -382,11 +382,11 @@ export class BurstPhotoDetectionService {
     });
 
     // Determine group reason
-    let groupReason = 'Similar photos taken within 1 minute';
+    let groupReason = 'Similar photos taken within 10 seconds';
     if (timeSpan < 5000) {
       groupReason = 'Rapid burst sequence (under 5 seconds)';
-    } else if (timeSpan < 30000) {
-      groupReason = 'Quick burst sequence (under 30 seconds)';
+    } else if (timeSpan < 10000) {
+      groupReason = 'Quick burst sequence (under 10 seconds)';
     }
 
     return {
