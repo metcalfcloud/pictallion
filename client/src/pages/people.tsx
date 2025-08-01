@@ -774,8 +774,11 @@ export default function PeoplePage() {
                               </Button>
                             </div>
                             <div className="flex flex-wrap gap-2">
-                              {/* Quick assign to existing people */}
-                              {people.slice(0, 5).map((person) => (
+                              {/* Quick assign to recent/common people */}
+                              {people
+                                .sort((a, b) => (b.faceCount || 0) - (a.faceCount || 0)) // Sort by face count 
+                                .slice(0, 3) // Show only top 3 most common people
+                                .map((person) => (
                                 <Button
                                   key={person.id}
                                   size="sm"
@@ -811,21 +814,19 @@ export default function PeoplePage() {
                                 New Person
                               </Button>
                               
-                              {/* More people button if there are more */}
-                              {people.length > 5 && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => {
-                                    setAssignFacesSearchQuery('');
-                                    setIsMergeFacesOpen(true);
-                                  }}
-                                  className="flex items-center gap-1"
-                                >
-                                  <MoreHorizontal className="w-3 h-3" />
-                                  More ({people.length - 5})
-                                </Button>
-                              )}
+                              {/* Browse all people button */}
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setAssignFacesSearchQuery('');
+                                  setIsMergeFacesOpen(true);
+                                }}
+                                className="flex items-center gap-1"
+                              >
+                                <Search className="w-3 h-3" />
+                                Find Person
+                              </Button>
                             </div>
                           </div>
                         )}
