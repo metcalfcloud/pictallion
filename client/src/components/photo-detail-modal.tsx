@@ -310,6 +310,14 @@ export default function PhotoDetailModal({
     });
   }, [photo.id]); // Only depend on photo.id to prevent infinite loops
 
+  // Update image dimensions when photo changes
+  useEffect(() => {
+    if (imageRef.current) {
+      setImageWidth(imageRef.current.offsetWidth);
+      setImageHeight(imageRef.current.offsetHeight);
+    }
+  }, [photo.id, imageRef.current]);
+
   const getTierBadgeClass = (tier: string) => {
     switch (tier) {
       case 'bronze':
@@ -612,20 +620,20 @@ export default function PhotoDetailModal({
             </div>
 
             {/* Main Image */}
-            <div className="flex-shrink-0 flex items-center justify-center bg-gray-50 dark:bg-gray-800 rounded-lg overflow-hidden relative max-h-[45vh]"
-             onLoad={(e) => {
-              setImageWidth(e.currentTarget.offsetWidth);
-              setImageHeight(e.currentTarget.offsetHeight);
-            }}
-            onError={() => setImageError(true)}>
+            <div className="flex-shrink-0 flex items-center justify-center bg-gray-50 dark:bg-gray-800 rounded-lg overflow-hidden relative max-h-[45vh]">
               <img 
                 ref={imageRef}
                 src={`/api/files/${photo.filePath}`}
                 alt={photo.mediaAsset?.originalFilename || 'Photo'}
                 className="max-w-full max-h-full object-contain cursor-pointer hover:scale-105 transition-transform duration-200"
                 onClick={() => setIsImageFullscreen(true)}
+                onLoad={(e) => {
+                  setImageWidth(e.currentTarget.offsetWidth);
+                  setImageHeight(e.currentTarget.offsetHeight);
+                }}
                 onError={(e) => {
                   e.currentTarget.src = '/placeholder-image.svg';
+                  setImageError(true);
                 }}
               />
 
@@ -634,26 +642,52 @@ export default function PhotoDetailModal({
           <>
             {facesData.map((face: any) => {
               const [x, y, width, height] = face.boundingBox || [0, 0, 0, 0];
-              const scaleX = imageWidth / (photo.metadata?.exif?.imageWidth || imageWidth);
-              const scaleY = imageHeight / (photo.metadata?.exif?.imageHeight || imageHeight);
+              const originalImageWidth = photo.metadata?.exif?.imageWidth || 1;
+              const originalImageHeight = photo.metadata?.exif?.imageHeight || 1;
+              const scaleX = imageWidth / originalImageWidth;
+              const scaleY = imageHeight / originalImageHeight;
               const isHovered = hoveredFace === face.id;
+
+              // Skip rendering if we don't have valid dimensions
+              if (!imageWidth || !imageHeight || !originalImageWidth || !originalImageHeight) {
+                return null;
+              }
+
+              // Debug logging for face overlay positioning
+              if (isHovered) {
+                console.log('Face overlay debug:', {
+                  faceId: face.id,
+                  boundingBox: [x, y, width, height],
+                  imageSize: { width: imageWidth, height: imageHeight },
+                  originalSize: { width: originalImageWidth, height: originalImageHeight },
+                  scale: { x: scaleX, y: scaleY },
+                  position: {
+                    left: Math.round(x * scaleX),
+                    top: Math.round(y * scaleY),
+                    width: Math.round(width * scaleX),
+                    height: Math.round(height * scaleY)
+                  }
+                });
+              }
 
               return (
                 <div
                   key={face.id}
-                  className={`absolute border-2 transition-all duration-200 ${
+                  className={`absolute border-4 transition-all duration-200 ${
                     isHovered 
-                      ? 'border-cyan-400 bg-cyan-400/20 shadow-lg animate-pulse' 
+                      ? 'border-cyan-400 bg-cyan-400/30 shadow-lg animate-pulse' 
                       : face.personId 
-                        ? 'border-green-400 bg-black/20' 
-                        : 'border-yellow-400 bg-black/20'
+                        ? 'border-green-400 bg-green-400/10' 
+                        : 'border-yellow-400 bg-yellow-400/10'
                   }`}
                   style={{
-                    left: `${(x * scaleX)}px`,
-                    top: `${(y * scaleY)}px`,
-                    width: `${(width * scaleX)}px`,
-                    height: `${(height * scaleY)}px`,
-                    zIndex: isHovered ? 10 : 1,
+                    left: `${Math.round(x * scaleX)}px`,
+                    top: `${Math.round(y * scaleY)}px`,
+                    width: `${Math.round(width * scaleX)}px`,
+                    height: `${Math.round(height * scaleY)}px`,
+                    zIndex: isHovered ? 10 : 5,
+                    minWidth: '20px',
+                    minHeight: '20px',
                   }}
                   title={face.personId ? `${face.person?.name || 'Unknown'} (${Math.round(face.confidence)}%)` : `Unassigned face (${Math.round(face.confidence)}%)`}
                 >
