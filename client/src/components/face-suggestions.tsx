@@ -400,7 +400,7 @@ export function FaceSuggestions() {
             <div key={item.faceId} className="w-fit">
               <Card className={`transition-all ${isSelected ? 'ring-2 ring-blue-500 bg-blue-50' : ''}`}>
               <CardHeader className="p-4">
-                <div className="flex items-start gap-3 w-fit">
+                <div className="flex items-start gap-3">
                   {/* Face crop */}
                   <div className="relative flex-shrink-0">
                     {face ? (
@@ -444,12 +444,12 @@ export function FaceSuggestions() {
                     )}
                   </div>
 
-                  {/* Face info and selection status */}
-                  <div className="flex-1 min-w-0">
+                  {/* Face info */}
+                  <div className="min-w-0">
                     <h3 className="font-medium text-sm">
                       {face ? 'Unassigned Face' : 'Face (Missing Data)'}
                     </h3>
-                    <p className="text-sm text-muted-foreground truncate">
+                    <p className="text-sm text-muted-foreground">
                       {face?.photo?.mediaAsset.originalFilename ? 
                         `From: ${face.photo.mediaAsset.originalFilename}` : 
                         `Face ID: ${item.faceId}`
@@ -457,12 +457,12 @@ export function FaceSuggestions() {
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {face ? `Confidence: ${Math.round(face.confidence)}%` : 'Face data missing'} • {item.suggestions.length} suggestion{item.suggestions.length !== 1 ? 's' : ''}
-                      {isSelected && selectedPerson && (
-                        <span className="text-green-600 font-medium ml-2">
-                          → {people.find(p => p.id === selectedPerson.personId)?.name}
-                        </span>
-                      )}
                     </p>
+                    {isSelected && selectedPerson && (
+                      <p className="text-xs text-green-600 font-medium">
+                        → Will assign to: {people.find(p => p.id === selectedPerson.personId)?.name}
+                      </p>
+                    )}
                   </div>
                 </div>
               </CardHeader>
