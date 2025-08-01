@@ -9,7 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
-import { Upload, X, CheckCircle, AlertCircle, File, Clock, HardDrive } from "lucide-react";
+import { Upload, X, CheckCircle, AlertCircle, File, Clock, HardDrive, AlertTriangle } from "lucide-react";
 
 interface DuplicateConflict {
   id: string;
@@ -190,6 +190,7 @@ export function UnifiedUpload({
 
         // Use XMLHttpRequest for progress tracking
         const xhr = new XMLHttpRequest();
+        xhrRef.current = xhr;
 
         // Track upload progress
         xhr.upload.addEventListener('progress', (event) => {
@@ -232,6 +233,9 @@ export function UnifiedUpload({
 
         const data = await uploadPromise;
 
+        // Clear xhr reference after successful upload
+        xhrRef.current = null;
+
         // Update upload files with results
         setUploadFiles(current =>
             current.map(uploadFile => {
@@ -270,6 +274,9 @@ export function UnifiedUpload({
         queryClient.invalidateQueries({ queryKey: ["/api/people"] });
 
     } catch (error) {
+        // Clear xhr reference after failed upload
+        xhrRef.current = null;
+        
         setUploadFiles(current =>
             current.map(file =>
                 file.status === 'uploading'
@@ -422,9 +429,29 @@ export function UnifiedUpload({
   };
 
   // Main upload interface
-  const UploadInterface = () => (
-    <div className="space-y-6">
-      {/* Drag and Drop Area */}
+  const UploadInterface = () => {
+    const isUploading = uploadFiles.some(f => f.status === 'uploading');
+    
+    return (
+      <div className="space-y-6">
+        {/* Upload Progress Warning */}
+        {isUploading && (
+          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+            <div className="flex items-center space-x-3">
+              <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+              <div className="flex-1">
+                <h4 className="text-sm font-medium text-amber-800 dark:text-amber-300">
+                  Upload in progress
+                </h4>
+                <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
+                  Please don't navigate away from this page. Leaving will stop all uploads.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Drag and Drop Area */}
       <div
         className={`border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors ${
           isDragActive 
@@ -504,6 +531,7 @@ export function UnifiedUpload({
       )}
     </div>
   );
+};
 
   // Action buttons
   const ActionButtons = () => {
