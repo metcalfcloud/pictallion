@@ -1,6 +1,6 @@
 import OpenAI from "openai";
+import { error } from "@shared/logger";
 
-// the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export interface NamingContext {
@@ -16,53 +16,21 @@ export interface NamingContext {
     camera?: string;
     lens?: string;
   };
-  originalFilename: string;
-  tier: 'bronze' | 'silver' | 'gold';
 }
 
 export interface NamingPattern {
-  id: string;
-  name: string;
-  description: string;
-  pattern: string;
-  example: string;
 }
 
 export const BUILTIN_NAMING_PATTERNS: NamingPattern[] = [
   {
-    id: 'original',
-    name: 'Keep Original',
-    description: 'Preserve the original filename',
-    pattern: '{originalFilename}',
-    example: 'IMG_2023.jpg'
   },
   {
-    id: 'datetime',
-    name: 'Date & Time',
-    description: 'YYYY-MM-DD_HH-mm-ss format',
-    pattern: '{year}-{month}-{day}_{hour}-{minute}-{second}',
-    example: '2024-07-26_14-30-25.jpg'
   },
   {
-    id: 'datetime_camera',
-    name: 'Date & Time + Camera',
-    description: 'Date, time, and camera model',
-    pattern: '{year}-{month}-{day}_{hour}-{minute}-{second}_{camera}',
-    example: '2024-07-26_14-30-25_CanonEOSR5.jpg'
   },
   {
-    id: 'ai_descriptive',
-    name: 'AI Descriptive (Pictallion)',
-    description: 'AI-generated description with date',
-    pattern: '{year}-{month}-{day}_{aiDescription}',
-    example: '2024-07-26_SunsetBeach.jpg'
   },
   {
-    id: 'ai_detailed',
-    name: 'AI Detailed (Pictallion)',
-    description: 'Full AI description with time and camera',
-    pattern: '{year}-{month}-{day}_{hour}-{minute}_{aiDescription}_{camera}',
-    example: '2024-07-26_14-30_SunsetBeach_CanonEOSR5.jpg'
   }
 ];
 
@@ -72,37 +40,24 @@ export const BUILTIN_NAMING_PATTERNS: NamingPattern[] = [
 export async function generateAIShortDescription(base64Image: string): Promise<string> {
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
         {
-          role: "system",
-          content: `Generate a very short 2-3 word description for this image in PascalCase format (e.g., SunsetBeach, FamilyDinner, MountainHike). 
           Focus on the main subject or scene. Be concise and descriptive. Respond with JSON format: {"description": "YourDescription"}`
         },
         {
-          role: "user",
-          content: [
             {
-              type: "text",
-              text: "Generate a short PascalCase description for this image."
             },
             {
-              type: "image_url",
-              image_url: {
-                url: `data:image/jpeg;base64,${base64Image}`
               }
             }
           ]
         }
       ],
-      response_format: { type: "json_object" },
-      max_tokens: 50
     });
 
     const result = JSON.parse(response.choices[0].message.content || '{}');
     return result.description || 'UnknownImage';
-  } catch (error) {
-    console.error('Failed to generate AI description:', error);
+  } catch (err) {
+    error('Failed to generate AI description', "AINaming", { error: err });
     return 'UnknownImage';
   }
 }
@@ -113,7 +68,6 @@ export async function generateAIShortDescription(base64Image: string): Promise<s
 export function applyNamingPattern(pattern: string, context: NamingContext): string {
   let filename = pattern;
   
-  // Extract date components from EXIF (prioritize dateTimeOriginal) or use current date
   let date = new Date();
   
   if (context.exifMetadata?.dateTimeOriginal) {
@@ -133,7 +87,6 @@ export function applyNamingPattern(pattern: string, context: NamingContext): str
     }
   }
   
-  // If no valid EXIF date found, try to extract from filename
   if (date.getTime() === new Date().getTime()) {
     const filename = context.originalFilename;
     const timestampMatch = filename.match(/^(\d{8})_(\d{6})/);
@@ -154,7 +107,6 @@ export function applyNamingPattern(pattern: string, context: NamingContext): str
     }
   }
   
-  // Replace date/time placeholders
   filename = filename.replace('{year}', date.getFullYear().toString());
   filename = filename.replace('{month}', (date.getMonth() + 1).toString().padStart(2, '0'));
   filename = filename.replace('{day}', date.getDate().toString().padStart(2, '0'));
@@ -170,7 +122,6 @@ export function applyNamingPattern(pattern: string, context: NamingContext): str
   const lens = context.exifMetadata?.lens?.replace(/\s+/g, '') || 'UnknownLens';
   filename = filename.replace('{lens}', lens);
   
-  // Replace AI description
   const aiDescription = context.aiMetadata?.shortDescription || 'UnknownImage';
   filename = filename.replace('{aiDescription}', aiDescription);
   
@@ -178,7 +129,6 @@ export function applyNamingPattern(pattern: string, context: NamingContext): str
   const originalName = context.originalFilename.replace(/\.[^/.]+$/, '');
   filename = filename.replace('{originalFilename}', originalName);
   
-  // Clean up any remaining placeholders or invalid characters
   filename = filename.replace(/[{}]/g, '');
   filename = filename.replace(/[<>:"/\\|?*]/g, '_');
   filename = filename.replace(/_+/g, '_');
@@ -191,16 +141,11 @@ export function applyNamingPattern(pattern: string, context: NamingContext): str
  * Generate filename based on current Silver tier naming settings
  */
 export async function generateSilverFilename(
-  context: NamingContext, 
-  namingPattern: string
 ): Promise<string> {
-  // Find the pattern or use custom
   const pattern = BUILTIN_NAMING_PATTERNS.find(p => p.id === namingPattern)?.pattern || namingPattern;
   
-  // Apply the pattern
   const baseFilename = applyNamingPattern(pattern, context);
   
-  // Add appropriate extension based on original file
   const extension = context.originalFilename.split('.').pop() || 'jpg';
   
   return `${baseFilename}.${extension}`;

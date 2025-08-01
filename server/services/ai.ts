@@ -9,28 +9,12 @@ import { promptManager } from "./promptManager";
 export type AIProvider = "ollama" | "openai" | "both";
 
 interface AIConfig {
-  provider: AIProvider;
-  ollama: {
-    baseUrl: string;
-    visionModel: string;
-    textModel: string;
   };
-  openai: {
-    apiKey: string;
-    model: string;
   };
 }
 
 const DEFAULT_CONFIG: AIConfig = {
-  provider: (process.env.AI_PROVIDER as AIProvider) || (process.env.OPENAI_API_KEY ? "openai" : "ollama"),
-  ollama: {
-    baseUrl: process.env.OLLAMA_BASE_URL || "http://localhost:11434",
-    visionModel: process.env.OLLAMA_MODEL || "llava:latest",
-    textModel: process.env.OLLAMA_TEXT_MODEL || "llama3.2:latest"
   },
-  openai: {
-    apiKey: process.env.OPENAI_API_KEY || "",
-    model: process.env.OPENAI_MODEL || "gpt-4o"
   }
 };
 
@@ -50,36 +34,28 @@ class AIService {
   }
 
   async analyzeImageWithPeopleContext(
-    imagePath: string, 
     preferredProvider?: AIProvider, 
     peopleContext?: Array<{
-      name: string;
       ageInPhoto?: number | null;
-      relationships: Array<{ type: string; otherPersonId: string }>;
-      boundingBox: any;
     }>
   ): Promise<AIMetadata> {
     const provider = preferredProvider || this.config.provider;
     
     try {
-      // Try OpenAI first if it's the preferred provider or available
       if ((provider === "openai" || provider === "both") && this.config.openai.apiKey) {
         logger.debug("Using OpenAI for image analysis", { hasApiKey: !!this.config.openai.apiKey });
         try {
           return await this.analyzeWithOpenAI(imagePath, peopleContext);
         } catch (openaiError: any) {
           logger.error("OpenAI analysis failed", openaiError);
-          // Check if it's a quota/rate limit error
           if (openaiError?.status === 429 || openaiError?.code === 'insufficient_quota') {
             logger.warn("OpenAI quota exceeded, falling back to alternative processing");
           }
-          // Continue to try Ollama if OpenAI fails
         }
       } else {
         logger.debug("OpenAI not available", { provider, hasApiKey: !!this.config.openai.apiKey });
       }
 
-      // Try Ollama if OpenAI failed or if it's the preferred provider
       if (provider === "ollama" || provider === "both") {
         const isOllamaAvailable = await this.checkOllamaAvailability();
         if (isOllamaAvailable) {
@@ -91,7 +67,6 @@ class AIService {
         }
       }
 
-      // Fallback to basic metadata
       logger.debug("No AI providers available, returning basic metadata");
       return this.generateBasicMetadata(imagePath, peopleContext);
     } catch (error) {
@@ -101,20 +76,15 @@ class AIService {
   }
 
   private async analyzeWithOllama(imagePath: string, peopleContext?: Array<{
-    name: string;
     ageInPhoto?: number | null;
-    relationships: Array<{ type: string; otherPersonId: string }>;
-    boundingBox: any;
   }>): Promise<AIMetadata> {
 
       // Read and encode image to base64
       const imageBuffer = await fs.readFile(path.join(process.cwd(), 'data', imagePath));
       const base64Image = imageBuffer.toString('base64');
 
-      // Get prompt from prompt manager
       const aiPrompt = await promptManager.getPrompt('analysis', 'ollama');
       
-      // Create context string for known people
       const peopleContextStr = peopleContext && peopleContext.length > 0 
         ? `\n\nKNOWN PEOPLE IN THIS IMAGE:\n${peopleContext.map(person => 
             `- ${person.name}${person.ageInPhoto ? ` (age ${person.ageInPhoto} in this photo)` : ''}${
@@ -125,7 +95,6 @@ class AIService {
           ).join('\n')}\n\nUse this information to enhance your analysis and descriptions. Consider the people's ages and relationships when describing the image context and generating tags.`
         : '';
 
-      // Use dynamic prompt from prompt manager
       const systemPrompt = aiPrompt?.systemPrompt || `Analyze this image and provide detailed metadata in JSON format:
 {
   "aiTags": ["tag1", "tag2", "tag3", "tag4", "tag5"],
@@ -136,7 +105,6 @@ class AIService {
   "aiConfidenceScores": {"tags": 0.9, "description": 0.85, "objects": 0.8, "place": 0.7}
 }
 
-Rules:
 - Write descriptions as family memories, not technical analysis
 - Use warm, natural language appropriate for a family album
 - Provide 5-8 relevant tags describing content, mood, and setting
@@ -151,16 +119,8 @@ Rules:
       const fullPrompt = systemPrompt + peopleContextStr + "\n\n" + userPrompt;
 
       const response = await fetch(`${this.config.ollama.baseUrl}/api/generate`, {
-        method: 'POST',
-        headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          model: this.config.ollama.visionModel,
-          prompt: fullPrompt,
-          images: [base64Image],
-          stream: false,
-          format: "json"
         }),
       });
 
@@ -171,18 +131,7 @@ Rules:
       const data = await response.json();
       const aiResult = JSON.parse(data.response || '{}');
 
-      // Validate and structure the response
       const metadata: AIMetadata = {
-        aiTags: Array.isArray(aiResult.aiTags) ? aiResult.aiTags.slice(0, 8) : [],
-        shortDescription: aiResult.shortDescription || "AI analysis unavailable",
-        longDescription: aiResult.longDescription || "Detailed AI analysis unavailable for this image.",
-        detectedObjects: Array.isArray(aiResult.detectedObjects) ? aiResult.detectedObjects : [],
-        placeName: aiResult.placeName || undefined,
-        aiConfidenceScores: aiResult.aiConfidenceScores || {
-          tags: 0.5,
-          description: 0.5,
-          objects: 0.5,
-          place: 0.0
         }
       };
 
@@ -190,10 +139,7 @@ Rules:
   }
 
   private async analyzeWithOpenAI(imagePath: string, peopleContext?: Array<{
-    name: string;
     ageInPhoto?: number | null;
-    relationships: Array<{ type: string; otherPersonId: string }>;
-    boundingBox: any;
   }>): Promise<AIMetadata> {
     const OpenAI = (await import("openai")).default;
     const openai = new OpenAI({ apiKey: this.config.openai.apiKey });
@@ -202,10 +148,8 @@ Rules:
     const imageBuffer = await fs.readFile(path.join(process.cwd(), 'data', imagePath));
     const base64Image = imageBuffer.toString('base64');
 
-    // Get prompt from prompt manager
     const aiPrompt = await promptManager.getPrompt('analysis', 'openai');
 
-    // Create context string for known people
     const peopleContextStr = peopleContext && peopleContext.length > 0 
       ? `\n\nKNOWN PEOPLE IN THIS IMAGE:\n${peopleContext.map(person => 
           `- ${person.name}${person.ageInPhoto ? ` (age ${person.ageInPhoto} in this photo)` : ''}${
@@ -252,29 +196,16 @@ For events, detect holidays, celebrations, activities, and life events.`;
     const userPrompt = aiPrompt?.userPrompt || "Analyze this family photo and provide comprehensive metadata in the specified JSON format. Focus on creating warm, natural descriptions that would be perfect for a family album.";
 
     const response = await openai.chat.completions.create({
-      // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-      model: "gpt-4o",
-      messages: [
         {
-          role: "system",
-          content: systemPrompt + peopleContextStr
         },
         {
-          role: "user",
-          content: [
             {
-              type: "text",
-              text: userPrompt
             },
             {
-              type: "image_url",
-              image_url: { url: `data:image/jpeg;base64,${base64Image}` }
             }
           ],
         },
       ],
-      response_format: { type: "json_object" },
-      max_tokens: 1500,
     });
 
     const aiResult = JSON.parse(response.choices[0].message.content || '{}');
@@ -283,22 +214,6 @@ For events, detect holidays, celebrations, activities, and life events.`;
     const perceptualHash = await this.generatePerceptualHash(imagePath);
 
     return {
-      aiTags: Array.isArray(aiResult.aiTags) ? aiResult.aiTags.slice(0, 8) : [],
-      shortDescription: aiResult.shortDescription || "OpenAI analysis unavailable",
-      longDescription: aiResult.longDescription || "Detailed OpenAI analysis unavailable for this image.",
-      detectedObjects: Array.isArray(aiResult.detectedObjects) ? aiResult.detectedObjects : [],
-      detectedFaces: Array.isArray(aiResult.detectedFaces) ? aiResult.detectedFaces : [],
-      detectedEvents: Array.isArray(aiResult.detectedEvents) ? aiResult.detectedEvents : [],
-      placeName: aiResult.placeName || undefined,
-      gpsCoordinates: aiResult.gpsCoordinates || undefined,
-      perceptualHash: perceptualHash,
-      aiConfidenceScores: aiResult.aiConfidenceScores || {
-        tags: 0.8,
-        description: 0.8,
-        objects: 0.7,
-        faces: 0.7,
-        events: 0.6,
-        place: 0.6
       }
     };
   }
@@ -306,8 +221,6 @@ For events, detect holidays, celebrations, activities, and life events.`;
   private async checkOllamaAvailability(): Promise<boolean> {
     try {
       const response = await fetch(`${this.config.ollama.baseUrl}/api/tags`, {
-        method: 'GET',
-        signal: AbortSignal.timeout(5000), // 5 second timeout
       });
       return response.ok;
     } catch (error: any) {
@@ -316,10 +229,7 @@ For events, detect holidays, celebrations, activities, and life events.`;
   }
 
   private async generateBasicMetadata(imagePath: string, peopleContext?: Array<{
-    name: string;
     ageInPhoto?: number | null;
-    relationships: Array<{ type: string; otherPersonId: string }>;
-    boundingBox: any;
   }>): Promise<AIMetadata> {
     // Extract basic info from filename and path
     const filename = path.basename(imagePath);
@@ -329,7 +239,6 @@ For events, detect holidays, celebrations, activities, and life events.`;
     let shortDescription = "Photo";
     let longDescription = "A moment captured in time.";
     
-    // Enhanced classification with people context using warm family language
     if (peopleContext && peopleContext.length > 0) {
       // Use the prompt manager to generate a natural family description
       const familyDescription = await promptManager.generateFamilyDescription(peopleContext);
@@ -361,7 +270,6 @@ For events, detect holidays, celebrations, activities, and life events.`;
       if (adults.length > 0) tags.push("adults");
       if (seniors.length > 0) tags.push("grandparents", "generations");
       
-      // Add relationship-based context
       const relationships = peopleContext.flatMap(p => p.relationships.map(r => r.type));
       if (relationships.includes("spouse") || relationships.includes("partner")) {
         tags.push("couple", "love");
@@ -376,14 +284,12 @@ For events, detect holidays, celebrations, activities, and life events.`;
       // Create warm, natural long description
       longDescription = familyDescription;
       
-      // Add age context if available
       const agesInfo = peopleContext.filter(p => p.ageInPhoto).map(p => `${p.name} (${p.ageInPhoto})`);
       if (agesInfo.length > 0 && agesInfo.length <= 4) {
         longDescription += ` Everyone captured beautifully - ${agesInfo.join(", ")}.`;
       }
       
     } else {
-      // Basic classification based on filename patterns
       if (filename.toLowerCase().includes('portrait')) {
         tags.push("portrait", "person");
         shortDescription = "Portrait photograph";
@@ -404,22 +310,8 @@ For events, detect holidays, celebrations, activities, and life events.`;
     }
 
     return {
-      aiTags: tags.slice(0, 8), // Limit to 8 tags
       shortDescription,
       longDescription,
-      detectedObjects: [],
-      detectedFaces: [],
-      detectedEvents: [],
-      placeName: undefined,
-      gpsCoordinates: undefined,
-      perceptualHash: await this.generatePerceptualHash(imagePath),
-      aiConfidenceScores: {
-        tags: peopleContext && peopleContext.length > 0 ? 0.7 : 0.4,
-        description: peopleContext && peopleContext.length > 0 ? 0.8 : 0.3,
-        objects: 0.0,
-        faces: 0.0,
-        events: 0.0,
-        place: 0.0
       }
     };
   }
@@ -442,13 +334,12 @@ For events, detect holidays, celebrations, activities, and life events.`;
         
         return {
           ...metadata,
-          shortDescription: shortDescription
         };
       }
       
       return metadata;
     } catch (error) {
-      console.error("Failed to enhance metadata with short description:", error);
+      // error("Failed to enhance metadata with short description:", error);
       return metadata;
     }
   }
@@ -460,14 +351,12 @@ For events, detect holidays, celebrations, activities, and life events.`;
     try {
       const fullPath = path.join(process.cwd(), 'data', imagePath);
       
-      // Resize image to 8x8 grayscale and get average pixel value
       const { data, info } = await sharp(fullPath)
         .resize(8, 8)
         .greyscale()
         .raw()
         .toBuffer({ resolveWithObject: true });
       
-      // Calculate average pixel value
       const totalPixels = data.length;
       let sum = 0;
       for (let i = 0; i < totalPixels; i++) {
@@ -475,13 +364,11 @@ For events, detect holidays, celebrations, activities, and life events.`;
       }
       const average = sum / totalPixels;
       
-      // Generate hash: 1 if pixel > average, 0 otherwise
       let hash = '';
       for (let i = 0; i < totalPixels; i++) {
         hash += data[i] > average ? '1' : '0';
       }
       
-      // Convert binary string to hex for compact storage
       let hexHash = '';
       for (let i = 0; i < hash.length; i += 4) {
         const binary = hash.substring(i, i + 4);
@@ -490,7 +377,7 @@ For events, detect holidays, celebrations, activities, and life events.`;
       
       return hexHash;
     } catch (error) {
-      console.error("Failed to generate perceptual hash:", error);
+      // error("Failed to generate perceptual hash:", error);
       return "0000000000000000"; // fallback hash
     }
   }
@@ -514,20 +401,11 @@ For events, detect holidays, celebrations, activities, and life events.`;
     const provider = preferredProvider || this.config.provider;
     
     try {
-      // Try Ollama first if available
       if ((provider === "ollama" || provider === "both") && await this.checkOllamaAvailability()) {
         const response = await fetch(`${this.config.ollama.baseUrl}/api/generate`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model: this.config.ollama.textModel,
-            prompt: `Generate 5-8 relevant tags for this image description. Return as JSON array of strings.
 
-Description: ${description}
 
 Return ONLY a JSON array like: ["tag1", "tag2", "tag3"]`,
-            stream: false,
-            format: "json"
           }),
         });
 
@@ -538,20 +416,14 @@ Return ONLY a JSON array like: ["tag1", "tag2", "tag3"]`,
         }
       }
 
-      // Try OpenAI if available
       if ((provider === "openai" || provider === "both") && this.config.openai.apiKey) {
         const OpenAI = (await import("openai")).default;
         const openai = new OpenAI({ apiKey: this.config.openai.apiKey });
         
         const response = await openai.chat.completions.create({
-          // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-          model: "gpt-4o",
-          messages: [
             { role: "system", content: "Generate 5-8 relevant tags for the given image description. Return as JSON array of strings." },
             { role: "user", content: `Generate tags for: ${description}` }
           ],
-          response_format: { type: "json_object" },
-          max_tokens: 200,
         });
 
         const result = JSON.parse(response.choices[0].message.content || '{"tags": []}');
@@ -560,7 +432,7 @@ Return ONLY a JSON array like: ["tag1", "tag2", "tag3"]`,
 
       return this.extractTagsFromDescription(description);
     } catch (error) {
-      console.error("Tag generation failed:", error);
+      // error("Tag generation failed:", error);
       return this.extractTagsFromDescription(description);
     }
   }
@@ -571,8 +443,6 @@ Return ONLY a JSON array like: ["tag1", "tag2", "tag3"]`,
     ]);
     
     return {
-      ollama: ollamaAvailable,
-      openai: !!this.config.openai.apiKey
     };
   }
 

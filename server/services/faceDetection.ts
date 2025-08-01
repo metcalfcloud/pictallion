@@ -5,21 +5,15 @@ import path from 'path';
 import fs from 'fs';
 import * as tf from '@tensorflow/tfjs-node';
 import * as faceapi from '@vladmandic/face-api';
+import { info, error, warn } from "@shared/logger";
 
 export interface DetectedFace {
-  id: string;
-  boundingBox: [number, number, number, number]; // x, y, width, height
-  confidence: number; // 0-100 integer scale
   embedding?: number[]; // Face embedding for recognition
   personId?: string; // If matched to known person
 }
 
 export interface Person {
-  id: string;
-  name: string;
-  faceCount: number;
   representative_face?: string; // Path to best face image
-  created_at: Date;
 }
 
 class FaceDetectionService {
@@ -29,68 +23,55 @@ class FaceDetectionService {
     if (this.faceApiInitialized) return;
 
     try {
-      console.log('Initializing Face-API.js with TensorFlow.js backend...');
+      info('Initializing Face-API.js with TensorFlow.js backend', "FaceDetection");
 
-      // Initialize TensorFlow.js backend first
       await tf.ready();
 
-      // Load face detection models
       const modelPath = 'https://vladmandic.github.io/face-api/model';
 
       await Promise.all([
-        // Primary detection models
         faceapi.nets.ssdMobilenetv1.loadFromUri(modelPath),
         faceapi.nets.tinyFaceDetector.loadFromUri(modelPath),
 
-        // Landmark and recognition models
         faceapi.nets.faceLandmark68Net.loadFromUri(modelPath),
         faceapi.nets.faceLandmark68TinyNet.loadFromUri(modelPath), // Faster landmarks
         faceapi.nets.faceRecognitionNet.loadFromUri(modelPath),
 
-        // Additional analysis models
         faceapi.nets.ageGenderNet.loadFromUri(modelPath), // Age/gender prediction
         faceapi.nets.faceExpressionNet.loadFromUri(modelPath), // Emotion detection
       ]);
 
       this.faceApiInitialized = true;
-      console.log('Face-API.js models loaded successfully');
-    } catch (error) {
-      console.error('Failed to initialize Face-API.js:', error);
+      info('Face-API.js models loaded successfully', "FaceDetection");
+    } catch (err) {
+      error('Failed to initialize Face-API.js', "FaceDetection", { error: err });
       this.faceApiInitialized = false;
     }
   }
 
   async detectFaces(imagePath: string): Promise<{ faces: DetectedFace[], metadata: any }> {
     const metadata = {
-      faceDetection: {
-        attempted: true,
-        timestamp: new Date().toISOString(),
-        method: null as string | null,
-        failed: false,
-        error: null as string | null
       }
     };
 
     try {
-      console.log('Running Face-API.js neural network face detection on:', imagePath);
+      info('Running Face-API.js neural network face detection', "FaceDetection", { imagePath });
 
-      // Try Face-API detection first
       let faces = await this.detectFacesWithFaceAPI(imagePath);
 
       if (faces.length > 0) {
-        console.log(`Face-API detected ${faces.length} faces successfully`);
+        info(`Face-API detected ${faces.length} faces successfully`, "FaceDetection");
         metadata.faceDetection.method = 'face-api';
       } else {
-        // If Face-API fails, fall back to heuristics
-        console.log('Face-API found no faces, using heuristic fallback');
+        info('Face-API found no faces, using heuristic fallback', "FaceDetection");
         faces = await this.detectFacesWithAdvancedAnalysis(imagePath);
         metadata.faceDetection.method = faces.length > 0 ? 'heuristic' : 'none';
       }
 
-      console.log(`Face detection completed: found ${faces.length} faces`);
+      // Removed // Face detection completed: found ${faces.length} faces`);
       return { faces, metadata };
     } catch (error) {
-      console.error('Face detection failed:', error);
+      // error('Face detection failed:', error);
       metadata.faceDetection.failed = true;
       metadata.faceDetection.error = error instanceof Error ? error.message : 'Unknown error';
       return { faces: [], metadata };
@@ -102,15 +83,14 @@ class FaceDetectionService {
       await this.initializeFaceAPI();
 
       if (!this.faceApiInitialized) {
-        console.warn('Face-API models not available, will use fallback detection');
+        // warn('Face-API models not available, will use fallback detection');
         return [];
       }
 
       const fullImagePath = path.join(process.cwd(), 'data', imagePath);
 
-      // Verify file exists
       if (!fs.existsSync(fullImagePath)) {
-        console.error(`Image file not found: ${fullImagePath}`);
+        // error(`Image file not found: ${fullImagePath}`);
         return [];
       }
 
@@ -119,7 +99,6 @@ class FaceDetectionService {
         .jpeg({ quality: 90 })
         .toBuffer();
 
-      // Convert buffer to tensor
       const imageTensor: tf.Tensor3D = tf.node.decodeImage(imageBuffer, 3) as tf.Tensor3D;
 
       // Remove MTCNN detection, use SSD MobileNet only
@@ -128,10 +107,9 @@ class FaceDetectionService {
         .withFaceLandmarks()
         .withFaceDescriptors();
 
-      // Clean up tensor
       imageTensor.dispose();
 
-      console.log(`Face-API detected ${detections.length} faces with neural networks`);
+      // Removed // Face-API detected ${detections.length} faces with neural networks`);
 
       const faces: DetectedFace[] = [];
 
@@ -139,15 +117,11 @@ class FaceDetectionService {
         const detection = detections[i];
         const box = detection.detection.box;
         const faceData: any = {
-          id: `faceapi_face_${Date.now()}_${i}_${Math.random().toString(36).substr(2, 9)}`,
-          boundingBox: [
             Math.round(box.x),
             Math.round(box.y),
             Math.round(box.width),
             Math.round(box.height)
           ],
-          confidence: Math.round(detection.detection.score * 100),
-          embedding: Array.from(detection.descriptor)
         };
 
         faces.push(faceData);
@@ -156,14 +130,10 @@ class FaceDetectionService {
       return faces;
 
     } catch (error) {
-      console.error('Face-API detection failed:', error);
+      // error('Face-API detection failed:', error);
       // Log detailed error info for debugging
       if (error instanceof Error) {
-        console.error('Face-API error details:', {
-          name: error.name,
-          message: error.message,
-          stack: error.stack?.split('\n').slice(0, 3).join('\n')
-        });
+        // Log Face-API error details removed
       }
       return [];
     }
@@ -176,31 +146,24 @@ class FaceDetectionService {
       const width = imageInfo.width || 1000;
       const height = imageInfo.height || 1000;
 
-      console.log(`Advanced analysis of ${width}x${height} image for face detection`);
+      // Removed // Advanced analysis of ${width}x${height} image for face detection`);
 
-      // Step 1: Analyze image histogram to find skin-tone regions
       const skinRegions = await this.findSkinToneRegions(fullImagePath, width, height);
 
-      // Step 2: Apply composition rules to likely face areas
       const compositionRegions = await this.findFaceRegionsUsingComposition(width, height);
 
-      // Step 3: Combine and refine both approaches
       const candidateRegions = this.combineFaceRegions(skinRegions, compositionRegions, width, height);
 
       const faces: DetectedFace[] = [];
       for (let i = 0; i < candidateRegions.length; i++) {
         const region = candidateRegions[i];
         faces.push({
-          id: `advanced_face_${Date.now()}_${i}_${Math.random().toString(36).substr(2, 9)}`,
-          boundingBox: region.boundingBox,
-          confidence: region.confidence,
-          embedding: await this.generateFaceEmbedding(imagePath, region.boundingBox)
         });
       }
 
       return faces;
     } catch (error) {
-      console.error('Advanced face detection failed:', error);
+      // error('Advanced face detection failed:', error);
       return [];
     }
   }
@@ -219,19 +182,15 @@ class FaceDetectionService {
       // Find regions with skin-tone colors (RGB ranges for various skin tones)
       const skinToneRegions = this.findSkinColorClusters(data, info.width, info.height);
 
-      // Convert back to original image coordinates
       for (const region of skinToneRegions) {
         const scaledRegion = {
-          boundingBox: [
             Math.round(region.x * scaleFactor),
             Math.round(region.y * scaleFactor),
             Math.round(region.width * scaleFactor),
             Math.round(region.height * scaleFactor)
           ] as [number, number, number, number],
-          confidence: region.confidence
         };
 
-        // Only include regions that are reasonable face sizes
         const faceArea = scaledRegion.boundingBox[2] * scaledRegion.boundingBox[3];
         const imageArea = width * height;
         const ratio = faceArea / imageArea;
@@ -241,10 +200,10 @@ class FaceDetectionService {
         }
       }
 
-      console.log(`Found ${regions.length} skin-tone regions`);
+      // Removed // Found ${regions.length} skin-tone regions`);
       return regions;
     } catch (error) {
-      console.error('Skin tone analysis failed:', error);
+      // error('Skin tone analysis failed:', error);
       return [];
     }
   }
@@ -262,7 +221,6 @@ class FaceDetectionService {
 
     let skinPixelMap: boolean[][] = Array(height).fill(null).map(() => Array(width).fill(false));
 
-    // Mark skin pixels
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
         const offset = (y * width + x) * channels;
@@ -281,7 +239,6 @@ class FaceDetectionService {
       }
     }
 
-    // Find connected regions of skin pixels
     const visited: boolean[][] = Array(height).fill(null).map(() => Array(width).fill(false));
 
     for (let y = 0; y < height; y++) {
@@ -291,11 +248,6 @@ class FaceDetectionService {
 
           if (region.pixelCount > 50) { // Minimum size threshold
             regions.push({
-              x: region.minX,
-              y: region.minY,
-              width: region.maxX - region.minX,
-              height: region.maxY - region.minY,
-              confidence: Math.min(90, 50 + (region.pixelCount / 10))
             });
           }
         }
@@ -325,7 +277,6 @@ class FaceDetectionService {
       minY = Math.min(minY, y);
       maxY = Math.max(maxY, y);
 
-      // Add neighboring pixels
       stack.push({x: x+1, y}, {x: x-1, y}, {x, y: y+1}, {x, y: y-1});
     }
 
@@ -333,10 +284,6 @@ class FaceDetectionService {
   }
 
   combineFaceRegions(
-    skinRegions: Array<{boundingBox: [number, number, number, number], confidence: number}>,
-    compositionRegions: Array<{boundingBox: [number, number, number, number], confidence: number}>,
-    width: number,
-    height: number
   ): Array<{boundingBox: [number, number, number, number], confidence: number}> {
 
     const combinedRegions: Array<{boundingBox: [number, number, number, number], confidence: number}> = [];
@@ -344,12 +291,9 @@ class FaceDetectionService {
     // Start with skin regions (higher confidence)
     for (const skinRegion of skinRegions) {
       combinedRegions.push({
-        boundingBox: skinRegion.boundingBox,
-        confidence: Math.min(95, skinRegion.confidence + 10) // Boost skin-based detection
       });
     }
 
-    // Add composition regions that don't overlap significantly with skin regions
     for (const compRegion of compositionRegions) {
       let hasSignificantOverlap = false;
 
@@ -366,7 +310,6 @@ class FaceDetectionService {
       }
     }
 
-    // Sort by confidence and return top candidates
     return combinedRegions
       .sort((a, b) => b.confidence - a.confidence)
       .slice(0, 4); // Max 4 faces per image
@@ -400,24 +343,19 @@ class FaceDetectionService {
       const width = imageInfo.width || 1000;
       const height = imageInfo.height || 1000;
 
-      console.log(`Analyzing ${width}x${height} image for face regions`);
+      // Removed // Analyzing ${width}x${height} image for face regions`);
 
-      // Use composition-based heuristics to estimate face locations
       const faceRegions = await this.findFaceRegionsUsingComposition(width, height);
 
       const faces: DetectedFace[] = [];
       for (const region of faceRegions) {
         faces.push({
-          id: `heuristic_face_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          boundingBox: region.boundingBox,
-          confidence: region.confidence,
-          embedding: await this.generateFaceEmbedding(imagePath, region.boundingBox)
         });
       }
 
       return faces;
     } catch (error) {
-      console.error('Heuristic face detection failed:', error);
+      // error('Heuristic face detection failed:', error);
       return [];
     }
   }
@@ -430,17 +368,11 @@ class FaceDetectionService {
 
     // Define search area (upper 70% of image where faces typically appear)
     const searchArea = {
-      startX: width * 0.1,
-      endX: width * 0.9,
-      startY: height * 0.15,
-      endY: height * 0.7
     };
 
     if (width > height * 1.3) {
-      // Landscape image - likely group photo with 2-3 people
-      console.log('Detected landscape orientation - estimating group photo with multiple faces');
+      // log('Detected landscape orientation - estimating group photo with multiple faces');
 
-      // Place faces at golden ratio positions
       const positions = [
         { x: width * 0.25, y: height * 0.35 }, // Left person
         { x: width * 0.5, y: height * 0.4 },   // Center person
@@ -451,35 +383,29 @@ class FaceDetectionService {
         if (pos.x >= searchArea.startX && pos.x <= searchArea.endX &&
             pos.y >= searchArea.startY && pos.y <= searchArea.endY) {
           regions.push({
-            boundingBox: [
               Math.round(pos.x - faceSize/2),
               Math.round(pos.y - faceSize/2),
               Math.round(faceSize),
               Math.round(faceSize)
             ],
-            confidence: 75
           });
         }
       }
     } else {
-      // Portrait or square image - likely 1-2 people
-      console.log('Detected portrait orientation - estimating single or couple portrait');
+      // log('Detected portrait orientation - estimating single or couple portrait');
 
       const centerX = width * 0.5;
       const faceY = height * 0.4; // Face typically in upper-middle area
 
       regions.push({
-        boundingBox: [
           Math.round(centerX - faceSize/2),
           Math.round(faceY - faceSize/2),
           Math.round(faceSize),
           Math.round(faceSize)
         ],
-        confidence: 80
       });
     }
 
-    // Validate regions are within image bounds
     return regions.filter(region => {
       const [x, y, w, h] = region.boundingBox;
       return x >= 0 && y >= 0 && x + w <= width && y + h <= height;
@@ -491,7 +417,6 @@ class FaceDetectionService {
       await this.initializeFaceAPI();
 
       if (!this.faceApiInitialized) {
-        // Fallback to simple embedding if Face-API not available
         const hash = imagePath + boundingBox.join(',');
         const embedding = [];
 
@@ -504,7 +429,6 @@ class FaceDetectionService {
 
       const fullImagePath = path.join(process.cwd(), 'data', imagePath);
 
-      // Crop face region first
       const [x, y, width, height] = boundingBox;
       const faceBuffer = await sharp(fullImagePath)
         .extract({ left: x, top: y, width, height })
@@ -512,7 +436,6 @@ class FaceDetectionService {
         .jpeg({ quality: 90 })
         .toBuffer();
 
-      // Convert to tensor
       const faceTensor: tf.Tensor3D = tf.node.decodeImage(faceBuffer, 3) as tf.Tensor3D;
 
       // Get face descriptor using Face-API
@@ -537,7 +460,7 @@ class FaceDetectionService {
         return embedding;
       }
     } catch (error) {
-      console.error('Failed to generate face embedding:', error);
+      // error('Failed to generate face embedding:', error);
 
       // Fallback embedding
       const hash = imagePath + boundingBox.join(',');
@@ -560,9 +483,7 @@ class FaceDetectionService {
         const similarity = this.calculateEmbeddingSimilarity(faceEmbedding, face.embedding);
         if (similarity > threshold) {
           similarFaces.push({
-            id: face.id,
             similarity,
-            personId: face.personId ?? undefined
           });
         }
       }
@@ -572,7 +493,6 @@ class FaceDetectionService {
   }
 
   calculateEmbeddingSimilarity(embedding1: number[], embedding2: number[]): number {
-    // Calculate cosine similarity between embeddings
     if (!embedding1 || !embedding2 || embedding1.length === 0 || embedding2.length === 0) {
       return 0;
     }
@@ -598,14 +518,10 @@ class FaceDetectionService {
   async generateFaceSuggestions(unassignedFaceIds: string[]): Promise<Array<{
     suggestedPersonId?: string,
     suggestedPersonName?: string,
-    confidence: number,
-    faceIds: string[]
   }>> {
     const suggestions: Array<{
       suggestedPersonId?: string,
       suggestedPersonName?: string,
-      confidence: number,
-      faceIds: string[]
     }> = [];
 
     // Group unassigned faces by similarity
@@ -632,10 +548,6 @@ class FaceDetectionService {
           const person = await storage.getPerson(bestMatch[0]);
           if (person) {
             suggestions.push({
-              suggestedPersonId: bestMatch[0],
-              suggestedPersonName: person.name,
-              confidence: Math.min(95, Math.round(bestMatch[1] * 100)),
-              faceIds: [faceId]
             });
           }
         }
@@ -648,8 +560,6 @@ class FaceDetectionService {
   async reprocessUnassignedFaces(): Promise<Array<{
     suggestedPersonId?: string,
     suggestedPersonName?: string,
-    confidence: number,
-    faceIds: string[]
   }>> {
     const unassignedFaces = await storage.getUnassignedFaces();
     const unassignedFaceIds = unassignedFaces.map(face => face.id);
@@ -665,7 +575,7 @@ class FaceDetectionService {
         await storage.assignFaceToPerson(assignment.faceId, assignment.personId);
         success++;
       } catch (error) {
-        console.error(`Failed to assign face ${assignment.faceId} to person ${assignment.personId}:`, error);
+        // error(`Failed to assign face ${assignment.faceId} to person ${assignment.personId}:`, error);
         failed++;
       }
     }
@@ -678,7 +588,6 @@ class FaceDetectionService {
       const [x, y, width, height] = boundingBox;
       const fullImagePath = path.join(process.cwd(), 'data', imagePath);
 
-      // Get image metadata
       const imageInfo = await sharp(fullImagePath).metadata();
       const imageWidth = imageInfo.width || 1000;
       const imageHeight = imageInfo.height || 1000;
@@ -694,7 +603,6 @@ class FaceDetectionService {
       let finalCropY = faceCenterY - cropSize / 2;
       let finalCropSize = cropSize;
 
-      // Ensure crop stays within image bounds
       finalCropX = Math.max(0, Math.min(finalCropX, imageWidth - finalCropSize));
       finalCropY = Math.max(0, Math.min(finalCropY, imageHeight - finalCropSize));
 
@@ -705,19 +613,13 @@ class FaceDetectionService {
         finalCropY = Math.max(0, faceCenterY - finalCropSize / 2);
       }
 
-      console.log(`Face crop: center [${faceCenterX}, ${faceCenterY}] → crop [${finalCropX}, ${finalCropY}, ${finalCropSize}x${finalCropSize}] from ${imageWidth}x${imageHeight}`);
+      // Removed // Face crop: center [${faceCenterX}, ${faceCenterY}] → crop [${finalCropX}, ${finalCropY}, ${finalCropSize}x${finalCropSize}] from ${imageWidth}x${imageHeight}`);
 
       // Create the crop
       let imageBuffer = await sharp(fullImagePath)
         .extract({
-          left: Math.round(finalCropX),
-          top: Math.round(finalCropY),
-          width: Math.round(finalCropSize),
-          height: Math.round(finalCropSize)
         })
         .resize(200, 200, {
-          fit: 'cover',
-          position: 'center'
         })
         .jpeg({ quality: 85 })
         .toBuffer();
@@ -727,27 +629,20 @@ class FaceDetectionService {
       const avgBrightness = (stats.channels[0].mean + stats.channels[1].mean + stats.channels[2].mean) / 3;
 
       if (avgBrightness < 40) {
-        console.log(`Dark crop detected (brightness: ${avgBrightness.toFixed(1)}), using larger context`);
+        // Removed // Dark crop detected (brightness: ${avgBrightness.toFixed(1)}), using larger context`);
         const largeCropSize = Math.min(imageWidth, imageHeight) * 0.5;
         const largeCropX = Math.max(0, Math.min(faceCenterX - largeCropSize / 2, imageWidth - largeCropSize));
         const largeCropY = Math.max(0, Math.min(faceCenterY - largeCropSize / 2, imageHeight - largeCropSize));
 
         imageBuffer = await sharp(fullImagePath)
           .extract({
-            left: Math.round(largeCropX),
-            top: Math.round(largeCropY),
-            width: Math.round(largeCropSize),
-            height: Math.round(largeCropSize)
           })
           .resize(200, 200, {
-            fit: 'cover',
-            position: 'center'
           })
           .jpeg({ quality: 85 })
           .toBuffer();
       }
 
-      // Save to temporary location
       const cropFileName = `face_crop_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.jpg`;
       const cropPath = path.join(process.cwd(), 'uploads', 'temp', cropFileName);
 
@@ -755,7 +650,7 @@ class FaceDetectionService {
 
       return `temp/${cropFileName}`;
     } catch (error) {
-      console.error('Failed to generate face crop:', error);
+      // error('Failed to generate face crop:', error);
       return '';
     }
   }

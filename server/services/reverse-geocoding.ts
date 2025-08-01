@@ -4,8 +4,6 @@
  */
 
 interface GeocodingResult {
-  placeName: string;
-  placeType: string;
   address?: {
     house_number?: string;
     road?: string;
@@ -35,21 +33,15 @@ export class ReverseGeocodingService {
       this.lastRequestTime = Date.now();
 
       const params = new URLSearchParams({
-        format: 'json',
-        lat: latitude.toString(),
-        lon: longitude.toString(),
-        zoom: '18', // High detail level
-        addressdetails: '1',
       });
 
       const response = await fetch(`${this.baseUrl}?${params}`, {
-        headers: {
           'User-Agent': 'Pictallion Photo Management System/1.0'
         }
       });
 
       if (!response.ok) {
-        console.warn(`Reverse geocoding failed: ${response.status} ${response.statusText}`);
+        // warn(`Reverse geocoding failed: ${response.status} ${response.statusText}`);
         return null;
       }
 
@@ -59,17 +51,15 @@ export class ReverseGeocodingService {
         return null;
       }
 
-      // Extract meaningful place name
       const placeName = this.extractPlaceName(data);
       const placeType = this.determinePlaceType(data);
 
       return {
         placeName,
         placeType,
-        address: data.address,
       };
     } catch (error) {
-      console.error('Reverse geocoding error:', error);
+      // error('Reverse geocoding error:', error);
       return null;
     }
   }
@@ -77,7 +67,6 @@ export class ReverseGeocodingService {
   private extractPlaceName(data: any): string {
     const address = data.address || {};
     
-    // Priority order for place naming
     const candidates = [
       address.amenity,           // Specific venues (restaurants, shops, etc.)
       address.shop,              // Shops and stores
@@ -94,14 +83,12 @@ export class ReverseGeocodingService {
       address.county,            // County
     ];
 
-    // Find first non-empty candidate
     for (const candidate of candidates) {
       if (candidate && typeof candidate === 'string' && candidate.trim()) {
         return candidate.trim();
       }
     }
 
-    // Fallback to display name
     return data.display_name || 'Unknown Location';
   }
 
@@ -120,7 +107,6 @@ export class ReverseGeocodingService {
     return 'location';
   }
 
-  // Batch geocoding with rate limiting
   async batchReverseGeocode(coordinates: Array<{latitude: number, longitude: number}>): Promise<Array<GeocodingResult | null>> {
     const results: Array<GeocodingResult | null> = [];
     
@@ -132,11 +118,7 @@ export class ReverseGeocodingService {
     return results;
   }
 
-  // Check if coordinates look like they're for the same general location
   static areCoordinatesSimilar(
-    lat1: number, lon1: number, 
-    lat2: number, lon2: number, 
-    toleranceMeters: number = 100
   ): boolean {
     const R = 6371000; // Earth's radius in meters
     const dLat = (lat2 - lat1) * Math.PI / 180;

@@ -2,7 +2,6 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { applyViteFix } from "./vite-fix";
 
-// Apply the fix for path-to-regexp issue with * wildcard
 applyViteFix();
 
 const app = express();
@@ -50,29 +49,19 @@ app.use((req, res, next) => {
     throw err;
   });
 
-  // Logging function
   function log(message: string, source = "express") {
     const formattedTime = new Date().toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: true,
     });
     console.log(`${formattedTime} [${source}] ${message}`);
   }
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
   if (app.get("env") === "development") {
     const { setupVite } = await import("./vite.ts");
     await setupVite(app, server);
   } else {
-    // Production mode - serve static files
     const path = await import("path");
     const fs = await import("fs");
     
-    // Try multiple possible paths for static files
     const possiblePaths = [
       path.resolve(process.cwd(), "public"),
       path.resolve(process.cwd(), "dist", "public"),
@@ -100,14 +89,9 @@ app.use((req, res, next) => {
   }
 
   // ALWAYS serve the app on the port specified in the environment variable PORT
-  // Other ports are firewalled. Default to 5000 if not specified.
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
   const port = parseInt(process.env.PORT || '5000', 10);
   server.listen({
     port,
-    host: "0.0.0.0",
-    reusePort: true,
   }, () => {
     log(`serving on port ${port}`);
   });

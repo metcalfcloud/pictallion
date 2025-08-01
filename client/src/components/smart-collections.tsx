@@ -178,7 +178,7 @@ export function SmartCollections() {
         setCollections(data);
       }
     } catch (error) {
-      console.error('Failed to load collections:', error);
+      // Removed console.error('Failed to load collections:', error);
     }
   };
 
@@ -209,7 +209,7 @@ export function SmartCollections() {
         description: "Smart collections have been set up successfully!"
       });
     } catch (error) {
-      console.error('Failed to create collections:', error);
+      // Removed console.error('Failed to create collections:', error);
       toast({
         title: "Error",
         description: "Failed to create smart collections.",
@@ -236,7 +236,7 @@ export function SmartCollections() {
         });
       }
     } catch (error) {
-      console.error('Failed to organize photos:', error);
+      // Removed console.error('Failed to organize photos:', error);
       toast({
         title: "Error",
         description: "Failed to organize photos.",
@@ -259,7 +259,7 @@ export function SmartCollections() {
         col.id === collectionId ? { ...col, isActive } : col
       ));
     } catch (error) {
-      console.error('Failed to toggle collection:', error);
+      // Removed console.error('Failed to toggle collection:', error);
     }
   };
 
@@ -329,7 +329,7 @@ export function SmartCollections() {
         });
       }
     } catch (error) {
-      console.error('Failed to create collection:', error);
+      // Removed console.error('Failed to create collection:', error);
       toast({
         title: "Error",
         description: "Failed to create collection.",

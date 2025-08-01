@@ -955,7 +955,7 @@ export default function PeoplePage() {
                     className="w-full h-full object-cover hover:scale-105 transition-transform cursor-pointer"
                     onClick={() => {
                       // Could open photo detail modal here
-                      console.log('Open photo:', photo.id);
+                      // Removed console.log('Open photo:', photo.id);
                     }}
                   />
                 </div>

@@ -45,18 +45,15 @@ import path from "path";
 import crypto from 'crypto';
 
 export interface IStorage {
-  // User methods
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
 
-  // Media asset methods
   createMediaAsset(asset: InsertMediaAsset): Promise<MediaAsset>;
   getMediaAsset(id: string): Promise<MediaAsset | undefined>;
   getAllMediaAssets(): Promise<MediaAsset[]>;
   updateMediaAsset(id: string, updates: Partial<MediaAsset>): Promise<MediaAsset>;
 
-  // File version methods
   createFileVersion(version: InsertFileVersion): Promise<FileVersion>;
   getFileVersion(id: string): Promise<FileVersion | undefined>;
   getFileVersionsByAsset(assetId: string): Promise<FileVersion[]>;
@@ -67,24 +64,17 @@ export interface IStorage {
   getFileByHash(hash: string): Promise<FileVersion | undefined>;
   deleteFileVersion(id: string): Promise<void>;
 
-  // Asset history methods
   createAssetHistory(history: InsertAssetHistory): Promise<AssetHistory>;
   getAssetHistory(assetId: string): Promise<AssetHistory[]>;
 
-  // Statistics
   getCollectionStats(): Promise<{
-    totalPhotos: number;
-    silverCount: number;
-    goldCount: number;
   }>;
 
   // Recent activity
   getRecentActivity(limit?: number): Promise<AssetHistory[]>;
 
-  // Recent photos with metadata
   getRecentPhotos(limit?: number): Promise<Array<FileVersion & { mediaAsset: MediaAsset }>>;
 
-  // Collections methods
   createCollection(collection: InsertCollection): Promise<Collection>;
   getCollections(): Promise<Collection[]>;
   getCollection(id: string): Promise<Collection | undefined>;
@@ -93,7 +83,6 @@ export interface IStorage {
   addPhotoToCollection(collectionId: string, photoId: string): Promise<void>;
   getCollectionPhotos(collectionId: string): Promise<Array<FileVersion & { mediaAsset: MediaAsset }>>;
 
-  // People & Faces methods
   createPerson(person: InsertPerson): Promise<Person>;
   getPeople(): Promise<Person[]>;
   updatePerson(id: string, updates: Partial<Person>): Promise<Person | undefined>;
@@ -110,14 +99,12 @@ export interface IStorage {
   deleteFace(id: string): Promise<void>;
   deleteFacesByPhoto(photoId: string): Promise<void>;
 
-  // Settings methods
   getAllSettings(): Promise<Setting[]>;
   getSettingByKey(key: string): Promise<Setting | null>;
   createSetting(data: InsertSetting): Promise<Setting>;
   updateSetting(key: string, value: string): Promise<Setting>;
   deleteSetting(key: string): Promise<void>;
 
-  // Events methods
   createEvent(event: InsertEvent): Promise<Event>;
   getEvents(): Promise<Event[]>;
   getEvent(id: string): Promise<Event | undefined>;
@@ -125,14 +112,12 @@ export interface IStorage {
   deleteEvent(id: string): Promise<void>;
   getEventsByType(type: 'holiday' | 'birthday' | 'custom'): Promise<Event[]>;
 
-  // Relationship methods
   createRelationship(relationship: InsertRelationship): Promise<Relationship>;
   getRelationshipsByPerson(personId: string): Promise<Array<Relationship & { person1?: Person; person2?: Person }>>;
   updateRelationship(id: string, updates: Partial<Relationship>): Promise<Relationship>;
   deleteRelationship(id: string): Promise<void>;
   getPerson(id: string): Promise<Person | undefined>;
 
-  // AI Prompt methods
   getAllAIPrompts(): Promise<AIPrompt[]>;
   getAIPrompt(id: string): Promise<AIPrompt | undefined>;
   getAIPromptsByCategory(category: string): Promise<AIPrompt[]>;
@@ -143,36 +128,21 @@ export interface IStorage {
   getActiveAIPrompts(): Promise<AIPrompt[]>;
   resetAIPromptsToDefaults(): Promise<void>;
 
-  // Location methods
   createLocation(location: InsertLocation): Promise<Location>;
   getLocations(): Promise<Location[]>;
   getLocation(id: string): Promise<Location | undefined>;
   updateLocation(id: string, updates: Partial<Location>): Promise<Location | null>;
   deleteLocation(id: string): Promise<boolean>;
   getLocationStats(): Promise<{
-    totalLocations: number;
-    totalPhotosWithLocation: number;
-    topLocations: Location[];
-    recentLocations: Location[];
-    hotspots: Array<{
-      latitude: number;
-      longitude: number;
-      photoCount: number;
-      photos: any[];
       suggestedName?: string;
     }>;
   }>;
   findLocationHotspots(): Promise<Array<{
-    latitude: number;
-    longitude: number;
-    photoCount: number;
-    photos: any[];
   }>>;
 
   updatePhoto(id: string, updates: any): Promise<any>;
   getAllTags(): Promise<string[]>;
 
-  // Smart collection methods
   createSmartCollection?(collection: InsertCollection): Promise<Collection>;
   getSmartCollections?(): Promise<Collection[]>;
   getSmartCollection?(id: string): Promise<Collection | undefined>;
@@ -342,14 +312,11 @@ export class DatabaseStorage implements IStorage {
 
     return results.map(result => ({
       ...result.file_versions,
-      mediaAsset: {
         ...result.media_assets!,
-        displayFilename: path.basename(result.file_versions.filePath)
       }
     }));
   }
 
-  // Collections methods
   async createCollection(collection: InsertCollection): Promise<Collection> {
     const [newCollection] = await db
       .insert(collections)
@@ -402,11 +369,9 @@ export class DatabaseStorage implements IStorage {
 
     return photos.map(row => ({
       ...row.file_versions!,
-      mediaAsset: row.media_assets!,
     }));
   }
 
-  // People & Faces methods
   async createPerson(person: InsertPerson): Promise<Person> {
     // Convert birthdate string to Date if provided
     const processedPerson = { ...person };
@@ -426,7 +391,6 @@ export class DatabaseStorage implements IStorage {
       return await db.select().from(people).orderBy(desc(people.createdAt));
     } catch (error) {
       console.error('Error fetching people:', error);
-      // Return empty array on database connection errors to prevent UI crashes
       return [];
     }
   }
@@ -483,7 +447,6 @@ export class DatabaseStorage implements IStorage {
       return await db.select().from(faces).where(eq(faces.personId, personId));
     } catch (error) {
       console.error(`Error fetching faces for person ${personId}:`, error);
-      // Return empty array on database connection errors
       return [];
     }
   }
@@ -580,7 +543,6 @@ export class DatabaseStorage implements IStorage {
     return photos;
   }
 
-  // Settings methods
   async getAllSettings(): Promise<Setting[]> {
     return await db.select().from(settings).orderBy(settings.category, settings.key);
   }
@@ -607,7 +569,6 @@ export class DatabaseStorage implements IStorage {
     await db.delete(settings).where(eq(settings.key, key));
   }
 
-  // Events methods
   async createEvent(event: InsertEvent): Promise<Event> {
     const [newEvent] = await db.insert(events).values(event).returning();
     return newEvent;
@@ -638,7 +599,6 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(events).where(eq(events.type, type));
   }
 
-  // Relationship methods
   async createRelationship(relationship: InsertRelationship): Promise<Relationship> {
     const [newRelationship] = await db.insert(relationships).values(relationship).returning();
     return newRelationship;
@@ -686,7 +646,6 @@ export class DatabaseStorage implements IStorage {
     return person || undefined;
   }
 
-  // AI Prompt methods
   async getAllAIPrompts(): Promise<AIPrompt[]> {
     return await db.select().from(aiPrompts).orderBy(aiPrompts.category, aiPrompts.name);
   }
@@ -727,7 +686,6 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(aiPrompts).where(eq(aiPrompts.isActive, true));
   }
 
-  // Location methods
   async createLocation(location: InsertLocation): Promise<Location> {
     const [newLocation] = await db.insert(locations).values(location).returning();
     return newLocation;
@@ -757,38 +715,23 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getLocationStats(): Promise<{
-    totalLocations: number;
-    totalPhotosWithLocation: number;
-    topLocations: Location[];
-    recentLocations: Location[];
-    hotspots: Array<{
-      latitude: number;
-      longitude: number;
-      photoCount: number;
-      photos: any[];
       suggestedName?: string;
     }>;
   }> {
     const { locationClusteringService } = await import('./services/location-clustering');
 
-    // Get all locations
     const allLocations = await this.getLocations();
 
-    // Get all photos with metadata for hotspot analysis
     const allPhotos = await this.getAllFileVersionsWithAssets();
 
-    // Extract photo statistics
     const photosWithLocation = locationClusteringService.extractCoordinates(allPhotos);
 
-    // Find hotspots - use a lower threshold since we have fewer photos for testing
     const hotspots = locationClusteringService.findHotspots(allPhotos, 2);
 
-    // Get top locations by photo count
     const topLocations = allLocations
       .sort((a, b) => (b.photoCount || 0) - (a.photoCount || 0))
       .slice(0, 5);
 
-    // Get recent locations
     const recentLocations = allLocations
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       .slice(0, 5);
@@ -796,8 +739,6 @@ export class DatabaseStorage implements IStorage {
 
 
     return {
-      totalLocations: allLocations.length,
-      totalPhotosWithLocation: photosWithLocation.length,
       topLocations,
       recentLocations,
       hotspots,
@@ -805,17 +746,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async findLocationHotspots(): Promise<Array<{
-    latitude: number;
-    longitude: number;
-    photoCount: number;
-    photos: any[];
   }>> {
     const { locationClusteringService } = await import('./services/location-clustering');
     const allPhotos = await this.getAllFileVersionsWithAssets();
     return locationClusteringService.findHotspots(allPhotos, 2);
   }
 
-  // Helper method to get all file versions with their media assets
   async getAllFileVersionsWithAssets(): Promise<Array<FileVersion & { mediaAsset: MediaAsset }>> {
     const result = await db
       .select()
@@ -824,28 +760,16 @@ export class DatabaseStorage implements IStorage {
 
     return result.map(row => ({
       ...row.file_versions,
-      mediaAsset: row.media_assets!,
     }));
   }
 
   async resetAIPromptsToDefaults(): Promise<void> {
-    // Import default prompts
     const { DEFAULT_PROMPTS } = await import("@shared/ai-prompts");
 
-    // Clear existing prompts
     await db.delete(aiPrompts);
 
-    // Insert default prompts
     for (const prompt of DEFAULT_PROMPTS) {
       await db.insert(aiPrompts).values({
-        name: prompt.name,
-        description: prompt.description,
-        category: prompt.category,
-        provider: prompt.provider,
-        systemPrompt: prompt.systemPrompt,
-        userPrompt: prompt.userPrompt,
-        isDefault: prompt.isDefault,
-        isActive: true
       });
     }
   }
@@ -863,7 +787,6 @@ export class DatabaseStorage implements IStorage {
       .set({
         ...otherUpdates,
         ...(tags && { tags: JSON.stringify(tags) }),
-        updatedAt: new Date()
       })
       .where(eq(mediaAssets.id, id));
 
@@ -892,13 +815,9 @@ export class DatabaseStorage implements IStorage {
       // Insert only if tag doesn't exist (ignore conflicts)
       await db.insert(globalTagLibrary)
         .values({
-          id: crypto.randomUUID(),
-          tag: tag,
-          createdAt: new Date()
         })
         .onConflictDoNothing();
     } catch (error) {
-      // Ignore conflicts - tag already exists
       console.log(`Tag '${tag}' already exists in library`);
     }
   }

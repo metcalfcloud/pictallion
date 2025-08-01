@@ -21,73 +21,66 @@ class FileManager {
         await fs.access(dir);
       } catch {
         await fs.mkdir(dir, { recursive: true });
-        console.log(`Created directory: ${dir}`);
+        // Removed // Created directory: ${dir}`);
       }
     }
   }
 
   async processToSilver(tempPath: string, originalFilename: string): Promise<string> {
-    console.log(`Processing file directly to Silver: ${originalFilename} from ${tempPath}`);
+    // Removed // Processing file directly to Silver: ${originalFilename} from ${tempPath}`);
     
-    // Extract EXIF metadata to determine photo date for organization
     let photoDate: Date | null = null;
     
     try {
       if (path.extname(originalFilename).toLowerCase().match(/\.(jpg|jpeg|tiff)$/)) {
         const exifData = await this.extractExifData(tempPath);
         
-        console.log(`EXIF data for ${originalFilename}:`, {
-          dateTimeOriginal: exifData.dateTimeOriginal,
-          createDate: exifData.createDate,
-          dateTime: exifData.dateTime
-        });
         
         // Use photo's actual date from EXIF (prioritize DateTimeOriginal)
         if (exifData.dateTimeOriginal) {
           photoDate = this.parseExifDate(exifData.dateTimeOriginal);
           if (photoDate) {
-            console.log(`Using photo date from EXIF DateTimeOriginal: ${photoDate.toISOString()}`);
+            // Removed // Using photo date from EXIF DateTimeOriginal: ${photoDate.toISOString()}`);
           }
         }
         
         if (!photoDate && exifData.createDate) {
           photoDate = this.parseExifDate(exifData.createDate);
           if (photoDate) {
-            console.log(`Using photo date from EXIF CreateDate: ${photoDate.toISOString()}`);
+            // Removed // Using photo date from EXIF CreateDate: ${photoDate.toISOString()}`);
           }
         }
         
         if (!photoDate && exifData.dateTime) {
           photoDate = this.parseExifDate(exifData.dateTime);
           if (photoDate) {
-            console.log(`Using photo date from EXIF DateTime: ${photoDate.toISOString()}`);
+            // Removed // Using photo date from EXIF DateTime: ${photoDate.toISOString()}`);
           }
         }
       }
     } catch (error) {
-      console.log(`Could not extract EXIF data for ${originalFilename}:`, error);
+      // Removed // Could not extract EXIF data for ${originalFilename}:`, error);
     }
     
     // Try to extract from filename if no EXIF date found
     if (!photoDate) {
       photoDate = this.extractDateFromFilename(originalFilename);
       if (photoDate) {
-        console.log(`Using date extracted from filename: ${photoDate.toISOString()}`);
+        // Removed // Using date extracted from filename: ${photoDate.toISOString()}`);
       }
     }
     
     // Fall back to current date only if no date could be extracted
     if (!photoDate) {
       photoDate = new Date();
-      console.log(`No date found in EXIF or filename, using current date: ${photoDate.toISOString()}`);
+      // Removed // No date found in EXIF or filename, using current date: ${photoDate.toISOString()}`);
     }
 
-    // Create Silver directory structure by date
     const year = photoDate.getFullYear();
     const month = String(photoDate.getMonth() + 1).padStart(2, '0');
     const silverDir = path.join(this.mediaDir, 'silver', String(year), month);
     
-    console.log(`Target Silver directory: ${silverDir}`);
+    // Removed // Target Silver directory: ${silverDir}`);
 
     try {
       await fs.access(silverDir);
@@ -95,27 +88,24 @@ class FileManager {
       await fs.mkdir(silverDir, { recursive: true });
     }
 
-    // Use original filename, add timestamp only if conflict exists
     let silverPath = path.join(silverDir, originalFilename);
     
     // Check if file already exists and generate unique filename if needed
     try {
       await fs.access(silverPath);
-      // File exists, add timestamp to avoid conflict
       const ext = path.extname(originalFilename);
       const name = path.basename(originalFilename, ext);
       const timestamp = Date.now();
       const newFilename = `${name}_${timestamp}${ext}`;
       silverPath = path.join(silverDir, newFilename);
     } catch {
-      // File doesn't exist, use original name
     }
 
-    console.log(`Moving ${tempPath} to ${silverPath}`);
+    // Removed // Moving ${tempPath} to ${silverPath}`);
     await fs.rename(tempPath, silverPath);
     
     const relativePath = path.relative(this.dataDir, silverPath);
-    console.log(`File moved successfully to Silver: ${relativePath}`);
+    // Removed // File moved successfully to Silver: ${relativePath}`);
     
     // Return relative path from data directory
     return relativePath;
@@ -124,7 +114,6 @@ class FileManager {
   async copyToSilver(sourcePath: string, newFilename?: string, photoDate?: Date): Promise<string> {
     const fullSourcePath = path.join(this.dataDir, sourcePath);
     
-    // Use photo's actual date if provided, otherwise fall back to current date
     const date = photoDate || new Date();
     const yearMonth = `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}`;
     const silverDir = path.join(this.mediaDir, 'silver', yearMonth);
@@ -146,7 +135,6 @@ class FileManager {
     while (true) {
       try {
         await fs.access(silverPath);
-        // File exists, generate new name
         const uniqueFilename = `${nameWithoutExt}_${counter}${ext}`;
         silverPath = path.join(silverDir, uniqueFilename);
         counter++;
@@ -164,7 +152,6 @@ class FileManager {
   async copyToGold(silverPath: string, photoDate?: Date): Promise<string> {
     const fullSilverPath = path.join(this.dataDir, silverPath);
     
-    // Use photo's actual date if provided, otherwise fall back to current date
     const date = photoDate || new Date();
     const yearMonth = `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}`;
     const goldDir = path.join(this.mediaDir, 'gold', yearMonth);
@@ -186,7 +173,6 @@ class FileManager {
     while (true) {
       try {
         await fs.access(goldPath);
-        // File exists, generate new name
         const uniqueFilename = `${nameWithoutExt}_${counter}${ext}`;
         goldPath = path.join(goldDir, uniqueFilename);
         counter++;
@@ -208,31 +194,27 @@ class FileManager {
       // For now, extract basic file info
       const stats = await fs.stat(fullPath);
       const metadata: CombinedMetadata = {
-        exif: {
-          dateTime: stats.mtime.toISOString(),
         }
       };
 
-      // Try to extract EXIF data for images
       if (path.extname(fullPath).toLowerCase().match(/\.(jpg|jpeg|tiff)$/)) {
         try {
           const exifData = await this.extractExifData(fullPath);
           metadata.exif = { ...metadata.exif, ...exifData };
         } catch (exifError) {
-          console.log(`No EXIF data available for ${filePath}`);
+          // Removed // No EXIF data available for ${filePath}`);
         }
       }
 
       return metadata;
     } catch (error) {
-      console.error(`Error extracting metadata for ${filePath}:`, error);
+      // error(`Error extracting metadata for ${filePath}:`, error);
       return {};
     }
   }
 
   private async extractExifData(imagePath: string): Promise<ExifMetadata> {
     return new Promise((resolve, reject) => {
-      // Set a timeout to prevent hanging
       const timeout = setTimeout(() => {
         reject(new Error('EXIF extraction timeout'));
       }, 10000);
@@ -242,7 +224,7 @@ class FileManager {
           clearTimeout(timeout);
           
           if (error) {
-            console.log(`EXIF extraction error for ${imagePath}:`, error.message);
+            // Removed // EXIF extraction error for ${imagePath}:`, error.message);
             reject(error);
             return;
           }
@@ -250,7 +232,6 @@ class FileManager {
           try {
             const metadata: ExifMetadata = {};
 
-            // Extract camera information with multiple fallback sources
             if (exifData.image) {
               const make = this.safeGetStringField(exifData.image.Make || exifData.image.make);
               const model = this.safeGetStringField(exifData.image.Model || exifData.image.model);
@@ -263,16 +244,10 @@ class FileManager {
                 metadata.camera = model;
               }
               
-              console.log(`Camera detection for ${imagePath}:`, {
-                rawMake: exifData.image.Make,
-                rawModel: exifData.image.Model,
-                detected: metadata.camera
-              });
+              // Log camera detection for imagePath
             }
 
-            // Extract date/time information with proper prioritization
             if (exifData.exif) {
-              // Priority order: DateTimeOriginal > CreateDate > DateTime
               const dateTimeOriginal = this.safeGetStringField(exifData.exif.DateTimeOriginal);
               const createDate = this.safeGetStringField(exifData.exif.CreateDate);
               const dateTime = this.safeGetStringField(exifData.image?.DateTime);
@@ -282,7 +257,6 @@ class FileManager {
               metadata.createDate = createDate;
               metadata.modifyDate = this.safeGetStringField(exifData.image?.ModifyDate);
               
-              // Extract camera settings with proper validation
               metadata.aperture = this.formatAperture(exifData.exif.FNumber);
               metadata.shutter = this.formatShutter(exifData.exif.ExposureTime);
               metadata.iso = this.safeGetNumberField(exifData.exif.ISO);
@@ -290,7 +264,6 @@ class FileManager {
               metadata.lens = this.safeGetStringField(exifData.exif.LensModel);
             }
 
-            // Extract GPS information with validation
             if (exifData.gps && this.isValidGpsData(exifData.gps)) {
               try {
                 metadata.gpsLatitude = exifData.gps.GPSLatitude ? 
@@ -298,13 +271,13 @@ class FileManager {
                 metadata.gpsLongitude = exifData.gps.GPSLongitude ? 
                   this.convertDMSToDD(exifData.gps.GPSLongitude, exifData.gps.GPSLongitudeRef) : undefined;
               } catch (gpsError) {
-                console.log(`GPS extraction error for ${imagePath}:`, gpsError);
+                // Removed // GPS extraction error for ${imagePath}:`, gpsError);
               }
             }
 
             resolve(metadata);
           } catch (processingError) {
-            console.error(`Error processing EXIF data for ${imagePath}:`, processingError);
+            // error(`Error processing EXIF data for ${imagePath}:`, processingError);
             resolve({}); // Return empty metadata instead of rejecting
           }
         });
@@ -352,31 +325,26 @@ class FileManager {
   }
 
   private convertDMSToDD(dms: number[], ref: string): number {
-    // Validate input
     if (!Array.isArray(dms) || dms.length !== 3) {
       throw new Error('Invalid DMS array format');
     }
     
     const [degrees, minutes, seconds] = dms.map(Number);
     
-    // Validate numeric values
     if (isNaN(degrees) || isNaN(minutes) || isNaN(seconds)) {
       throw new Error('Invalid DMS numeric values');
     }
     
-    // Validate ranges
     if (minutes >= 60 || seconds >= 60 || degrees < 0 || minutes < 0 || seconds < 0) {
       throw new Error('Invalid DMS value ranges');
     }
     
     let dd = degrees + minutes/60 + seconds/3600;
     
-    // Apply hemisphere reference
     if (ref === "S" || ref === "W") {
       dd = dd * -1;
     }
     
-    // Validate final coordinates
     const isLatitude = ref === "N" || ref === "S";
     const maxValue = isLatitude ? 90 : 180;
     
@@ -392,7 +360,6 @@ class FileManager {
     
     try {
       // EXIF dates are typically in format "YYYY:MM:DD HH:MM:SS"
-      // Convert to ISO format for parsing
       const normalizedDate = dateStr.replace(/(\d{4}):(\d{2}):(\d{2})/, '$1-$2-$3');
       const parsedDate = new Date(normalizedDate);
       
@@ -400,7 +367,6 @@ class FileManager {
         return parsedDate;
       }
     } catch (error) {
-      // Ignore parsing errors
     }
     
     return null;
@@ -426,7 +392,6 @@ class FileManager {
         }
       }
     } catch (error) {
-      // Ignore parsing errors
     }
     
     return null;

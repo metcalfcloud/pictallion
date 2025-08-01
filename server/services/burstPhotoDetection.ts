@@ -2,37 +2,18 @@ import { storage } from "../storage";
 import crypto from "crypto";
 import { promises as fs } from "fs";
 import path from "path";
+import { error } from "@shared/logger";
 
 export interface BurstGroup {
-  id: string;
-  photos: Array<{
-    id: string;
-    filePath: string;
     metadata?: any;
-    mediaAsset: {
-      originalFilename: string;
     };
-    createdAt: string;
     fileSize?: number;
-    fileHash: string;
   }>;
-  suggestedBest: string; // ID of the photo to promote
-  averageSimilarity: number;
-  timeSpan: number; // in milliseconds
-  groupReason: string;
 }
 
 export interface BurstAnalysis {
-  groups: BurstGroup[];
-  totalPhotos: number;
-  ungroupedPhotos: Array<{
-    id: string;
-    filePath: string;
     metadata?: any;
-    mediaAsset: { originalFilename: string };
-    createdAt: string;
     fileSize?: number;
-    fileHash: string;
   }>;
 }
 
@@ -49,7 +30,6 @@ export class BurstPhotoDetectionService {
         return this.generateEmptyAnalysis();
       }
 
-      // Group photos by mediaAssetId first to handle same original photo across tiers
       const photosByAsset = new Map<string, any[]>();
       for (const photo of allPhotos) {
         if (!photosByAsset.has(photo.mediaAssetId)) {
@@ -58,11 +38,9 @@ export class BurstPhotoDetectionService {
         photosByAsset.get(photo.mediaAssetId)!.push(photo);
       }
 
-      // For burst detection, use one representative photo per media asset
       // Priority: unprocessed bronze > processed bronze > silver > gold
       const representativePhotos = Array.from(photosByAsset.values()).map(versions => {
         return versions.sort((a, b) => {
-          // Priority order for burst detection
           const tierPriority: { [key: string]: number } = { bronze: 0, silver: 1, gold: 2 };
           const statePriority: { [key: string]: number } = { unprocessed: 0, processed: 1, promoted: 2, rejected: 3 };
           
@@ -95,10 +73,8 @@ export class BurstPhotoDetectionService {
           continue;
         }
 
-        // Find photos within 1 minute window using extracted timestamps
         const timeWindow = 60 * 1000; // 1 minute in milliseconds
         const getPhotoTime = (photo: any) => {
-          // First try EXIF datetime fields
           if (photo.metadata?.exif?.dateTime) {
             return new Date(photo.metadata.exif.dateTime).getTime();
           }
@@ -125,7 +101,6 @@ export class BurstPhotoDetectionService {
             }
           }
           
-          // Fall back to upload time as last resort
           return new Date(photo.createdAt).getTime();
         };
         
@@ -165,13 +140,10 @@ export class BurstPhotoDetectionService {
       }
 
       return {
-        groups: burstGroups,
-        totalPhotos: representativePhotos.length,
-        ungroupedPhotos: ungroupedPhotos
       };
 
-    } catch (error) {
-      console.error('Error analyzing burst photos:', error);
+    } catch (err) {
+      error('Error analyzing burst photos', "BurstDetection", { error: err });
       return this.generateEmptyAnalysis();
     }
   }
@@ -191,10 +163,7 @@ export class BurstPhotoDetectionService {
       }
     }
 
-    // Time proximity is important but not enough alone for burst photos
-    // Use actual photo capture time from multiple sources in order of preference
     const getPhotoTime = (photo: any) => {
-      // First try EXIF datetime fields
       if (photo.metadata?.exif?.dateTime) {
         return new Date(photo.metadata.exif.dateTime).getTime();
       }
@@ -221,7 +190,6 @@ export class BurstPhotoDetectionService {
         }
       }
       
-      // Fall back to upload time as last resort
       return new Date(photo.createdAt).getTime();
     };
     
@@ -245,7 +213,6 @@ export class BurstPhotoDetectionService {
     const name1 = photo1.mediaAsset.originalFilename.toLowerCase();
     const name2 = photo2.mediaAsset.originalFilename.toLowerCase();
     
-    // Extract base names and numbers for burst detection
     const extractBaseAndNumber = (filename: string) => {
       const withoutExt = filename.replace(/\.(jpg|jpeg|png|tiff)$/i, '');
       const match = withoutExt.match(/^(.+?)[-_]?(\d+)$/);
@@ -258,7 +225,6 @@ export class BurstPhotoDetectionService {
     const file1 = extractBaseAndNumber(name1);
     const file2 = extractBaseAndNumber(name2);
     
-    // Strong similarity: exact base name with sequential numbers
     if (file1.base === file2.base && file1.number !== null && file2.number !== null) {
       const numberDiff = Math.abs(file1.number - file2.number);
       if (numberDiff <= 3) { // Sequential or very close numbers
@@ -266,7 +232,6 @@ export class BurstPhotoDetectionService {
         factorsChecked++;
       }
     } else if (file1.base.length > 8 && file2.base.length > 8) {
-      // Weaker similarity: common prefix for longer names
       const commonPrefix = this.getCommonPrefix(file1.base, file2.base);
       if (commonPrefix.length >= Math.min(file1.base.length, file2.base.length) * 0.8) {
         similarityScore += 0.2;
@@ -298,7 +263,6 @@ export class BurstPhotoDetectionService {
         const exif2 = metadata2.exif;
         let exifScore = 0;
         
-        // Check camera settings
         if (exif1.make === exif2.make && exif1.model === exif2.model) {
           exifScore += 0.05;
         }
@@ -319,12 +283,10 @@ export class BurstPhotoDetectionService {
         if (exifScore > 0) factorsChecked++;
       }
     } catch (error) {
-      // EXIF comparison failed, continue without it
     }
 
     // Balanced criteria for burst grouping
     if (timeDiff <= 10000 && similarityScore >= 0.5) {
-      // Photos within 10 seconds with moderate similarity - likely burst sequence
       return Math.min(similarityScore + 0.45, 1.0);
     } else if (timeDiff <= 30000 && similarityScore >= 0.8) {
       // Photos within 30 seconds with high similarity
@@ -354,11 +316,9 @@ export class BurstPhotoDetectionService {
   private async createBurstGroup(photos: any[]): Promise<BurstGroup> {
     const groupId = crypto.randomUUID();
     
-    // Calculate time span
     const times = photos.map(p => new Date(p.createdAt).getTime());
     const timeSpan = Math.max(...times) - Math.min(...times);
     
-    // Calculate actual average similarity between all pairs
     let totalSimilarity = 0;
     let pairCount = 0;
     
@@ -377,11 +337,9 @@ export class BurstPhotoDetectionService {
       if (!best.fileSize && current.fileSize) return current;
       if (best.fileSize && !current.fileSize) return best;
       if (current.fileSize > best.fileSize) return current;
-      // If same size, prefer most recent
       return new Date(current.createdAt) > new Date(best.createdAt) ? current : best;
     });
 
-    // Determine group reason
     let groupReason = 'Similar photos taken within 1 minute';
     if (timeSpan < 5000) {
       groupReason = 'Rapid burst sequence (under 5 seconds)';
@@ -390,17 +348,7 @@ export class BurstPhotoDetectionService {
     }
 
     return {
-      id: groupId,
-      photos: photos.map(p => ({
-        id: p.id,
-        filePath: p.filePath,
-        metadata: p.metadata,
-        mediaAsset: p.mediaAsset,
-        createdAt: p.createdAt,
-        fileSize: p.fileSize,
-        fileHash: p.fileHash
       })),
-      suggestedBest: suggestedBest.id,
       averageSimilarity,
       timeSpan,
       groupReason
@@ -409,9 +357,6 @@ export class BurstPhotoDetectionService {
 
   private generateEmptyAnalysis(): BurstAnalysis {
     return {
-      groups: [],
-      totalPhotos: 0,
-      ungroupedPhotos: []
     };
   }
 }

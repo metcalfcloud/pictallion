@@ -185,7 +185,7 @@ export default function BatchOperations({
       queryClient.invalidateQueries({ queryKey: ["/api/photos"] });
       onClose();
     } catch (error) {
-      console.error('Batch AI processing error:', error);
+      // Removed console.error('Batch AI processing error:', error);
       toast({
         title: "Operation Failed",
         description: 'Failed to add AI analysis to photos',

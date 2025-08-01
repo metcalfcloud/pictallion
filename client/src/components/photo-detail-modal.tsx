@@ -207,7 +207,7 @@ export default function PhotoDetailModal({
       }
       return null;
     } catch (error) {
-      console.error('Error formatting date:', error);
+      // Removed console.error('Error formatting date:', error);
       return null;
     }
   };
@@ -261,7 +261,7 @@ export default function PhotoDetailModal({
 
       return null;
     } catch (error) {
-      console.error('Error extracting photo date:', error);
+      // Removed console.error('Error extracting photo date:', error);
       return null;
     }
   };

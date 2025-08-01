@@ -200,7 +200,7 @@ export default function Collections() {
               viewMode="grid" 
               onPhotoClick={(photo) => {
                 // Photo detail modal can be added here
-                console.log('View photo:', photo.id);
+                // Removed console.log('View photo:', photo.id);
               }} 
             />
           ) : (

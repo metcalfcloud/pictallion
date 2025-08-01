@@ -16,6 +16,7 @@ import SmartCollections from "@/components/smart-collections";
 import { ProcessingStateBadge, getProcessingState } from "@/components/ui/processing-state-badge";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { info } from "@/lib/logger";
 
 import type { Photo } from "@shared/types";
 
@@ -228,7 +229,7 @@ export default function Gallery() {
       return;
     }
     const photoIds = silverPhotos.map(p => p.id);
-    console.log(`Processing ${photoIds.length} silver photos...`);
+    info(`Processing ${photoIds.length} silver photos`, "Gallery");
     bulkProcessMutation.mutate({ photoIds });
   };
 
@@ -425,7 +426,7 @@ export default function Gallery() {
               onFiltersChange={setSearchFilters}
               onSearch={() => {
                 // Apply advanced search filters here
-                console.log('Advanced search filters:', searchFilters);
+                info('Advanced search filters', "Gallery", { searchFilters });
               }}
             />
           </div>
@@ -438,7 +439,7 @@ export default function Gallery() {
               selectedPhotos={selectedPhotos}
               onCollectionSelect={(collectionId) => {
                 // Navigate to collection view or filter by collection
-                console.log('Selected collection:', collectionId);
+                info('Selected collection', "Gallery", { collectionId });
                 setShowSmartCollections(false);
               }}
             />

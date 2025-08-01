@@ -3,32 +3,12 @@ import { storage } from '../storage.js';
 import type { Photo } from '../../shared/types.js';
 
 interface SmartCollection {
-  id: string;
-  name: string;
-  description: string;
-  type: 'auto' | 'manual';
-  rules: CollectionRule[];
-  isActive: boolean;
-  icon: string;
-  color: string;
-  photoCount: number;
-  lastUpdated: string;
 }
 
 interface CollectionRule {
-  id: string;
-  field: string;
-  operator: string;
-  value: string;
-  weight: number;
 }
 
 interface OrganizationResult {
-  organized: number;
-  collections: Array<{
-    id: string;
-    name: string;
-    photosAdded: number;
   }>;
 }
 
@@ -50,13 +30,9 @@ class SmartCollectionService {
       const matchingPhotos = await this.findMatchingPhotos(photos, collection);
       
       if (matchingPhotos.length > 0) {
-        // Add photos to collection
         await storage.addPhotosToSmartCollection(collection.id, matchingPhotos.map(p => p.id));
         
         result.collections.push({
-          id: collection.id,
-          name: collection.name,
-          photosAdded: matchingPhotos.length
         });
         
         result.organized += matchingPhotos.length;
@@ -64,8 +40,6 @@ class SmartCollectionService {
       
       // Update collection photo count and last updated
       await storage.updateSmartCollection(collection.id, {
-        photoCount: await storage.getSmartCollectionPhotoCount(collection.id),
-        lastUpdated: new Date().toISOString()
       });
     }
     
@@ -84,8 +58,6 @@ class SmartCollectionService {
       if (isMatch) {
         await storage.addPhotoToSmartCollection(collection.id, photoId);
         await storage.updateSmartCollection(collection.id, {
-          photoCount: await storage.getSmartCollectionPhotoCount(collection.id),
-          lastUpdated: new Date().toISOString()
         });
       }
     }
@@ -120,7 +92,6 @@ class SmartCollectionService {
       }
     }
     
-    // Require at least 60% confidence to include in collection
     const confidence = maxPossibleScore > 0 ? totalScore / maxPossibleScore : 0;
     return confidence >= 0.6;
   }
@@ -154,7 +125,6 @@ class SmartCollectionService {
       case 'time_range':
         return this.evaluateTimeRange(fieldValue, value);
         
-      default:
         return 0;
     }
   }
@@ -173,7 +143,6 @@ class SmartCollectionService {
         return photoData.averageAge || 0;
       case 'metadata.time':
         return photoData.timeOfDay || '';
-      default:
         return '';
     }
   }
@@ -227,10 +196,8 @@ class SmartCollectionService {
   }
 
   private async getEnhancedPhotoData(photo: Photo): Promise<any> {
-    // Get AI tags from metadata
     const aiTags = photo.metadata?.aiTags || [];
     
-    // Get face count
     const faces = await storage.getFacesByPhoto(photo.id);
     const faceCount = faces.length;
     
@@ -253,7 +220,6 @@ class SmartCollectionService {
       }
     }
     
-    // Extract time of day from metadata
     let timeOfDay = '';
     if (photo.metadata?.exif?.dateTimeOriginal) {
       const date = new Date(photo.metadata.exif.dateTimeOriginal);
@@ -269,8 +235,6 @@ class SmartCollectionService {
       faceCount,
       averageAge,
       timeOfDay,
-      eventType: photo.eventType || '',
-      location: photo.location || ''
     };
   }
 }

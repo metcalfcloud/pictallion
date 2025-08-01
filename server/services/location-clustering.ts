@@ -1,25 +1,13 @@
 import type { FileVersion, MediaAsset, CombinedMetadata } from "@shared/schema";
 
 interface PhotoWithLocation {
-  id: string;
-  latitude: number;
-  longitude: number;
-  mediaAsset: MediaAsset;
   metadata?: CombinedMetadata;
 }
 
 interface LocationCluster {
-  centerLatitude: number;
-  centerLongitude: number;
-  photos: PhotoWithLocation[];
-  radius: number;
 }
 
 interface LocationHotspot {
-  latitude: number;
-  longitude: number;
-  photoCount: number;
-  photos: any[];
   suggestedName?: string;
 }
 
@@ -72,10 +60,8 @@ export class LocationClusteringService {
           latitude >= -90 && latitude <= 90 &&
           longitude >= -180 && longitude <= 180) {
         photosWithLocation.push({
-          id: photo.id,
           latitude,
           longitude,
-          mediaAsset: photo.mediaAsset,
           metadata,
         });
       }
@@ -93,10 +79,6 @@ export class LocationClusteringService {
       if (visited.has(photo.id)) continue;
 
       const cluster: LocationCluster = {
-        centerLatitude: photo.latitude,
-        centerLongitude: photo.longitude,
-        photos: [photo],
-        radius: maxDistanceMeters,
       };
 
       visited.add(photo.id);
@@ -149,13 +131,6 @@ export class LocationClusteringService {
         const suggestedName = this.generateSuggestedName(cluster);
 
         hotspots.push({
-          latitude: cluster.centerLatitude,
-          longitude: cluster.centerLongitude,
-          photoCount: cluster.photos.length,
-          photos: cluster.photos.map(p => ({
-            id: p.id,
-            mediaAsset: p.mediaAsset,
-            metadata: p.metadata,
           })),
           suggestedName,
         });
@@ -215,19 +190,11 @@ export class LocationClusteringService {
 
   // Calculate location statistics
   public calculateLocationStats(
-    photos: Array<FileVersion & { mediaAsset: MediaAsset }>,
-    existingLocations: any[]
   ): {
-    totalPhotosWithLocation: number;
-    coveragePercentage: number;
-    averagePhotosPerLocation: number;
   } {
     const photosWithLocation = this.extractCoordinates(photos);
     
     return {
-      totalPhotosWithLocation: photosWithLocation.length,
-      coveragePercentage: photos.length > 0 ? (photosWithLocation.length / photos.length) * 100 : 0,
-      averagePhotosPerLocation: existingLocations.length > 0 ? 
         photosWithLocation.length / existingLocations.length : 0,
     };
   }
