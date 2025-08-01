@@ -74,7 +74,7 @@ export default function PeoplePage() {
   const [selectedFaces, setSelectedFaces] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [assignFacesSearchQuery, setAssignFacesSearchQuery] = useState('');
-  const [filterUnassigned, setFilterUnassigned] = useState(false);
+  const [faceFilter, setFaceFilter] = useState<'all' | 'unassigned' | 'assigned'>('unassigned');
   const [isCreatePersonOpen, setIsCreatePersonOpen] = useState(false);
   const [isMergeFacesOpen, setIsMergeFacesOpen] = useState(false);
   const [isEditPersonOpen, setIsEditPersonOpen] = useState(false);
@@ -286,11 +286,14 @@ export default function PeoplePage() {
   const filteredFaces = useMemo(() => {
     if (viewMode !== 'faces') return [];
     return faces.filter(face => {
-      if (filterUnassigned && face.personId) return false;
+      // Apply filter based on assignment status
+      if (faceFilter === 'unassigned' && face.personId) return false;
+      if (faceFilter === 'assigned' && !face.personId) return false;
+      // If specific person is selected, only show their faces
       if (selectedPerson && face.personId !== selectedPerson) return false;
       return true;
     });
-  }, [faces, filterUnassigned, selectedPerson, viewMode]);
+  }, [faces, faceFilter, selectedPerson, viewMode]);
 
   const handleFaceSelection = useCallback((faceId: string) => {
     setSelectedFaces(prev => 
@@ -401,12 +404,17 @@ export default function PeoplePage() {
             </div>
             {viewMode === 'faces' && (
               <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="filter-unassigned"
-                  checked={filterUnassigned}
-                  onCheckedChange={(checked) => setFilterUnassigned(!!checked)}
-                />
-                <Label htmlFor="filter-unassigned">Show only unassigned faces</Label>
+                <Filter className="w-4 h-4 text-muted-foreground" />
+                <Select value={faceFilter} onValueChange={(value: 'all' | 'unassigned' | 'assigned') => setFaceFilter(value)}>
+                  <SelectTrigger className="w-[160px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unassigned">Unassigned Only</SelectItem>
+                    <SelectItem value="assigned">Assigned Only</SelectItem>
+                    <SelectItem value="all">All Faces</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             )}
           </div>
@@ -625,7 +633,7 @@ export default function PeoplePage() {
                 </div>
 
                 {/* Assigned Groups (People) */}
-                {groupedFaces.assignedGroups.length > 0 && (
+                {groupedFaces.assignedGroups.length > 0 && faceFilter !== 'unassigned' && (
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold flex items-center gap-2">
                       <Users className="w-5 h-5" />
@@ -682,7 +690,7 @@ export default function PeoplePage() {
                 )}
 
                 {/* Unassigned Groups */}
-                {groupedFaces.unassignedGroups.length > 0 && (
+                {groupedFaces.unassignedGroups.length > 0 && faceFilter !== 'assigned' && (
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold flex items-center gap-2">
                       <Sparkles className="w-5 h-5" />
@@ -768,13 +776,26 @@ export default function PeoplePage() {
                   </div>
                 )}
 
-                {groupedFaces.assignedGroups.length === 0 && groupedFaces.unassignedGroups.length === 0 && (
+                {/* Empty state based on filter */}
+                {((faceFilter === 'unassigned' && groupedFaces.unassignedGroups.length === 0) ||
+                  (faceFilter === 'assigned' && groupedFaces.assignedGroups.length === 0) ||
+                  (faceFilter === 'all' && groupedFaces.assignedGroups.length === 0 && groupedFaces.unassignedGroups.length === 0)) && (
                   <Card>
                     <CardContent className="p-12 text-center">
                       <Image className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold text-card-foreground dark:text-white mb-2">No faces found</h3>
+                      <h3 className="text-lg font-semibold text-card-foreground dark:text-white mb-2">
+                        {faceFilter === 'unassigned' 
+                          ? 'No unassigned faces' 
+                          : faceFilter === 'assigned' 
+                          ? 'No assigned faces' 
+                          : 'No faces found'}
+                      </h3>
                       <p className="text-muted-foreground mb-4">
-                        Upload photos with people to see detected faces
+                        {faceFilter === 'unassigned' 
+                          ? 'All faces have been assigned to people' 
+                          : faceFilter === 'assigned' 
+                          ? 'No faces have been assigned to people yet' 
+                          : 'Upload photos with people to see detected faces'}
                       </p>
                     </CardContent>
                   </Card>
