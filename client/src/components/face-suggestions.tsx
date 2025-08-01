@@ -221,7 +221,7 @@ export function FaceSuggestions({ isOpen, faceSuggestions = [], isLoading = fals
         )}
       </div>
 
-      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-4">
+      <div style={{fontSize: 0, lineHeight: 0}}>
         {faceSuggestions.map((item) => {
           const face = faces.find(f => f.id === item.faceId);
           const isSelected = selectedAssignments.some(a => a.faceId === item.faceId);
@@ -229,15 +229,14 @@ export function FaceSuggestions({ isOpen, faceSuggestions = [], isLoading = fals
           const isExpanded = expandedFace === item.faceId;
 
           return (
-            <div key={item.faceId} className="space-y-2">
-              {/* Compact face card - exactly the size of the face crop */}
-              <div className="relative">
-                <div 
-                  onClick={() => handleFaceClick(item.faceId)}
-                  className={`relative w-20 h-20 mx-auto rounded-lg overflow-hidden bg-muted cursor-pointer transition-all duration-300 hover:scale-105 ${
-                    isSelected ? 'ring-2 ring-blue-500' : 'hover:ring-2 hover:ring-blue-300'
-                  }`}
-                >
+            <div key={item.faceId} style={{display: 'inline-block', width: '84px', margin: '2px', fontSize: '12px', lineHeight: '1.2'}}>
+              {/* Face card - exactly the image size with no extra container */}
+              <div 
+                onClick={() => handleFaceClick(item.faceId)}
+                className={`relative w-20 h-20 rounded-lg overflow-hidden bg-muted cursor-pointer transition-all duration-300 hover:scale-105 ${
+                  isSelected ? 'ring-2 ring-blue-500' : 'hover:ring-2 hover:ring-blue-300'
+                }`}
+              >
                   {face ? (
                     <>
                       <img
@@ -272,10 +271,9 @@ export function FaceSuggestions({ isOpen, faceSuggestions = [], isLoading = fals
                     </div>
                   )}
                 </div>
-              </div>
               
-              {/* Compact info below face */}
-              <div className="text-center text-xs text-muted-foreground">
+              {/* Compact info below face - exactly 80px wide to match face */}
+              <div className="w-20 text-center text-xs text-muted-foreground mt-1">
                 <div>{item.suggestions.length} match{item.suggestions.length !== 1 ? 'es' : ''}</div>
                 {isSelected && selectedPerson && (
                   <div className="text-green-600 font-medium truncate">
