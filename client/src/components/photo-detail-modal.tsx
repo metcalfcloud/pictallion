@@ -316,7 +316,7 @@ export default function PhotoDetailModal({
       setImageWidth(imageRef.current.offsetWidth);
       setImageHeight(imageRef.current.offsetHeight);
     }
-  }, [photo.id, imageRef.current]);
+  }, [photo.id]);
 
   const getTierBadgeClass = (tier: string) => {
     switch (tier) {
@@ -642,8 +642,30 @@ export default function PhotoDetailModal({
           <>
             {facesData.map((face: any) => {
               const [x, y, width, height] = face.boundingBox || [0, 0, 0, 0];
-              const originalImageWidth = photo.metadata?.exif?.imageWidth || 1;
-              const originalImageHeight = photo.metadata?.exif?.imageHeight || 1;
+              
+              // Try to get original image dimensions from various EXIF fields, fallback to reasonable defaults
+              let originalImageWidth = photo.metadata?.exif?.imageWidth || 
+                                     photo.metadata?.exif?.ImageWidth || 
+                                     photo.metadata?.exif?.ExifImageWidth;
+              let originalImageHeight = photo.metadata?.exif?.imageHeight || 
+                                      photo.metadata?.exif?.ImageHeight || 
+                                      photo.metadata?.exif?.ExifImageHeight;
+
+              // If no EXIF dimensions, estimate based on face coordinates
+              if (!originalImageWidth || !originalImageHeight || originalImageWidth === 1 || originalImageHeight === 1) {
+                // Estimate original dimensions based on face coordinates
+                // If face coordinates are much larger than displayed image, assume original is larger
+                if (x > imageWidth || y > imageHeight || x > 1000 || y > 1000) {
+                  // Face coordinates suggest high resolution original
+                  originalImageWidth = 3072; // Common camera width
+                  originalImageHeight = 4080; // Common camera height
+                } else {
+                  // Face coordinates fit within displayed image
+                  originalImageWidth = imageWidth;
+                  originalImageHeight = imageHeight;
+                }
+              }
+
               const scaleX = imageWidth / originalImageWidth;
               const scaleY = imageHeight / originalImageHeight;
               const isHovered = hoveredFace === face.id;
