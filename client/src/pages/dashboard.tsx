@@ -20,7 +20,6 @@ import {
 } from "lucide-react";
 import { Link } from "wouter";
 import { useState } from "react";
-import { UnifiedUpload } from "@/components/unified-upload";
 import { CompactDropzone } from "@/components/compact-dropzone";
 import PhotoDetailModal from "@/components/photo-detail-modal";
 import { ProcessingStateBadge, getProcessingState } from "@/components/ui/processing-state-badge";
@@ -59,19 +58,8 @@ interface Photo {
   };
 }
 
-// Define UploadFile interface to match UnifiedUpload
-interface UploadFile {
-  id: string;
-  file: File;
-  status: 'pending' | 'uploading' | 'success' | 'error' | 'conflict' | 'skipped';
-  progress: number;
-  message?: string;
-}
-
 export default function Dashboard() {
-  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
-  const [preloadedFiles, setPreloadedFiles] = useState<UploadFile[]>([]);
 
   const { data: stats, isLoading: statsLoading } = useQuery<Stats>({
     queryKey: ["/api/stats"],
@@ -130,15 +118,11 @@ export default function Dashboard() {
             <p className="text-muted-foreground mt-1">Organize, process, and discover your memories</p>
           </div>
           <div className="flex items-center space-x-3">
-            <Button 
-              onClick={() => {
-                setPreloadedFiles([]); // Clear any preloaded files
-                setIsUploadModalOpen(true);
-              }}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              <UploadIcon className="w-4 h-4 mr-2" />
-              Add Photos
+            <Button asChild className="bg-blue-600 hover:bg-blue-700">
+              <Link href="/upload">
+                <UploadIcon className="w-4 h-4 mr-2" />
+                Add Photos
+              </Link>
             </Button>
           </div>
         </div>
@@ -268,21 +252,7 @@ export default function Dashboard() {
 
           {/* Compact Dropzone */}
           <div className="lg:col-span-1">
-            <CompactDropzone 
-              onFilesSelected={(files) => {
-                // Convert files to UploadFile format
-                const uploadFiles: UploadFile[] = files.map(file => ({
-                  id: Math.random().toString(36).substr(2, 9),
-                  file,
-                  status: 'pending' as const,
-                  progress: 0,
-                }));
-
-                // Set preloaded files and open modal
-                setPreloadedFiles(uploadFiles);
-                setIsUploadModalOpen(true);
-              }}
-            />
+            <CompactDropzone />
           </div>
         </div>
 
@@ -419,25 +389,13 @@ export default function Dashboard() {
                 ))
               ) : (
                 <div className="col-span-full text-center text-muted-foreground py-8">
-                  No photos uploaded yet. <Button variant="link" onClick={() => setIsUploadModalOpen(true)}>Upload your first photos</Button>
+                  No photos uploaded yet. <Button variant="link" asChild><Link href="/upload">Upload your first photos</Link></Button>
                 </div>
               )}
             </div>
           </CardContent>
         </Card>
       </div>
-
-      <UnifiedUpload 
-        open={isUploadModalOpen} 
-        onOpenChange={(open) => {
-          setIsUploadModalOpen(open);
-          // Clear preloaded files when modal closes
-          if (!open) {
-            setPreloadedFiles([]);
-          }
-        }}
-        preloadedFiles={preloadedFiles.length > 0 ? preloadedFiles : undefined}
-      />
 
       {selectedPhoto && (
         <PhotoDetailModal 

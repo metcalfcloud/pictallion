@@ -2,20 +2,21 @@ import React, { useState, useCallback, useRef, DragEvent, ChangeEvent } from 're
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Upload, Plus } from "lucide-react";
+import { uploadManager } from "@/lib/upload-manager";
+import { useToast } from "@/hooks/use-toast";
 
 interface CompactDropzoneProps {
-  onFilesSelected: (files: File[]) => void;
   isDragActive?: boolean;
   onDragActiveChange?: (active: boolean) => void;
 }
 
 export function CompactDropzone({ 
-  onFilesSelected, 
   isDragActive = false,
   onDragActiveChange 
 }: CompactDropzoneProps) {
   const [internalDragActive, setInternalDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
   
   const isActive = isDragActive || internalDragActive;
 
@@ -49,14 +50,22 @@ export function CompactDropzone({
     );
 
     if (files.length > 0) {
-      onFilesSelected(files);
+      uploadManager.addFiles(files);
+      toast({
+        title: "Files Added",
+        description: `${files.length} files added to upload queue and will continue in background.`,
+      });
     }
   };
 
   const handleFileInput = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const files = Array.from(e.target.files);
-      onFilesSelected(files);
+      uploadManager.addFiles(files);
+      toast({
+        title: "Files Added",
+        description: `${files.length} files added to upload queue and will continue in background.`,
+      });
     }
   };
 

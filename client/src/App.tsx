@@ -20,6 +20,7 @@ import Settings from "@/pages/settings";
 import NotFound from "@/pages/not-found";
 import Sidebar from "@/components/sidebar";
 import BurstSelectionPage from "./pages/burst-selection";
+import { GlobalUploadProgress } from "@/components/global-upload-progress";
 
 function Router() {
   return (
@@ -44,6 +45,7 @@ function Router() {
           <Route path="/settings" component={Settings} />
           <Route component={NotFound} />
         </Switch>
+        <GlobalUploadProgress />
       </main>
     </div>
   );

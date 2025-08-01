@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FolderOpen, Settings } from "lucide-react";
-import { UnifiedUpload } from "@/components/unified-upload";
+import { BackgroundUpload } from "@/components/background-upload";
 
 // Helper function to extract photo date from metadata or filename
 const extractPhotoDate = (photo: any): Date | null => {
@@ -97,7 +97,7 @@ export default function Upload() {
           <CardTitle>Upload Photos & Videos</CardTitle>
         </CardHeader>
         <CardContent>
-          <UnifiedUpload mode="fullscreen" />
+          <BackgroundUpload mode="fullscreen" />
         </CardContent>
       </Card>
     </div>
