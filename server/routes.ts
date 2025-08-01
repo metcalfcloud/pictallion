@@ -777,55 +777,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Resolve duplicate conflicts
-  app.post("/api/upload/resolve-conflicts", async (req, res) => {
-    try {
-      const { resolutions } = req.body;
-      
-      if (!Array.isArray(resolutions)) {
-        return res.status(400).json({ error: "Resolutions must be an array" });
-      }
 
-      const { enhancedDuplicateService } = await import("./services/enhancedDuplicateDetection.js");
-      const results: any[] = [];
-      
-      for (const resolution of resolutions) {
-        const { conflictId, action, conflict } = resolution;
-        
-        try {
-          const result = await enhancedDuplicateService.processDuplicateResolution(
-            conflictId,
-            action,
-            conflict
-          );
-          
-          results.push({
-            conflictId,
-            ...result
-          });
-        } catch (error) {
-          console.error(`Error resolving conflict ${conflictId}:`, error);
-          results.push({
-            conflictId,
-            success: false,
-            message: `Failed to resolve conflict: ${error instanceof Error ? error.message : 'Unknown error'}`
-          });
-        }
-      }
-      
-      const successCount = results.filter(r => r.success).length;
-      const failureCount = results.length - successCount;
-      
-      res.json({
-        success: failureCount === 0,
-        message: `Resolved ${successCount} conflicts${failureCount > 0 ? `, ${failureCount} failed` : ''}`,
-        results
-      });
-    } catch (error) {
-      console.error("Error in resolve-conflicts endpoint:", error);
-      res.status(500).json({ error: "Failed to resolve conflicts" });
-    }
-  });
 
   // Update photo metadata
   app.patch("/api/photos/:id/metadata", async (req, res) => {
@@ -1485,6 +1437,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Bulk ignore faces
+  app.post("/api/faces/bulk-ignore", async (req, res) => {
+    try {
+      const { faceIds } = req.body;
+      for (const faceId of faceIds) {
+        await storage.ignoreFace(faceId);
+      }
+      res.json({ success: true, ignored: faceIds.length });
+    } catch (error) {
+      console.error("Error bulk ignoring faces:", error);
+      res.status(500).json({ message: "Failed to bulk ignore faces" });
+    }
+  });
+
+  // Bulk unignore faces
+  app.post("/api/faces/bulk-unignore", async (req, res) => {
+    try {
+      const { faceIds } = req.body;
+      for (const faceId of faceIds) {
+        await storage.unignoreFace(faceId);
+      }
+      res.json({ success: true, unignored: faceIds.length });
+    } catch (error) {
+      console.error("Error bulk unignoring faces:", error);
+      res.status(500).json({ message: "Failed to bulk unignore faces" });
+    }
+  });
+
   // Get ignored faces
   app.get("/api/faces/ignored", async (req, res) => {
     try {
@@ -1707,6 +1687,52 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
     } catch (error) {
       console.error("Error deleting collection:", error);
       res.status(500).json({ message: "Failed to delete collection" });
+    }
+  });
+
+  // Add photos to collection
+  app.post("/api/collections/:id/photos", async (req, res) => {
+    try {
+      const { photoIds } = req.body;
+      const collectionId = req.params.id;
+
+      for (const photoId of photoIds) {
+        await storage.addPhotoToCollection(collectionId, photoId);
+      }
+
+      res.json({ success: true, added: photoIds.length });
+    } catch (error) {
+      console.error("Error adding photos to collection:", error);
+      res.status(500).json({ message: "Failed to add photos to collection" });
+    }
+  });
+
+  // Remove photos from collection
+  app.delete("/api/collections/:id/photos", async (req, res) => {
+    try {
+      const { photoIds } = req.body;
+      const collectionId = req.params.id;
+
+      for (const photoId of photoIds) {
+        await storage.removePhotoFromCollection(collectionId, photoId);
+      }
+
+      res.json({ success: true, removed: photoIds.length });
+    } catch (error) {
+      console.error("Error removing photos from collection:", error);
+      res.status(500).json({ message: "Failed to remove photos from collection" });
+    }
+  });
+
+  // Update collection
+  app.patch("/api/collections/:id", async (req, res) => {
+    try {
+      const updates = req.body;
+      const collection = await storage.updateCollection(req.params.id, updates);
+      res.json(collection);
+    } catch (error) {
+      console.error("Error updating collection:", error);
+      res.status(500).json({ message: "Failed to update collection" });
     }
   });
 
@@ -3400,49 +3426,181 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
   app.use("/api/locations", locationRoutes);
 
   // Update photo endpoint
-app.put('/api/photos/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const updates = req.body;
+  app.put('/api/photos/:id', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updates = req.body;
 
-    const updatedPhoto = await storage.updatePhoto(id, updates);
+      const photo = await storage.getFileVersion(id);
+      if (!photo) {
+        return res.status(404).json({ message: "Photo not found" });
+      }
 
-    // Log the update activity
-    await storage.createAssetHistory({
-      mediaAssetId: id,
-      action: 'METADATA_UPDATED',
-      details: `Updated metadata: ${Object.keys(updates).join(', ')}`
-    });
+      const updatedPhoto = await storage.updateFileVersion(id, updates);
 
-    res.json(updatedPhoto);
-  } catch (error) {
-    console.error('Error updating photo:', error);
-    res.status(500).json({ error: 'Failed to update photo' });
-  }
-});
+      // Log the update activity
+      await storage.createAssetHistory({
+        mediaAssetId: photo.mediaAssetId,
+        action: 'METADATA_UPDATED',
+        details: `Updated metadata: ${Object.keys(updates).join(', ')}`
+      });
+
+      res.json(updatedPhoto);
+    } catch (error) {
+      console.error('Error updating photo:', error);
+      res.status(500).json({ error: 'Failed to update photo' });
+    }
+  });
+
+  // Toggle photo favorite status
+  app.patch("/api/photos/:id/favorite", async (req, res) => {
+    try {
+      const { isFavorite } = req.body;
+      const photo = await storage.getFileVersion(req.params.id);
+      if (!photo) {
+        return res.status(404).json({ message: "Photo not found" });
+      }
+
+      await storage.updateFileVersion(req.params.id, { isFavorite });
+      res.json({ success: true, isFavorite });
+    } catch (error) {
+      console.error("Error updating favorite status:", error);
+      res.status(500).json({ message: "Failed to update favorite status" });
+    }
+  });
+
+  // Add/remove photo tags
+  app.patch("/api/photos/:id/tags", async (req, res) => {
+    try {
+      const { tags, action } = req.body; // action: 'add' or 'remove'
+      const photo = await storage.getFileVersion(req.params.id);
+      if (!photo) {
+        return res.status(404).json({ message: "Photo not found" });
+      }
+
+      const metadata = (photo.metadata as any) || {};
+      const currentTags = metadata.ai?.aiTags || [];
+      
+      let updatedTags;
+      if (action === 'add') {
+        updatedTags = Array.from(new Set([...currentTags, ...tags]));
+      } else if (action === 'remove') {
+        updatedTags = currentTags.filter((tag: string) => !tags.includes(tag));
+      } else {
+        updatedTags = tags; // Replace all tags
+      }
+
+      const updatedMetadata = {
+        ...metadata,
+        ai: { ...(metadata.ai || {}), aiTags: updatedTags }
+      };
+
+      await storage.updateFileVersion(req.params.id, { 
+        metadata: updatedMetadata as any 
+      });
+
+      res.json({ success: true, tags: updatedTags });
+    } catch (error) {
+      console.error("Error updating photo tags:", error);
+      res.status(500).json({ message: "Failed to update photo tags" });
+    }
+  });
 
 // Get available tags endpoint
-app.get('/api/tags/library', async (req, res) => {
-  try {
-    const tags = await storage.getAllTags();
-    res.json(tags);
-  } catch (error) {
-    console.error('Error fetching tags library:', error);
-    res.status(500).json({ error: 'Failed to fetch tags library' });
-  }
-});
+  app.get('/api/tags/library', async (req, res) => {
+    try {
+      const result = await db.execute(sql`
+        SELECT tag, usage_count, created_at 
+        FROM global_tag_library 
+        ORDER BY usage_count DESC, tag ASC
+      `);
+      res.json(result.rows);
+    } catch (error) {
+      console.error('Error fetching tags library:', error);
+      res.status(500).json({ error: 'Failed to fetch tags library' });
+    }
+  });
 
-// Add tag to library endpoint
-app.post('/api/tags/library', async (req, res) => {
-  try {
-    const { tag } = req.body;
-    await storage.addTagToLibrary(tag);
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Error adding tag to library:', error);
-    res.status(500).json({ error: 'Failed to add tag to library' });
-  }
-});
+  // Add tag to library endpoint
+  app.post('/api/tags/library', async (req, res) => {
+    try {
+      const { tags } = req.body;
+      const tagList = Array.isArray(tags) ? tags : [tags];
+
+      for (const tag of tagList) {
+        await db.execute(sql`
+          INSERT INTO global_tag_library (tag, usage_count, created_at)
+          VALUES (${tag}, 1, NOW())
+          ON CONFLICT (tag) 
+          DO UPDATE SET usage_count = global_tag_library.usage_count + 1
+        `);
+      }
+
+      res.json({ success: true, added: tagList.length });
+    } catch (error) {
+      console.error('Error adding tag to library:', error);
+      res.status(500).json({ error: 'Failed to add tag to library' });
+    }
+  });
+
+  // Delete tag from library
+  app.delete('/api/tags/library/:tag', async (req, res) => {
+    try {
+      const { tag } = req.params;
+      await db.execute(sql`DELETE FROM global_tag_library WHERE tag = ${tag}`);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error deleting tag from library:', error);
+      res.status(500).json({ error: 'Failed to delete tag from library' });
+    }
+  });
+
+  // System health check
+  app.get("/api/health", async (req, res) => {
+    try {
+      // Check database connection
+      const dbHealth = await db.execute(sql`SELECT 1 as health`);
+      
+      // Check AI service availability
+      const aiHealth = await aiService.getAvailableProviders();
+      
+      res.json({
+        status: 'healthy',
+        timestamp: new Date().toISOString(),
+        database: dbHealth ? 'connected' : 'disconnected',
+        ai: {
+          ollama: aiHealth.ollama,
+          openai: aiHealth.openai
+        }
+      });
+    } catch (error) {
+      console.error("Health check failed:", error);
+      res.status(503).json({
+        status: 'unhealthy',
+        timestamp: new Date().toISOString(),
+        error: 'Service unavailable'
+      });
+    }
+  });
+
+  // System status and metrics
+  app.get("/api/system/status", async (req, res) => {
+    try {
+      const stats = await storage.getCollectionStats();
+      const diskUsage = await fileManager.getDiskUsage();
+      
+      res.json({
+        stats,
+        diskUsage,
+        uptime: process.uptime(),
+        nodeVersion: process.version,
+        memoryUsage: process.memoryUsage()
+      });
+    } catch (error) {
+      console.error("Error fetching system status:", error);
+      res.status(500).json({ message: "Failed to fetch system status" });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;
