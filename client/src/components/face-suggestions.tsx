@@ -421,6 +421,12 @@ export function FaceSuggestions() {
                         <Badge className="absolute -top-1 -right-1 text-xs">
                           {Math.round(face.confidence)}%
                         </Badge>
+                        {/* Selection indicator overlay */}
+                        {isSelected && selectedPerson && (
+                          <div className="absolute inset-0 bg-green-500/20 rounded-lg flex items-center justify-center">
+                            <CheckCircle2 className="h-6 w-6 text-green-600 bg-white rounded-full" />
+                          </div>
+                        )}
                       </>
                     ) : (
                       <div className="w-16 h-16 rounded-lg bg-muted border-2 border-border flex items-center justify-center">
@@ -428,6 +434,12 @@ export function FaceSuggestions() {
                         <Badge className="absolute -top-1 -right-1 text-xs bg-yellow-500">
                           Missing
                         </Badge>
+                        {/* Selection indicator overlay for missing face */}
+                        {isSelected && selectedPerson && (
+                          <div className="absolute inset-0 bg-green-500/20 rounded-lg flex items-center justify-center">
+                            <CheckCircle2 className="h-6 w-6 text-green-600 bg-white rounded-full" />
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -443,21 +455,14 @@ export function FaceSuggestions() {
                         `Face ID: ${item.faceId}`
                       }
                     </p>
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs text-muted-foreground">
-                        {face ? `Confidence: ${Math.round(face.confidence)}%` : 'Face data missing'} • {item.suggestions.length} suggestion{item.suggestions.length !== 1 ? 's' : ''}
-                      </p>
-                      
-                      {/* Selection status */}
+                    <p className="text-xs text-muted-foreground">
+                      {face ? `Confidence: ${Math.round(face.confidence)}%` : 'Face data missing'} • {item.suggestions.length} suggestion{item.suggestions.length !== 1 ? 's' : ''}
                       {isSelected && selectedPerson && (
-                        <div className="flex items-center gap-1 text-green-600">
-                          <CheckCircle2 className="h-3 w-3" />
-                          <span className="text-xs font-medium">
-                            {people.find(p => p.id === selectedPerson.personId)?.name}
-                          </span>
-                        </div>
+                        <span className="text-green-600 font-medium ml-2">
+                          → {people.find(p => p.id === selectedPerson.personId)?.name}
+                        </span>
                       )}
-                    </div>
+                    </p>
                   </div>
                 </div>
               </CardHeader>
