@@ -161,10 +161,17 @@ export default function PeoplePage() {
       setNewPersonBirthdate('');
       toast({ title: "Person created successfully" });
 
-      // If we have selected faces and we're in assign mode, assign them to the new person
-      if (selectedFaces.length > 0 && isMergeFacesOpen) {
-        handleAssignFaces(newPerson.id);
-        setIsMergeFacesOpen(false);
+      // If we have selected faces, assign them to the new person (handles both dialog and inline workflows)
+      if (selectedFaces.length > 0) {
+        assignFacesToPersonMutation.mutate({ 
+          faceIds: selectedFaces, 
+          personId: newPerson.id 
+        });
+        
+        // Close dialog if open
+        if (isMergeFacesOpen) {
+          setIsMergeFacesOpen(false);
+        }
       }
     },
     onError: () => {
