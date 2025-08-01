@@ -689,13 +689,28 @@ export default function PhotoDetailModal({
                   imageSize: { width: imageWidth, height: imageHeight },
                   originalSize: { width: originalImageWidth, height: originalImageHeight },
                   scale: { x: scaleX, y: scaleY },
+                  imageOffset: { x: imageOffsetX, y: imageOffsetY },
                   position: {
-                    left: Math.round(x * scaleX),
-                    top: Math.round(y * scaleY),
+                    left: Math.round(imageOffsetX + (x * scaleX)),
+                    top: Math.round(imageOffsetY + (y * scaleY)),
                     width: Math.round(width * scaleX),
                     height: Math.round(height * scaleY)
                   }
                 });
+              }
+
+              // Calculate image position within container for proper alignment
+              const imageElement = imageRef.current;
+              let imageOffsetX = 0;
+              let imageOffsetY = 0;
+              
+              if (imageElement) {
+                const containerRect = imageElement.parentElement?.getBoundingClientRect();
+                const imageRect = imageElement.getBoundingClientRect();
+                if (containerRect && imageRect) {
+                  imageOffsetX = imageRect.left - containerRect.left;
+                  imageOffsetY = imageRect.top - containerRect.top;
+                }
               }
 
               return (
@@ -707,8 +722,8 @@ export default function PhotoDetailModal({
                       : 'border-transparent bg-transparent opacity-0'
                   }`}
                   style={{
-                    left: `${Math.round(x * scaleX)}px`,
-                    top: `${Math.round(y * scaleY)}px`,
+                    left: `${Math.round(imageOffsetX + (x * scaleX))}px`,
+                    top: `${Math.round(imageOffsetY + (y * scaleY))}px`,
                     width: `${Math.round(width * scaleX)}px`,
                     height: `${Math.round(height * scaleY)}px`,
                     zIndex: isHovered ? 10 : 1,
