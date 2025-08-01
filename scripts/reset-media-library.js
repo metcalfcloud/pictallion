@@ -3,7 +3,7 @@
  * Media Library and Database Reset Script
  * 
  * This script completely resets Pictallion for clean end-to-end testing:
- * - Removes all media files from bronze, silver, gold, and temp directories
+ * - Removes all media files from silver, gold, archive, dropzone, and temp directories
  * - Truncates all database tables (including locations, people, collections, etc.)
  * - Preserves directory structure
  * - Provides confirmation prompts for safety
@@ -33,7 +33,6 @@ const pool = new Pool({ connectionString: DATABASE_URL });
 
 // Media directories to clean
 const MEDIA_DIRS = [
-  'data/media/bronze',
   'data/media/silver', 
   'data/media/gold',
   'data/media/archive',
@@ -198,7 +197,7 @@ Examples:
   node scripts/reset-media-library.js --force  # Reset without confirmation prompts
 
 This script will:
-• Remove all media files from bronze, silver, gold, and temp directories
+• Remove all media files from silver, gold, archive, dropzone, and temp directories
 • Truncate all database tables
 • Preserve directory structure with .gitkeep files
 • Prepare the system for clean end-to-end testing
