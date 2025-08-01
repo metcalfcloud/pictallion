@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
@@ -22,10 +21,12 @@ import {
   CheckCircle2,
   User,
   Search,
-  EyeOff
+  EyeOff,
+  Loader2
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { ProcessingStateBadge } from "./ui/processing-state-badge";
 
 interface FaceSuggestion {
   faceId: string;
@@ -43,10 +44,16 @@ interface Face {
   boundingBox: [number, number, number, number]; // [x, y, width, height]
   confidence: number;
   faceCropUrl?: string; // URL to cropped face image
+  faceCrop?: string; // filename for the face crop image
+  personId?: string;
   photo?: {
-    filePath: string;
+    id: string;
     mediaAsset: {
+      id: string;
+      filename: string;
       originalFilename: string;
+      width: number;
+      height: number;
     };
   };
 }
@@ -54,398 +61,253 @@ interface Face {
 interface Person {
   id: string;
   name: string;
-  faceCount: number;
+  faceCount?: number;
   representativeFace?: string;
 }
 
-export function FaceSuggestions() {
-  const [selectedAssignments, setSelectedAssignments] = useState<Array<{faceId: string, personId: string}>>([]);
+interface Assignment {
+  faceId: string;
+  personId: string;
+}
+
+interface FaceSuggestionsProps {
+  isOpen: boolean;
+  faceSuggestions?: FaceSuggestion[];
+  isLoading?: boolean;
+  onClose?: () => void;
+}
+
+export function FaceSuggestions({ isOpen, faceSuggestions = [], isLoading = false, onClose }: FaceSuggestionsProps) {
+  const [selectedAssignments, setSelectedAssignments] = useState<Assignment[]>([]);
   const [isCreatePersonOpen, setIsCreatePersonOpen] = useState(false);
+  const [selectedFaceForNewPerson, setSelectedFaceForNewPerson] = useState<string | null>(null);
   const [newPersonName, setNewPersonName] = useState("");
-  const [pendingFaceId, setPendingFaceId] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
 
-  // Fetch face suggestions
-  const { data: suggestions = [], isLoading: suggestionsLoading, refetch: refetchSuggestions, error: suggestionsError } = useQuery<FaceSuggestion[]>({
-    queryKey: ["/api/faces/suggestions"],
-    refetchInterval: false,
-    staleTime: 30000,
-    refetchOnWindowFocus: false,
-    retry: 2,
+  // Load people for suggestions
+  const { data: people = [], isLoading: peopleLoading } = useQuery<Person[]>({
+    queryKey: ['/api/people'],
+    enabled: isOpen
   });
 
-  // Fetch unassigned faces
-  const { data: unassignedFaces = [], isLoading: facesLoading } = useQuery<Face[]>({
-    queryKey: ["/api/faces/unassigned"],
-    refetchInterval: false,
-  });
-
-  // Fetch people for creating new person
-  const { data: people = [] } = useQuery<Person[]>({
-    queryKey: ["/api/people"],
-  });
-
-  // Reprocess faces mutation
-  const reprocessMutation = useMutation({
-    mutationFn: async () => {
-      return await apiRequest('POST', '/api/faces/reprocess');
-    },
-    onSuccess: () => {
-      refetchSuggestions();
-      queryClient.invalidateQueries({ queryKey: ["/api/faces/unassigned"] });
-      toast({ title: "Faces reprocessed successfully" });
-    },
-    onError: () => {
-      toast({ title: "Failed to reprocess faces", variant: "destructive" });
-    }
-  });
-
-  // Batch assign mutation
-  const batchAssignMutation = useMutation({
-    mutationFn: async (assignments: Array<{faceId: string, personId: string}>) => {
-      return await apiRequest('POST', '/api/faces/batch-assign', { assignments });
-    },
-    onSuccess: (data: any) => {
-      toast({ 
-        title: `Successfully assigned ${data.success} faces${data.failed > 0 ? `, ${data.failed} failed` : ''}` 
-      });
-      setSelectedAssignments([]);
-      refetchSuggestions();
-      queryClient.invalidateQueries({ queryKey: ["/api/faces"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/faces/unassigned"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/people"] });
-    },
-    onError: () => {
-      toast({ title: "Failed to assign faces", variant: "destructive" });
-    }
+  // Load face details for the suggested faces
+  const { data: faces = [], isLoading: facesLoading } = useQuery<Face[]>({
+    queryKey: ['/api/faces'],
+    enabled: isOpen && faceSuggestions.length > 0
   });
 
   // Create person mutation
   const createPersonMutation = useMutation({
-    mutationFn: async (personData: { name: string }): Promise<Person> => {
-      const res = await apiRequest('POST', '/api/people', personData);
-      const person: Person = await res.json();
-      return person;
+    mutationFn: async (data: { name: string }) => {
+      const response = await apiRequest('/api/people', {
+        method: 'POST',
+        body: JSON.stringify(data)
+      });
+      return response;
     },
-    onSuccess: (newPerson: Person) => {
-      if (pendingFaceId) {
-        setSelectedAssignments(prev => [
-          ...prev.filter(a => a.faceId !== pendingFaceId),
-          { faceId: pendingFaceId, personId: newPerson.id }
-        ]);
-        setPendingFaceId(null);
+    onSuccess: (person: Person) => {
+      if (selectedFaceForNewPerson) {
+        handleSuggestionAction(selectedFaceForNewPerson, person.id, 'accept');
       }
-      setNewPersonName("");
       setIsCreatePersonOpen(false);
-      queryClient.invalidateQueries({ queryKey: ["/api/people"] });
-      toast({ title: `Created person: ${newPerson.name}` });
+      setNewPersonName("");
+      setSelectedFaceForNewPerson(null);
+      queryClient.invalidateQueries({ queryKey: ['/api/people'] });
+      toast({
+        title: "Success",
+        description: `Created person "${person.name}"`
+      });
     },
-    onError: () => {
-      toast({ title: "Failed to create person", variant: "destructive" });
+    onError: (error: any) => {
+      console.error('Error creating person:', error);
+      toast({
+        title: "Error",
+        description: `Failed to create person: ${error.message || 'Unknown error'}`,
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Assign face mutation
+  const assignFaceMutation = useMutation({
+    mutationFn: async (data: { faceId: string; personId: string }) => {
+      const response = await apiRequest('/api/face-assignments', {
+        method: 'POST',
+        body: JSON.stringify(data)
+      });
+      return response;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/faces'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/face-suggestions'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/people'] });
+      toast({
+        title: "Success",
+        description: "Face assigned successfully"
+      });
+    },
+    onError: (error: any) => {
+      console.error('Error assigning face:', error);
+      toast({
+        title: "Error",
+        description: `Failed to assign face: ${error.message || 'Unknown error'}`,
+        variant: "destructive"
+      });
     }
   });
 
   // Ignore face mutation
   const ignoreFaceMutation = useMutation({
     mutationFn: async (faceId: string) => {
-      return await apiRequest('POST', `/api/faces/${faceId}/ignore`);
+      const response = await apiRequest(`/api/faces/${faceId}/ignore`, {
+        method: 'POST'
+      });
+      return response;
     },
     onSuccess: () => {
-      refetchSuggestions();
-      queryClient.invalidateQueries({ queryKey: ["/api/faces/unassigned"] });
-      toast({ title: "Face ignored successfully" });
+      queryClient.invalidateQueries({ queryKey: ['/api/faces'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/face-suggestions'] });
+      toast({
+        title: "Success",
+        description: "Face ignored successfully"
+      });
     },
-    onError: () => {
-      toast({ title: "Failed to ignore face", variant: "destructive" });
-    }
-  });
-
-  // Individual assign mutation
-  const assignFaceMutation = useMutation({
-    mutationFn: async ({ faceId, personId }: { faceId: string, personId: string }) => {
-      return await apiRequest('POST', '/api/faces/assign-single', { faceId, personId });
-    },
-    onSuccess: (_, { faceId, personId }) => {
-      // Remove from selected assignments if it was there
-      setSelectedAssignments(prev => prev.filter(a => a.faceId !== faceId));
-      refetchSuggestions();
-      queryClient.invalidateQueries({ queryKey: ["/api/faces"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/faces/unassigned"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/people"] });
-      toast({ title: "Face assigned successfully" });
-    },
-    onError: () => {
-      toast({ title: "Failed to assign face", variant: "destructive" });
+    onError: (error: any) => {
+      console.error('Error ignoring face:', error);
+      toast({
+        title: "Error",
+        description: `Failed to ignore face: ${error.message || 'Unknown error'}`,
+        variant: "destructive"
+      });
     }
   });
 
   const handleSuggestionAction = (faceId: string, personId: string, action: 'accept' | 'reject') => {
     if (action === 'accept') {
-      // Immediately assign the face instead of adding to selection
+      // Update local selection
+      setSelectedAssignments(prev => {
+        const filtered = prev.filter(a => a.faceId !== faceId);
+        return [...filtered, { faceId, personId }];
+      });
+      
+      // Submit to server
       assignFaceMutation.mutate({ faceId, personId });
-    } else {
-      // Remove from selected assignments if it was there
-      setSelectedAssignments(prev => prev.filter(a => a.faceId !== faceId));
     }
   };
 
   const handleCreateNewPerson = (faceId: string) => {
-    setPendingFaceId(faceId);
+    setSelectedFaceForNewPerson(faceId);
     setIsCreatePersonOpen(true);
   };
 
-  const getFaceCropUrl = (face: Face) => {
-    if (!face.photo) return '';
-    const [x, y, width, height] = face.boundingBox;
-    return `/api/files/${face.photo.filePath}?crop=${x},${y},${width},${height}&face=true`;
-  };
+  if (!isOpen) return null;
 
-  const getPersonAvatarUrl = (person: { representativeFace?: string }) => {
-    return person.representativeFace ? `/api/files/${person.representativeFace}` : '';
-  };
+  if (isLoading || facesLoading || peopleLoading) {
+    return (
+      <div className="p-6 space-y-4">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-5 w-5 text-blue-500" />
+          <h2 className="text-lg font-semibold">AI Face Suggestions</h2>
+        </div>
+        <div className="flex items-center justify-center py-8">
+          <RefreshCw className="h-6 w-6 animate-spin mr-2" />
+          <span>Loading face suggestions...</span>
+        </div>
+      </div>
+    );
+  }
 
-  const batchAssign = () => {
-    if (selectedAssignments.length > 0) {
-      batchAssignMutation.mutate(selectedAssignments);
-    }
-  };
-
-  const clearAssignments = () => {
-    setSelectedAssignments([]);
-  };
-
-  const suggestionsWithFaces = suggestions.map(suggestion => ({
-    ...suggestion,
-    face: unassignedFaces.find(f => f.id === suggestion.faceId)
-  })).filter(s => s.face || s.faceId); // Keep suggestions even if face data is missing
-
-  // Debug logging
-  console.log('Face suggestions debug:', {
-    totalSuggestions: suggestions.length,
-    unassignedFacesCount: unassignedFaces.length,
-    suggestionsWithFacesCount: suggestionsWithFaces.length,
-    suggestionsError: suggestionsError?.message
-  });
-
-  const totalUnassigned = unassignedFaces.length;
-  const totalWithSuggestions = suggestions.length;
-  const totalSelected = selectedAssignments.length;
+  if (faceSuggestions.length === 0) {
+    return (
+      <div className="p-6 space-y-4">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-5 w-5 text-blue-500" />
+          <h2 className="text-lg font-semibold">AI Face Suggestions</h2>
+        </div>
+        <div className="text-center py-8 text-muted-foreground">
+          <User className="h-12 w-12 mx-auto mb-4 opacity-50" />
+          <p>No face suggestions available at the moment.</p>
+          <p className="text-sm">Upload photos with faces to get AI-powered suggestions.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      {/* Header with statistics */}
+    <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold flex items-center gap-2">
-            <Sparkles className="h-6 w-6 text-blue-500" />
-            Face Suggestions
-          </h2>
-          <p className="text-muted-foreground">
-            AI-powered suggestions to help organize unassigned faces
-          </p>
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-5 w-5 text-blue-500" />
+          <h2 className="text-lg font-semibold">AI Face Suggestions</h2>
+          <Badge variant="secondary" className="ml-2">
+            {faceSuggestions.length} face{faceSuggestions.length !== 1 ? 's' : ''}
+          </Badge>
         </div>
-
-        <div className="flex items-center gap-3">
-          <Button
-            onClick={() => reprocessMutation.mutate()}
-            disabled={reprocessMutation.isPending}
-            variant="outline"
-            className="flex items-center gap-2"
-          >
-            <RefreshCw className={`h-4 w-4 ${reprocessMutation.isPending ? 'animate-spin' : ''}`} />
-            {reprocessMutation.isPending ? 'Reprocessing...' : 'Reprocess'}
+        {onClose && (
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            <X className="h-4 w-4" />
           </Button>
-        </div>
+        )}
       </div>
 
-      {/* Statistics cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Eye className="h-4 w-4 text-muted-foreground" />
-              <div>
-                <p className="text-sm text-muted-foreground">Unassigned Faces</p>
-                <p className="text-2xl font-bold">{totalUnassigned}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-blue-500" />
-              <div>
-                <p className="text-sm text-muted-foreground">With Suggestions</p>
-                <p className="text-2xl font-bold">{totalWithSuggestions}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-green-500" />
-              <div>
-                <p className="text-sm text-muted-foreground">Ready to Assign</p>
-                <p className="text-2xl font-bold">{totalSelected}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-purple-500" />
-              <div>
-                <p className="text-sm text-muted-foreground">Known People</p>
-                <p className="text-2xl font-bold">{people.length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Batch assignment controls */}
-      {totalSelected > 0 && (
-        <Card className="border-green-200 bg-green-50">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <CheckCircle2 className="h-5 w-5 text-green-600" />
-                <div>
-                  <p className="font-medium text-green-800 dark:text-green-200">
-                    {totalSelected} face{totalSelected !== 1 ? 's' : ''} ready for assignment
-                  </p>
-                  <p className="text-sm text-green-600">
-                    Review your selections and click "Assign All" to proceed
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  onClick={clearAssignments}
-                  variant="outline"
-                  size="sm"
-                >
-                  Clear All
-                </Button>
-                <Button
-                  onClick={batchAssign}
-                  disabled={batchAssignMutation.isPending}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  {batchAssignMutation.isPending ? 'Assigning...' : `Assign All (${totalSelected})`}
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Loading states */}
-      {(suggestionsLoading || facesLoading) && (
-        <div className="flex justify-center py-8">
-          <div className="text-center">
-            <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-500" />
-            <p>Loading face suggestions...</p>
-          </div>
-        </div>
-      )}
-
-      {/* No suggestions state */}
-      {!suggestionsLoading && !facesLoading && suggestionsWithFaces.length === 0 && totalUnassigned > 0 && (
-        <Card>
-          <CardContent className="p-8 text-center">
-            <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium mb-2">No Face Suggestions Available</h3>
-            <p className="text-muted-foreground mb-4">
-              There are {totalUnassigned} unassigned faces, but no suggestions could be generated. 
-              This usually happens when there aren't enough assigned faces to compare against.
-            </p>
-            <Button onClick={() => reprocessMutation.mutate()} variant="outline">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Try Reprocessing
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* All faces assigned state */}
-      {!suggestionsLoading && !facesLoading && totalUnassigned === 0 && (
-        <Card>
-          <CardContent className="p-8 text-center">
-            <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-4" />
-            <h3 className="text-lg font-medium mb-2">All Faces Assigned!</h3>
-            <p className="text-muted-foreground">
-              Great job! All detected faces have been assigned to people. Upload more photos to continue organizing your collection.
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Face suggestion cards */}
       <div className="space-y-4">
-        {suggestionsWithFaces.map((item) => {
-          const face = item.face;
+        {faceSuggestions.map((item) => {
+          const face = faces.find(f => f.id === item.faceId);
           const isSelected = selectedAssignments.some(a => a.faceId === item.faceId);
           const selectedPerson = selectedAssignments.find(a => a.faceId === item.faceId);
 
           return (
-            <div key={item.faceId} className="w-fit">
-              <Card className={`transition-all ${isSelected ? 'ring-2 ring-blue-500 bg-blue-50' : ''}`}>
-              <CardHeader className="p-4">
+            <div 
+              key={item.faceId} 
+              className={`w-full rounded-xl border bg-card/50 backdrop-blur-sm shadow-lg transition-all duration-300 hover:shadow-xl ${isSelected ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-950/20' : ''}`}
+            >
+              <div className="p-4">
                 <div className="flex items-start gap-3">
                   {/* Face crop */}
                   <div className="relative flex-shrink-0">
                     {face ? (
                       <>
-                        <img
-                          src={face.faceCropUrl ? `/api/files/${face.faceCropUrl}` : getFaceCropUrl(face)}
-                          alt="Face crop"
-                          className="w-16 h-16 rounded-lg object-cover border-2 border-border"
-                          onError={(e) => {
-                            // First fallback to the other crop method, then to full image
-                            if (face.faceCropUrl && e.currentTarget.src.includes(face.faceCropUrl)) {
-                              e.currentTarget.src = getFaceCropUrl(face);
-                            } else {
-                              e.currentTarget.src = `/api/files/${face.photo?.filePath}`;
-                            }
-                          }}
-                        />
-                        <Badge className="absolute -top-1 -right-1 text-xs">
-                          {Math.round(face.confidence)}%
-                        </Badge>
-                        {/* Selection indicator overlay */}
-                        {isSelected && selectedPerson && (
-                          <div className="absolute inset-0 bg-green-500/20 rounded-lg flex items-center justify-center">
-                            <CheckCircle2 className="h-6 w-6 text-green-600 bg-white rounded-full" />
+                        <div className="relative w-20 h-20 rounded-lg overflow-hidden bg-muted">
+                          <img
+                            src={`/api/files/${face.faceCrop}`}
+                            alt="Face crop"
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                              const nextElement = e.currentTarget.nextElementSibling as HTMLElement;
+                              if (nextElement) {
+                                nextElement.classList.remove('hidden');
+                              }
+                            }}
+                          />
+                          <User className="hidden w-8 h-8 text-muted-foreground absolute inset-0 m-auto" />
+                        </div>
+                        
+                        {/* Processing state overlay */}
+                        {(assignFaceMutation.isPending || ignoreFaceMutation.isPending) && (
+                          <div className="absolute inset-0 bg-black/20 rounded-lg flex items-center justify-center">
+                            <Loader2 className="h-4 w-4 animate-spin text-white" />
                           </div>
                         )}
+                        
+                        {/* Processing state badge */}
+                        <div className="absolute -top-1 -right-1">
+                          <ProcessingStateBadge 
+                            isPending={assignFaceMutation.isPending || ignoreFaceMutation.isPending}
+                            isSelected={isSelected}
+                          />
+                        </div>
                       </>
                     ) : (
-                      <div className="w-16 h-16 rounded-lg bg-muted border-2 border-border flex items-center justify-center">
-                        <Eye className="w-6 h-6 text-muted-foreground" />
-                        <Badge className="absolute -top-1 -right-1 text-xs bg-yellow-500">
-                          Missing
-                        </Badge>
-                        {/* Selection indicator overlay for missing face */}
-                        {isSelected && selectedPerson && (
-                          <div className="absolute inset-0 bg-green-500/20 rounded-lg flex items-center justify-center">
-                            <CheckCircle2 className="h-6 w-6 text-green-600 bg-white rounded-full" />
-                          </div>
-                        )}
+                      <div className="w-20 h-20 rounded-lg bg-muted flex items-center justify-center">
+                        <User className="w-8 h-8 text-muted-foreground" />
                       </div>
                     )}
                   </div>
 
                   {/* Face info */}
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <h3 className="font-medium text-sm">
                       {face ? 'Unassigned Face' : 'Face (Missing Data)'}
                     </h3>
@@ -465,10 +327,9 @@ export function FaceSuggestions() {
                     )}
                   </div>
                 </div>
-              </CardHeader>
-
-              <CardContent className="p-4 pt-0">
-                <div className="space-y-2">
+                
+                {/* Content section */}
+                <div className="mt-4 space-y-2">
                   <div className="flex items-center gap-2 mb-2">
                     <Users className="h-4 w-4" />
                     <span className="text-sm font-medium">Suggested People:</span>
@@ -512,28 +373,25 @@ export function FaceSuggestions() {
                               <p className="text-xs text-muted-foreground">
                                 {Math.round(suggestion.confidence)}% match
                               </p>
-                              <Progress value={suggestion.confidence} className="h-1 mt-1" />
                             </div>
                           </div>
                         </div>
                       );
                     })}
-                    
-                    {/* Create New Person Card */}
+
+                    {/* Create new person option */}
                     <div 
                       onClick={() => handleCreateNewPerson(item.faceId)}
-                      className="p-3 border-2 border-dashed border-blue-300 rounded-lg transition-all cursor-pointer hover:shadow-md hover:scale-105 hover:border-blue-500 hover:bg-blue-50/50 dark:hover:bg-blue-950/50"
+                      className="p-3 border border-dashed border-blue-300 rounded-lg transition-all cursor-pointer hover:border-blue-500 hover:bg-blue-50/50 dark:hover:bg-blue-950/50 flex items-center gap-3"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
-                          <UserPlus className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm text-blue-600 dark:text-blue-400">Create New Person</p>
-                          <p className="text-xs text-muted-foreground">
-                            Add as new person
-                          </p>
-                        </div>
+                      <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
+                        <UserPlus className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm text-blue-600 dark:text-blue-400">Create New Person</p>
+                        <p className="text-xs text-muted-foreground">
+                          Add as new person
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -556,8 +414,7 @@ export function FaceSuggestions() {
                     </div>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
             </div>
           );
         })}
