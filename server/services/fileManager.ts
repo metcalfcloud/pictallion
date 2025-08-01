@@ -11,8 +11,6 @@ class FileManager {
     const dirs = [
       this.dataDir,
       this.mediaDir,
-      path.join(this.mediaDir, 'dropzone'),
-      path.join(this.mediaDir, 'dropzone', 'duplicates'),
       path.join(this.mediaDir, 'silver'),
       path.join(this.mediaDir, 'gold'),
       path.join(this.mediaDir, 'archive'),
@@ -201,17 +199,6 @@ class FileManager {
     await fs.copyFile(fullSilverPath, goldPath);
     
     return path.relative(this.dataDir, goldPath);
-  }
-
-  async moveToDuplicates(tempPath: string, originalFilename: string): Promise<void> {
-    const duplicatesDir = path.join(this.mediaDir, 'dropzone', 'duplicates');
-    const timestamp = Date.now();
-    const ext = path.extname(originalFilename);
-    const name = path.basename(originalFilename, ext);
-    const duplicateFilename = `${name}_duplicate_${timestamp}${ext}`;
-    const duplicatePath = path.join(duplicatesDir, duplicateFilename);
-
-    await fs.rename(tempPath, duplicatePath);
   }
 
   async extractMetadata(filePath: string): Promise<CombinedMetadata> {
