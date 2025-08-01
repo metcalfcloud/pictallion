@@ -471,18 +471,19 @@ export function FaceSuggestions() {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                    {item.suggestions.slice(0, 6).map((suggestion) => {
+                    {item.suggestions.slice(0, 5).map((suggestion) => {
                       const isThisSelected = selectedPerson?.personId === suggestion.personId;
 
                       return (
                         <div 
                           key={suggestion.personId} 
-                          className={`p-2 border rounded-lg transition-all cursor-pointer hover:shadow-md ${
-                            isThisSelected ? 'border-green-500 bg-green-50 dark:bg-green-950' : 'border-border hover:border-muted-foreground'
-                          }`}
+                          onClick={() => handleSuggestionAction(item.faceId, suggestion.personId, 'accept')}
+                          className={`p-3 border rounded-lg transition-all cursor-pointer hover:shadow-md hover:scale-105 ${
+                            isThisSelected ? 'border-green-500 bg-green-50 dark:bg-green-950 ring-2 ring-green-200' : 'border-border hover:border-blue-300 hover:bg-blue-50/50 dark:hover:bg-blue-950/50'
+                          } ${assignFaceMutation.isPending ? 'opacity-50 pointer-events-none' : ''}`}
                         >
-                          <div className="flex items-center gap-3 mb-1">
-                            <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center overflow-hidden">
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center overflow-hidden">
                               {suggestion.representativeFace ? (
                                 <img
                                   src={`/api/files/${suggestion.representativeFace}`}
@@ -500,70 +501,53 @@ export function FaceSuggestions() {
                               <User className={`w-6 h-6 text-muted-foreground ${suggestion.representativeFace ? 'hidden' : ''}`} />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="font-medium text-sm truncate">{suggestion.personName}</p>
+                              <div className="flex items-center justify-between">
+                                <p className="font-medium text-sm truncate">{suggestion.personName}</p>
+                                {isThisSelected && <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />}
+                              </div>
                               <p className="text-xs text-muted-foreground">
                                 {Math.round(suggestion.confidence)}% match
                               </p>
+                              <Progress value={suggestion.confidence} className="h-1 mt-1" />
                             </div>
-                          </div>
-
-                          <Progress value={suggestion.confidence} className="h-1 mb-2" />
-
-                          <div className="flex gap-1">
-                            <Button
-                              size="sm"
-                              variant={isThisSelected ? "default" : "outline"}
-                              className="flex-1 text-xs"
-                              onClick={() => handleSuggestionAction(item.faceId, suggestion.personId, 'accept')}
-                              disabled={assignFaceMutation.isPending}
-                            >
-                              {assignFaceMutation.isPending ? (
-                                <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
-                              ) : (
-                                <Check className="h-3 w-3 mr-1" />
-                              )}
-                              {assignFaceMutation.isPending ? 'Assigning...' : isThisSelected ? 'Selected' : 'Accept'}
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-xs"
-                              onClick={() => handleSuggestionAction(item.faceId, suggestion.personId, 'reject')}
-                              disabled={assignFaceMutation.isPending}
-                            >
-                              <X className="h-3 w-3" />
-                            </Button>
                           </div>
                         </div>
                       );
                     })}
+                    
+                    {/* Create New Person Card */}
+                    <div 
+                      onClick={() => handleCreateNewPerson(item.faceId)}
+                      className="p-3 border-2 border-dashed border-blue-300 rounded-lg transition-all cursor-pointer hover:shadow-md hover:scale-105 hover:border-blue-500 hover:bg-blue-50/50 dark:hover:bg-blue-950/50"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
+                          <UserPlus className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm text-blue-600 dark:text-blue-400">Create New Person</p>
+                          <p className="text-xs text-muted-foreground">
+                            Add as new person
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
-                  <Separator />
-
-                  <div className="flex justify-between items-center">
-                    <p className="text-sm text-muted-foreground">
-                      Not the right person?
-                    </p>
-                    <div className="flex gap-2">
+                  <div className="pt-2 border-t">
+                    <div className="flex justify-between items-center">
+                      <p className="text-xs text-muted-foreground">
+                        Click on a person to assign, or create new person
+                      </p>
                       <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleCreateNewPerson(item.faceId)}
-                        className="flex items-center gap-2"
-                      >
-                        <UserPlus className="h-3 w-3" />
-                        Create New Person
-                      </Button>
-                      <Button
-                        variant="outline"
+                        variant="ghost"
                         size="sm"
                         onClick={() => ignoreFaceMutation.mutate(item.faceId)}
                         disabled={ignoreFaceMutation.isPending}
-                        className="flex items-center gap-2 text-muted-foreground hover:text-destructive"
+                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive"
                       >
                         <EyeOff className="h-3 w-3" />
-                        Ignore Face
+                        Ignore
                       </Button>
                     </div>
                   </div>
