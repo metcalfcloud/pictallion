@@ -399,15 +399,15 @@ export function FaceSuggestions() {
           return (
             <Card key={item.faceId} className={`transition-all ${isSelected ? 'ring-2 ring-blue-500 bg-blue-50' : ''}`}>
               <CardHeader className="p-4">
-                <div className="flex items-center gap-4">
+                <div className="flex items-start gap-3">
                   {/* Face crop */}
-                  <div className="relative">
+                  <div className="relative flex-shrink-0">
                     {face ? (
                       <>
                         <img
                           src={face.faceCropUrl ? `/api/files/${face.faceCropUrl}` : getFaceCropUrl(face)}
                           alt="Face crop"
-                          className="w-20 h-20 rounded-lg object-cover border-2 border-border"
+                          className="w-16 h-16 rounded-lg object-cover border-2 border-border"
                           onError={(e) => {
                             // First fallback to the other crop method, then to full image
                             if (face.faceCropUrl && e.currentTarget.src.includes(face.faceCropUrl)) {
@@ -422,8 +422,8 @@ export function FaceSuggestions() {
                         </Badge>
                       </>
                     ) : (
-                      <div className="w-20 h-20 rounded-lg bg-muted border-2 border-border flex items-center justify-center">
-                        <Eye className="w-8 h-8 text-muted-foreground" />
+                      <div className="w-16 h-16 rounded-lg bg-muted border-2 border-border flex items-center justify-center">
+                        <Eye className="w-6 h-6 text-muted-foreground" />
                         <Badge className="absolute -top-1 -right-1 text-xs bg-yellow-500">
                           Missing
                         </Badge>
@@ -431,31 +431,35 @@ export function FaceSuggestions() {
                     )}
                   </div>
 
-                  {/* Face info */}
-                  <div className="flex-1">
-                    <h3 className="font-medium">
-                      {face ? 'Unassigned Face' : 'Face (Missing Data)'}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      {face?.photo?.mediaAsset.originalFilename ? 
-                        `From: ${face.photo.mediaAsset.originalFilename}` : 
-                        `Face ID: ${item.faceId}`
-                      }
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {face ? `Confidence: ${Math.round(face.confidence)}%` : 'Face data missing'} • {item.suggestions.length} suggestion{item.suggestions.length !== 1 ? 's' : ''}
-                    </p>
-                  </div>
-
-                  {/* Selection status */}
-                  {isSelected && selectedPerson && (
-                    <div className="flex items-center gap-2 text-green-600">
-                      <CheckCircle2 className="h-4 w-4" />
-                      <span className="text-sm font-medium">
-                        Will assign to: {people.find(p => p.id === selectedPerson.personId)?.name}
-                      </span>
+                  {/* Face info and selection status */}
+                  <div className="min-w-0 flex-grow">
+                    <div className="flex items-start justify-between">
+                      <div className="min-w-0">
+                        <h3 className="font-medium text-sm">
+                          {face ? 'Unassigned Face' : 'Face (Missing Data)'}
+                        </h3>
+                        <p className="text-sm text-muted-foreground truncate">
+                          {face?.photo?.mediaAsset.originalFilename ? 
+                            `From: ${face.photo.mediaAsset.originalFilename}` : 
+                            `Face ID: ${item.faceId}`
+                          }
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {face ? `Confidence: ${Math.round(face.confidence)}%` : 'Face data missing'} • {item.suggestions.length} suggestion{item.suggestions.length !== 1 ? 's' : ''}
+                        </p>
+                      </div>
+                      
+                      {/* Selection status */}
+                      {isSelected && selectedPerson && (
+                        <div className="flex items-center gap-1 text-green-600 flex-shrink-0 ml-2">
+                          <CheckCircle2 className="h-4 w-4" />
+                          <span className="text-xs font-medium">
+                            Assigned to: {people.find(p => p.id === selectedPerson.personId)?.name}
+                          </span>
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </div>
                 </div>
               </CardHeader>
 
