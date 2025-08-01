@@ -229,14 +229,14 @@ export function FaceSuggestions({ isOpen, faceSuggestions = [], isLoading = fals
           const isExpanded = expandedFace === item.faceId;
 
           return (
-            <div key={item.faceId} style={{display: 'inline-block', width: '84px', margin: '2px', fontSize: '12px', lineHeight: '1.2'}}>
-              {/* Face card - exactly the image size with no extra container */}
-              <div 
-                onClick={() => handleFaceClick(item.faceId)}
-                className={`relative w-20 h-20 rounded-lg overflow-hidden bg-muted cursor-pointer transition-all duration-300 hover:scale-105 ${
-                  isSelected ? 'ring-2 ring-blue-500' : 'hover:ring-2 hover:ring-blue-300'
-                }`}
-              >
+            <div 
+              key={item.faceId}
+              onClick={() => handleFaceClick(item.faceId)}
+              className={`inline-block relative w-20 h-20 rounded-lg overflow-hidden bg-muted cursor-pointer transition-all duration-300 hover:scale-105 m-1 ${
+                isSelected ? 'ring-2 ring-blue-500' : 'hover:ring-2 hover:ring-blue-300'
+              }`}
+              style={{fontSize: '12px', lineHeight: '1.2'}}
+            >
                   {face ? (
                     <>
                       <img
@@ -270,65 +270,6 @@ export function FaceSuggestions({ isOpen, faceSuggestions = [], isLoading = fals
                       <Loader2 className="h-4 w-4 animate-spin text-white" />
                     </div>
                   )}
-                </div>
-              
-              {/* Compact info below face - exactly 80px wide to match face */}
-              <div className="w-20 text-center text-xs text-muted-foreground mt-1">
-                <div>{item.suggestions.length} match{item.suggestions.length !== 1 ? 'es' : ''}</div>
-                {isSelected && selectedPerson && (
-                  <div className="text-green-600 font-medium truncate">
-                    {people.find(p => p.id === selectedPerson.personId)?.name}
-                  </div>
-                )}
-              </div>
-
-              {/* Expanded suggestions */}
-              {isExpanded && (
-                <div className="absolute z-50 bg-white dark:bg-gray-800 border rounded-lg shadow-lg p-3 mt-2 min-w-48 left-0">
-                  <div className="space-y-2">
-                    <div className="text-sm font-medium">Suggestions:</div>
-                    {item.suggestions.slice(0, 3).map((suggestion) => (
-                      <div 
-                        key={suggestion.personId}
-                        onClick={() => handleSuggestionAction(item.faceId, suggestion.personId, 'accept')}
-                        className="flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer"
-                      >
-                        <div className="w-8 h-8 bg-muted rounded-full overflow-hidden">
-                          {suggestion.representativeFace ? (
-                            <img
-                              src={`/api/files/${suggestion.representativeFace}`}
-                              alt={suggestion.personName}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <User className="w-4 h-4 text-muted-foreground m-auto mt-2" />
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium truncate">{suggestion.personName}</div>
-                          <div className="text-xs text-muted-foreground">{Math.round(suggestion.confidence)}%</div>
-                        </div>
-                      </div>
-                    ))}
-                    
-                    <div 
-                      onClick={() => handleCreateNewPerson(item.faceId)}
-                      className="flex items-center gap-2 p-2 hover:bg-blue-50 dark:hover:bg-blue-950 rounded cursor-pointer text-blue-600"
-                    >
-                      <UserPlus className="w-4 h-4" />
-                      <span className="text-sm">Create New Person</span>
-                    </div>
-                    
-                    <div 
-                      onClick={() => ignoreFaceMutation.mutate(item.faceId)}
-                      className="flex items-center gap-2 p-2 hover:bg-red-50 dark:hover:bg-red-950 rounded cursor-pointer text-red-600"
-                    >
-                      <EyeOff className="w-4 h-4" />
-                      <span className="text-sm">Ignore Face</span>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           );
         })}
