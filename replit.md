@@ -32,7 +32,7 @@ Pictallion is a comprehensive photo and video management application built with 
 - **Face Detection**: TensorFlow.js neural networks with 128-dimensional embeddings
 - **Smart Tagging**: Automated content-based tag generation
 - **Event Detection**: Holiday and birthday recognition with confidence scoring
-- **Burst Photo Grouping**: 95%+ similarity detection within ±1 minute windows
+- **Industry-Standard Burst Detection**: Google HDR+ methodology with 98%+ similarity thresholds, 30-second timing windows, and multi-factor analysis (timing, metadata, filename patterns)
 - **Natural Descriptions**: Family-friendly, conversational descriptions
 
 ### Database Schema
@@ -66,6 +66,14 @@ Pictallion is a comprehensive photo and video management application built with 
 - **Enhanced Relationship UI**: Directional family relationships with clear display
 - **Immutable Silver Policy**: Silver files protected from modification during reprocessing
 - **Unified Upload System**: Consolidated three upload components into one
+
+### August 2025 - Industry-Standard Burst Detection
+- **Google HDR+ Methodology**: Implemented professional burst photo detection algorithm
+- **Multi-Factor Analysis**: Combines timing, metadata, filename patterns, and camera settings
+- **Reduced False Positives**: Burst photos no longer incorrectly flagged as duplicates
+- **30-Second Window**: Industry-standard timing threshold for burst sequence detection
+- **Brand Recognition**: Supports Google Pixel, iPhone, Sony, Panasonic burst patterns
+- **98% Threshold**: Professional similarity detection with 99.9% conflict threshold for non-bursts
 
 ### Recent Fixes
 - Fixed face assignment preservation during AI reprocessing

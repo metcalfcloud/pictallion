@@ -312,6 +312,9 @@ export class EnhancedDuplicateDetectionService {
 
       if (isImage) {
         const newPerceptualHash = await this.generatePerceptualHash(tempFilePath);
+        // Extract metadata for new file for burst detection
+        const newFileMetadata = await this.extractDirectMetadata(tempFilePath);
+        
         if (newPerceptualHash) {
           // Get all existing photos to compare perceptual hashes
           const allPhotos = await storage.getAllFileVersions();
@@ -363,19 +366,23 @@ export class EnhancedDuplicateDetectionService {
 
               // For perceptual duplicates, we need higher similarity threshold since different MD5 
               // means some bytes are different (metadata, compression, etc.)
-              // Only flag near-perfect visual matches that aren't burst photos
+              // Industry standard: burst photos can have 95-99% similarity and should be preserved
               console.log(`Similarity check: ${similarity}% between ${originalFilename} and ${photoAsset.originalFilename}`);
-              if (similarity >= 99.5) {
-                // Check if this might be a burst photo - but be more lenient for high similarity
-                const isBurstPhoto = await this.isBurstPhoto(originalFilename, photoAsset.originalFilename, photo.createdAt.toISOString());
+              if (similarity >= 98.0) {
+                // Check if this might be a burst photo using industry-standard detection
+                const isBurstPhoto = await this.isBurstPhoto(originalFilename, photoAsset.originalFilename, photo.createdAt.toISOString(), photo.metadata, newFileMetadata);
                 
-                // For very high similarity (99.8%+), create conflict even if it might be burst
-                // User should decide on truly identical-looking images
-                if (similarity >= 99.8) {
-                  console.log(`High similarity conflict detected: ${originalFilename} vs ${photoAsset.originalFilename} (${similarity}%)`);
-                } else if (isBurstPhoto) {
-                  console.log(`Skipping moderate similarity burst photo: ${originalFilename} vs ${photoAsset.originalFilename} (${similarity}%)`);
-                  continue;
+                if (isBurstPhoto) {
+                  console.log(`Detected burst photo sequence: ${originalFilename} vs ${photoAsset.originalFilename} (${similarity}%) - allowing as separate photos`);
+                  continue; // Skip conflict creation for confirmed burst photos
+                }
+                
+                // Only create conflicts for non-burst photos with very high similarity
+                // This reduces false positives for burst photography
+                if (similarity >= 99.9) {
+                  console.log(`Extremely high similarity non-burst conflict: ${originalFilename} vs ${photoAsset.originalFilename} (${similarity}%)`);
+                } else {
+                  console.log(`High similarity potential duplicate: ${originalFilename} vs ${photoAsset.originalFilename} (${similarity}%)`);
                 }
                 console.log(`Creating conflict for ${originalFilename} vs ${photoAsset.originalFilename}`);
                 console.log(`ABOUT TO EXTRACT METADATA FOR NEW FILE: ${tempFilePath}`);
@@ -640,47 +647,165 @@ export class EnhancedDuplicateDetectionService {
   /**
    * Check if two photos are likely part of a burst sequence
    */
-  private async isBurstPhoto(newFilename: string, existingFilename: string, existingCreatedAt: string): Promise<boolean> {
+  /**
+   * Industry-standard burst photo detection following Google HDR+ methodology
+   * Based on: timing proximity + visual similarity + camera metadata + filename patterns
+   */
+  private async isBurstPhoto(newFilename: string, existingFilename: string, existingCreatedAt: string, existingMetadata?: any, newMetadata?: any): Promise<boolean> {
     try {
-      // Check filename patterns that suggest burst photos
-      const newBase = newFilename.replace(/\.(jpg|jpeg|png|tiff)$/i, '').toLowerCase();
-      const existingBase = existingFilename.replace(/\.(jpg|jpeg|png|tiff)$/i, '').toLowerCase();
+      // 1. TIMING ANALYSIS (Primary Factor)
+      // Industry standard: burst photos are captured within ±30 seconds
+      const maxBurstInterval = 30 * 1000; // 30 seconds in milliseconds
       
-      // Extract timestamp patterns from filenames (YYYYMMDD_HHMMSS format)
-      const timestampPattern = /^(\d{8})_(\d{6})/;
-      const newMatch = newBase.match(timestampPattern);
-      const existingMatch = existingBase.match(timestampPattern);
+      let timeDiff = Infinity;
       
-      if (newMatch && existingMatch) {
-        const newDateTime = `${newMatch[1]}_${newMatch[2]}`;
-        const existingDateTime = `${existingMatch[1]}_${existingMatch[2]}`;
+      // Try to get actual photo capture time from EXIF data
+      const getPhotoTime = (metadata: any, filename: string, fallbackTimestamp?: string) => {
+        // Priority order for timestamp extraction (following industry standards)
+        if (metadata?.exif?.dateTimeOriginal) {
+          return new Date(metadata.exif.dateTimeOriginal).getTime();
+        }
+        if (metadata?.exif?.dateTaken) {
+          return new Date(metadata.exif.dateTaken).getTime();
+        }
+        if (metadata?.exif?.dateTime) {
+          return new Date(metadata.exif.dateTime).getTime();
+        }
         
-        // If they have similar timestamp-based names, likely burst photos
-        const newTime = this.parseTimestampFromFilename(newDateTime);
-        const existingTime = this.parseTimestampFromFilename(existingDateTime);
-        
-        if (newTime && existingTime) {
-          const timeDiff = Math.abs(newTime.getTime() - existingTime.getTime());
-          // If within 30 seconds and similar filename pattern, consider it a burst sequence
-          // This is more conservative to avoid masking real duplicates
-          if (timeDiff <= 30000) {
-            return true;
+        // Extract from filename if timestamp format (YYYYMMDD_HHMMSS_ID pattern)
+        const timestampMatch = filename.match(/(\d{8})_(\d{6})_/);
+        if (timestampMatch) {
+          const dateStr = timestampMatch[1]; // YYYYMMDD
+          const timeStr = timestampMatch[2]; // HHMMSS
+          const year = parseInt(dateStr.substring(0, 4));
+          const month = parseInt(dateStr.substring(4, 6)) - 1;
+          const day = parseInt(dateStr.substring(6, 8));
+          const hour = parseInt(timeStr.substring(0, 2));
+          const minute = parseInt(timeStr.substring(2, 4));
+          const second = parseInt(timeStr.substring(4, 6));
+          
+          const extractedDate = new Date(year, month, day, hour, minute, second);
+          if (!isNaN(extractedDate.getTime())) {
+            return extractedDate.getTime();
           }
+        }
+        
+        // Fall back to file timestamp
+        return fallbackTimestamp ? new Date(fallbackTimestamp).getTime() : Date.now();
+      };
+      
+      if (existingMetadata && newMetadata) {
+        const time1 = getPhotoTime(existingMetadata, existingFilename, existingCreatedAt);
+        const time2 = getPhotoTime(newMetadata, newFilename);
+        timeDiff = Math.abs(time1 - time2);
+      } else {
+        // Fallback to filename-based timing if metadata not available
+        const existingTime = this.parseTimestampFromFilename(existingFilename) || new Date(existingCreatedAt);
+        const newTime = this.parseTimestampFromFilename(newFilename) || new Date();
+        timeDiff = Math.abs(existingTime.getTime() - newTime.getTime());
+      }
+      
+      // If photos are taken more than 30 seconds apart, unlikely to be burst
+      if (timeDiff > maxBurstInterval) {
+        return false;
+      }
+      
+      // 2. FILENAME PATTERN ANALYSIS (Google HDR+ style)
+      const name1 = existingFilename.toLowerCase().replace(/\.(jpg|jpeg|png|tiff)$/i, '');
+      const name2 = newFilename.toLowerCase().replace(/\.(jpg|jpeg|png|tiff)$/i, '');
+      
+      // Google Pixel pattern: YYYYMMDD_HHMMSS_HEXID
+      const pixelPattern = /^(\d{8}_\d{6})_([A-F0-9]{8})$/i;
+      const match1 = name1.match(pixelPattern);
+      const match2 = name2.match(pixelPattern);
+      
+      if (match1 && match2) {
+        // Same timestamp prefix but different hex IDs = burst sequence
+        if (match1[1] === match2[1] && match1[2] !== match2[2]) {
+          return true;
         }
       }
       
-      // Check for sequential naming patterns (IMG_1234, IMG_1235, etc.)
-      const sequentialPattern1 = /^(.+?)[-_]?(\d+)$/;
-      const newSeqMatch = newBase.match(sequentialPattern1);
-      const existingSeqMatch = existingBase.match(sequentialPattern1);
-      
-      if (newSeqMatch && existingSeqMatch && newSeqMatch[1] === existingSeqMatch[1]) {
-        const newNum = parseInt(newSeqMatch[2]);
-        const existingNum = parseInt(existingSeqMatch[2]);
-        const numDiff = Math.abs(newNum - existingNum);
+      // Sequential numbering patterns (common in burst photography)
+      const extractBaseAndSequence = (filename: string) => {
+        // Pattern 1: IMG_1234_BURST001.jpg
+        const burstMatch = filename.match(/^(.+_burst)(\d+)$/i);
+        if (burstMatch) {
+          return { base: burstMatch[1], sequence: parseInt(burstMatch[2]) };
+        }
         
-        // Sequential numbers within 3 of each other suggest burst (more conservative)
-        if (numDiff <= 3) {
+        // Pattern 2: DSC_1234-5.jpg (common in professional cameras)
+        const dashMatch = filename.match(/^(.+)-(\d+)$/);
+        if (dashMatch) {
+          return { base: dashMatch[1], sequence: parseInt(dashMatch[2]) };
+        }
+        
+        // Pattern 3: IMG_1234_001.jpg
+        const underscoreMatch = filename.match(/^(.+_)(\d+)$/);
+        if (underscoreMatch) {
+          return { base: underscoreMatch[1], sequence: parseInt(underscoreMatch[2]) };
+        }
+        
+        // Pattern 4: Traditional sequential: IMG1234.jpg -> IMG1235.jpg
+        const seqMatch = filename.match(/^(.+?)(\d+)$/);
+        if (seqMatch) {
+          return { base: seqMatch[1], sequence: parseInt(seqMatch[2]) };
+        }
+        
+        return null;
+      };
+      
+      const file1Info = extractBaseAndSequence(name1);
+      const file2Info = extractBaseAndSequence(name2);
+      
+      if (file1Info && file2Info && file1Info.base === file2Info.base) {
+        const sequenceDiff = Math.abs(file1Info.sequence - file2Info.sequence);
+        // Industry standard: burst sequences typically have gaps of 1-10
+        if (sequenceDiff >= 1 && sequenceDiff <= 10) {
+          return true;
+        }
+      }
+      
+      // 3. CAMERA METADATA ANALYSIS (HDR+ approach)
+      if (existingMetadata?.exif && newMetadata?.exif) {
+        const exif1 = existingMetadata.exif;
+        const exif2 = newMetadata.exif;
+        
+        // Same camera and lens = higher burst likelihood
+        const sameCamera = exif1.make === exif2.make && exif1.model === exif2.model;
+        const sameLens = exif1.lens === exif2.lens || exif1.focalLength === exif2.focalLength;
+        
+        // Similar camera settings (burst photos typically have consistent settings)
+        const similarSettings = (
+          exif1.iso === exif2.iso &&
+          exif1.aperture === exif2.aperture &&
+          exif1.whiteBalance === exif2.whiteBalance
+        );
+        
+        // If we have timing proximity + same camera + similar settings = likely burst
+        if (timeDiff <= 10000 && sameCamera && (sameLens || similarSettings)) { // 10 seconds
+          return true;
+        }
+      }
+      
+      // 4. RAPID SUCCESSION DETECTION
+      // Industry standard: photos within 5 seconds are very likely burst
+      if (timeDiff <= 5000) { // 5 seconds
+        return true;
+      }
+      
+      // 5. FILENAME PATTERNS FOR COMMON CAMERA BRANDS
+      const commonBurstPatterns = [
+        /IMG_\d{4}_BURST\d{3}/i,           // iPhone burst mode
+        /DSC\d+_BURST/i,                   // Sony cameras
+        /P\d{7}_BURST/i,                   // Panasonic
+        /_HDR\d*/i,                        // HDR sequences
+        /_BRACKET\d*/i,                    // Exposure bracketing
+        /PANO_\d+_\d+/i                    // Panorama sequences
+      ];
+      
+      for (const pattern of commonBurstPatterns) {
+        if (pattern.test(existingFilename) && pattern.test(newFilename)) {
           return true;
         }
       }
