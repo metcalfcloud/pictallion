@@ -174,13 +174,6 @@
   },
   "issues": [
     {
-      "severity": "high",
-      "type": "security",
-      "description": "Excessive console.log statements in production code",
-      "locations": ["server/services/*", "client/src/pages/*"],
-      "recommendation": "Replace with proper logging service"
-    },
-    {
       "severity": "medium",
       "type": "structure",
       "description": "Large uploads/temp directory may cause storage issues",
