@@ -773,60 +773,91 @@ export default function PeoplePage() {
                                 Clear Selection
                               </Button>
                             </div>
-                            <div className="flex flex-wrap gap-2">
-                              {/* Quick assign to recent/common people */}
-                              {people
-                                .sort((a, b) => (b.faceCount || 0) - (a.faceCount || 0)) // Sort by face count 
-                                .slice(0, 3) // Show only top 3 most common people
-                                .map((person) => (
-                                <Button
-                                  key={person.id}
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => {
-                                    const selectedInGroup = group.faces.filter(f => selectedFaces.includes(f.id)).map(f => f.id);
-                                    if (selectedInGroup.length > 0) {
-                                      assignFacesToPersonMutation.mutate({ 
-                                        faceIds: selectedInGroup, 
-                                        personId: person.id 
-                                      });
+                            <div className="space-y-3">
+                              {/* Inline person search */}
+                              <div className="relative">
+                                <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
+                                <Input
+                                  placeholder="Type person's name to assign..."
+                                  value={assignFacesSearchQuery}
+                                  onChange={(e) => setAssignFacesSearchQuery(e.target.value)}
+                                  className="pl-10"
+                                />
+                              </div>
+                              
+                              {/* Search results */}
+                              {assignFacesSearchQuery.trim() && (
+                                <div className="max-h-40 overflow-y-auto border rounded-lg bg-background">
+                                  {(() => {
+                                    const filteredPeople = people.filter(person => 
+                                      person.name.toLowerCase().includes(assignFacesSearchQuery.toLowerCase())
+                                    );
+                                    
+                                    if (filteredPeople.length > 0) {
+                                      return filteredPeople.map((person) => (
+                                        <button
+                                          key={person.id}
+                                          className="w-full p-3 text-left hover:bg-muted transition-colors border-b last:border-b-0 flex items-center gap-3"
+                                          onClick={() => {
+                                            const selectedInGroup = group.faces.filter(f => selectedFaces.includes(f.id)).map(f => f.id);
+                                            if (selectedInGroup.length > 0) {
+                                              assignFacesToPersonMutation.mutate({ 
+                                                faceIds: selectedInGroup, 
+                                                personId: person.id 
+                                              });
+                                              setAssignFacesSearchQuery(''); // Clear search after assignment
+                                            }
+                                          }}
+                                        >
+                                          <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center overflow-hidden">
+                                            {person.coverPhoto ? (
+                                              <img
+                                                src={`/api/files/${person.coverPhoto}`}
+                                                alt={person.name}
+                                                className="w-full h-full object-cover"
+                                              />
+                                            ) : (
+                                              <User className="w-4 h-4 text-muted-foreground" />
+                                            )}
+                                          </div>
+                                          <div>
+                                            <div className="font-medium">{person.name}</div>
+                                            <div className="text-xs text-muted-foreground">
+                                              {person.faceCount || 0} faces
+                                            </div>
+                                          </div>
+                                        </button>
+                                      ));
+                                    } else {
+                                      // No matching people found - show option to create new
+                                      return (
+                                        <button
+                                          className="w-full p-3 text-left hover:bg-muted transition-colors flex items-center gap-3"
+                                          onClick={() => {
+                                            setNewPersonName(assignFacesSearchQuery.trim());
+                                            setNewPersonNotes('');
+                                            setNewPersonBirthdate('');
+                                            setIsCreatePersonOpen(true);
+                                            setAssignFacesSearchQuery(''); // Clear search
+                                          }}
+                                        >
+                                          <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
+                                            <UserPlus className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                          </div>
+                                          <div>
+                                            <div className="font-medium text-blue-600 dark:text-blue-400">
+                                              Create "{assignFacesSearchQuery.trim()}"
+                                            </div>
+                                            <div className="text-xs text-muted-foreground">
+                                              New person
+                                            </div>
+                                          </div>
+                                        </button>
+                                      );
                                     }
-                                  }}
-                                  className="flex items-center gap-1"
-                                >
-                                  <User className="w-3 h-3" />
-                                  {person.name}
-                                </Button>
-                              ))}
-                              
-                              {/* Create new person button */}
-                              <Button
-                                size="sm"
-                                onClick={() => {
-                                  setNewPersonName('');
-                                  setNewPersonNotes('');
-                                  setNewPersonBirthdate('');
-                                  setIsCreatePersonOpen(true);
-                                }}
-                                className="flex items-center gap-1"
-                              >
-                                <UserPlus className="w-3 h-3" />
-                                New Person
-                              </Button>
-                              
-                              {/* Browse all people button */}
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => {
-                                  setAssignFacesSearchQuery('');
-                                  setIsMergeFacesOpen(true);
-                                }}
-                                className="flex items-center gap-1"
-                              >
-                                <Search className="w-3 h-3" />
-                                Find Person
-                              </Button>
+                                  })()}
+                                </div>
+                              )}
                             </div>
                           </div>
                         )}
