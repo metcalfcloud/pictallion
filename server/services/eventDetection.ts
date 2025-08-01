@@ -1,24 +1,25 @@
 import { storage } from "../storage";
 import { type Event, type Person } from "@shared/schema";
-import { error } from "@shared/logger";
 
 export interface EventMatch {
+  eventId: string;
+  eventName: string;
+  eventType: "holiday" | "birthday" | "custom";
+  confidence: number;
   personId?: string;
   personName?: string;
   age?: number; // For birthdays
-  confidence?: number; // Event detection confidence
-  eventType?: string; // Type of event (holiday, birthday, etc.)
-  eventName?: string; // Name of the event
 }
 
 export interface HolidayDefinition {
   name: string;
-  month: number;
-  day: number;
+  month: number; // 1-12
+  day: number; // 1-31
   country?: string;
   region?: string;
 }
 
+// US Holiday definitions
 const US_HOLIDAYS: HolidayDefinition[] = [
   { name: "New Year's Day", month: 1, day: 1, country: "US" },
   { name: "Martin Luther King Jr. Day", month: 1, day: 15, country: "US" }, // Third Monday approximation
@@ -40,6 +41,7 @@ const US_HOLIDAYS: HolidayDefinition[] = [
   { name: "Halloween", month: 10, day: 31, country: "US" },
 ];
 
+// UK/International holidays
 const UK_HOLIDAYS: HolidayDefinition[] = [
   { name: "New Year's Day", month: 1, day: 1, country: "UK" },
   { name: "Good Friday", month: 4, day: 10, country: "UK" }, // Approximate, varies
@@ -60,21 +62,25 @@ export class EventDetectionService {
     const matches: EventMatch[] = [];
     
     try {
+      // Get enabled holiday settings
       const holidaySettings = await storage.getSettingByKey('enabled_holidays');
       const enabledCountries = holidaySettings?.value ? JSON.parse(holidaySettings.value) : ['US'];
       
+      // Check for holiday matches
       const holidayMatches = this.detectHolidays(photoDate, enabledCountries);
       matches.push(...holidayMatches);
       
+      // Check for birthday matches
       const birthdayMatches = await this.detectBirthdays(photoDate);
       matches.push(...birthdayMatches);
       
+      // Check for custom events
       const customMatches = await this.detectCustomEvents(photoDate);
       matches.push(...customMatches);
       
       return matches;
-    } catch (err) {
-      error('Error detecting events', "EventDetection", { error: err });
+    } catch (error) {
+      console.error('Error detecting events:', error);
       return [];
     }
   }
@@ -87,6 +93,7 @@ export class EventDetectionService {
     const month = photoDate.getMonth() + 1; // JavaScript months are 0-indexed
     const day = photoDate.getDate();
     
+    // Get all relevant holidays
     const allHolidays = [
       ...(enabledCountries.includes('US') ? US_HOLIDAYS : []),
       ...(enabledCountries.includes('UK') ? UK_HOLIDAYS : []),
@@ -96,11 +103,19 @@ export class EventDetectionService {
       // Exact date match
       if (holiday.month === month && holiday.day === day) {
         matches.push({
+          eventId: `holiday_${holiday.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}`,
+          eventName: holiday.name,
+          eventType: "holiday",
+          confidence: 100
         });
       }
       // Near-match (within 1-2 days for holidays that move)
       else if (Math.abs(holiday.day - day) <= 2 && holiday.month === month) {
         matches.push({
+          eventId: `holiday_${holiday.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}`,
+          eventName: holiday.name,
+          eventType: "holiday", 
+          confidence: 80
         });
       }
     }
@@ -132,6 +147,13 @@ export class EventDetectionService {
           const age = year - birthdate.getFullYear();
           
           matches.push({
+            eventId: `birthday_${person.id}`,
+            eventName: `${person.name}'s Birthday`,
+            eventType: "birthday",
+            confidence: 100,
+            personId: person.id,
+            personName: person.name,
+            age: age
           });
         }
         // Near birthday (within 2 days)
@@ -139,13 +161,20 @@ export class EventDetectionService {
           const age = year - birthdate.getFullYear();
           
           matches.push({
+            eventId: `birthday_${person.id}`,
+            eventName: `${person.name}'s Birthday`,
+            eventType: "birthday",
+            confidence: 75,
+            personId: person.id,
+            personName: person.name,
+            age: age
           });
         }
       }
       
       return matches;
-    } catch (err) {
-      error('Error detecting birthdays', "EventDetection", { error: err });
+    } catch (error) {
+      console.error('Error detecting birthdays:', error);
       return [];
     }
   }
@@ -167,6 +196,7 @@ export class EventDetectionService {
         let checkDate: Date;
         
         if (event.isRecurring && event.recurringType === 'yearly') {
+          // For yearly recurring events, check same month/day in photo year
           checkDate = new Date(photoDate.getFullYear(), eventDate.getMonth(), eventDate.getDate());
         } else {
           checkDate = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate());
@@ -181,13 +211,18 @@ export class EventDetectionService {
           if (daysDiff > 0) confidence = 85; // Slight penalty for near matches
           
           matches.push({
+            eventId: event.id,
+            eventName: event.name,
+            eventType: event.type,
+            confidence: confidence,
+            personId: event.personId || undefined
           });
         }
       }
       
       return matches;
-    } catch (err) {
-      error('Error detecting custom events', "EventDetection", { error: err });
+    } catch (error) {
+      console.error('Error detecting custom events:', error);
       return [];
     }
   }
@@ -212,8 +247,8 @@ export class EventDetectionService {
       }
       
       return age;
-    } catch (err) {
-      error('Error calculating age', "EventDetection", { error: err });
+    } catch (error) {
+      console.error('Error calculating age:', error);
       return null;
     }
   }
@@ -228,12 +263,12 @@ export class EventDetectionService {
         await storage.createSetting({
           key: 'enabled_holidays',
           value: JSON.stringify(['US']),
-          description: 'Enabled holiday country codes',
-          category: 'events'
+          category: 'events',
+          description: 'Enabled holiday country sets for event detection'
         });
       }
-    } catch (err) {
-      error('Error initializing holiday settings', "EventDetection", { error: err });
+    } catch (error) {
+      console.error('Error initializing holiday settings:', error);
     }
   }
   

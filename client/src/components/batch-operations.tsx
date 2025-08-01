@@ -164,7 +164,7 @@ export default function BatchOperations({
     startOperation('promote', { tier });
   };
 
-  const handleProcessWithAI = async () => {
+  const handleProcessWithAI = () => {
     try {
       const response = await fetch('/api/photos/batch-ai-process', {
         method: 'POST',
@@ -185,7 +185,7 @@ export default function BatchOperations({
       queryClient.invalidateQueries({ queryKey: ["/api/photos"] });
       onClose();
     } catch (error) {
-      // Removed console.error('Batch AI processing error:', error);
+      console.error('Batch AI processing error:', error);
       toast({
         title: "Operation Failed",
         description: 'Failed to add AI analysis to photos',

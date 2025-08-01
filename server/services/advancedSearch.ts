@@ -3,7 +3,6 @@ import { storage } from "../storage";
 import { db } from "../db";
 import { fileVersions, mediaAssets, people, faces, collections, collectionPhotos } from "@shared/schema";
 import type { SmartCollectionRules } from "@shared/schema";
-import { info, error } from "@shared/logger";
 
 export interface SearchFilters {
   query?: string;
@@ -26,16 +25,28 @@ export interface SearchFilters {
 }
 
 export interface SortOptions {
-  field?: 'createdAt' | 'rating' | 'filename' | 'size';
-  direction?: 'asc' | 'desc';
+  field: 'createdAt' | 'rating' | 'fileSize' | 'confidence' | 'eventName';
+  direction: 'asc' | 'desc';
 }
 
 export interface SearchResult {
-  photos: Array<any>;
-  facets: any;
-  total: number;
-  offset: number;
-  limit: number;
+  photos: Array<{
+    id: string;
+    filePath: string;
+    tier: string;
+    metadata?: any;
+    mediaAsset: { originalFilename: string };
+    createdAt: string;
+  }>;
+  totalCount: number;
+  facets: {
+    tiers: Record<string, number>;
+    ratings: Record<string, number>;
+    eventTypes: Record<string, number>;
+    cameras: Record<string, number>;
+    mimeTypes: Record<string, number>;
+    keywords: Record<string, number>;
+  };
 }
 
 class AdvancedSearchService {
@@ -46,12 +57,15 @@ class AdvancedSearchService {
   async searchPhotos(
     filters: SearchFilters = {},
     sort: SortOptions = { field: 'createdAt', direction: 'desc' },
-    offset: number = 0,
-    limit: number = 50
+    limit: number = 50,
+    offset: number = 0
   ): Promise<SearchResult> {
     
+    // For now, use a simplified approach with the existing storage interface
+    // TODO: Implement full advanced search when direct database access is available
     let allPhotos = await storage.getAllFileVersions();
 
+    // Apply simple filters using array operations
     let filteredPhotos = allPhotos;
 
     if (filters.tier) {
@@ -145,6 +159,7 @@ class AdvancedSearchService {
           bValue = b.eventName || '';
           break;
         case 'createdAt':
+        default:
           aValue = new Date(a.createdAt).getTime();
           bValue = new Date(b.createdAt).getTime();
           break;
@@ -160,13 +175,19 @@ class AdvancedSearchService {
     const totalCount = filteredPhotos.length;
     const paginatedPhotos = filteredPhotos.slice(offset, offset + limit);
 
+    // Generate simple facets
     const facets = this.generateSimpleFacets(allPhotos);
 
     return {
-      photos: paginatedPhotos,
-      total: totalCount,
-      offset,
-      limit,
+      photos: paginatedPhotos.map((photo: any) => ({
+        id: photo.id,
+        filePath: photo.filePath,
+        tier: photo.tier,
+        metadata: photo.metadata,
+        mediaAsset: { originalFilename: photo.mediaAsset?.originalFilename || 'Unknown' },
+        createdAt: photo.createdAt.toISOString()
+      })),
+      totalCount,
       facets
     };
   }
@@ -175,9 +196,9 @@ class AdvancedSearchService {
    * Find visually similar photos using perceptual hash
    */
   async findSimilarPhotos(
-    photoId: string,
+    photoId: string, 
     threshold: number = 85,
-    limit: number = 10
+    limit: number = 20
   ): Promise<Array<{ id: string; similarity: number; [key: string]: any }>> {
     // Get the perceptual hash of the source photo
     const sourcePhoto = await db
@@ -192,12 +213,14 @@ class AdvancedSearchService {
 
     const sourceHash = sourcePhoto[0].perceptualHash;
 
+    // Get all photos with perceptual hashes
     const allPhotos = await db
       .select({
         id: fileVersions.id,
-        perceptualHash: fileVersions.perceptualHash,
         filePath: fileVersions.filePath,
-        mediaAssetId: fileVersions.mediaAssetId
+        perceptualHash: fileVersions.perceptualHash,
+        tier: fileVersions.tier,
+        originalFilename: mediaAssets.originalFilename,
       })
       .from(fileVersions)
       .leftJoin(mediaAssets, eq(fileVersions.mediaAssetId, mediaAssets.id))
@@ -206,10 +229,11 @@ class AdvancedSearchService {
         sql`${fileVersions.id} != ${photoId}`
       ));
 
+    // Calculate similarities and filter by threshold
     const similarPhotos = allPhotos
       .map((photo: any) => ({
         ...photo,
-        similarity: this.calculateHashSimilarity(sourceHash, photo.perceptualHash)
+        similarity: this.calculateHashSimilarity(sourceHash, photo.perceptualHash!)
       }))
       .filter((photo: any) => photo.similarity >= threshold)
       .sort((a: any, b: any) => b.similarity - a.similarity)
@@ -234,23 +258,24 @@ class AdvancedSearchService {
         const rules = collection.smartRules as SmartCollectionRules;
         const matchingPhotos = await this.findPhotosMatchingRules(rules);
 
+        // Clear existing photos in smart collection
         await db
           .delete(collectionPhotos)
           .where(eq(collectionPhotos.collectionId, collection.id));
 
+        // Add matching photos
         if (matchingPhotos.length > 0) {
           await db.insert(collectionPhotos).values(
             matchingPhotos.map(photoId => ({
               collectionId: collection.id,
-              photoId,
-              addedAt: new Date()
+              photoId: photoId
             }))
           );
         }
 
-        info(`Updated smart collection "${collection.name}" with ${matchingPhotos.length} photos`, "SmartCollections");
-      } catch (err) {
-        error(`Failed to update smart collection ${collection.name}`, "SmartCollections", { error: err });
+        console.log(`Updated smart collection "${collection.name}" with ${matchingPhotos.length} photos`);
+      } catch (error) {
+        console.error(`Failed to update smart collection ${collection.name}:`, error);
       }
     }
   }
@@ -278,10 +303,6 @@ class AdvancedSearchService {
    * Build SQL condition from smart collection rule
    */
   private buildRuleCondition(rule: any): any {
-    if (!rule || !rule.field || !rule.operator) {
-      return null;
-    }
-    
     const { field, operator, value } = rule;
 
     switch (field) {
@@ -314,6 +335,7 @@ class AdvancedSearchService {
       case 'isReviewed':
         return eq(fileVersions.isReviewed, value);
 
+      default:
         return sql`true`; // fallback
     }
   }
@@ -330,23 +352,29 @@ class AdvancedSearchService {
     const keywords: Record<string, number> = {};
 
     allPhotos.forEach(photo => {
+      // Count tiers
       tiers[photo.tier] = (tiers[photo.tier] || 0) + 1;
 
+      // Count ratings
       if (photo.rating) {
         ratings[String(photo.rating)] = (ratings[String(photo.rating)] || 0) + 1;
       }
 
+      // Count event types
       if (photo.eventType) {
         eventTypes[photo.eventType] = (eventTypes[photo.eventType] || 0) + 1;
       }
 
+      // Count mime types
       mimeTypes[photo.mimeType] = (mimeTypes[photo.mimeType] || 0) + 1;
 
+      // Count cameras from metadata
       const camera = (photo.metadata as any)?.exif?.camera;
       if (camera) {
         cameras[camera] = (cameras[camera] || 0) + 1;
       }
 
+      // Count keywords
       if (photo.keywords) {
         photo.keywords.forEach((keyword: string) => {
           keywords[keyword] = (keywords[keyword] || 0) + 1;
@@ -370,6 +398,7 @@ class AdvancedSearchService {
       case 'rating': return fileVersions.rating;
       case 'fileSize': return fileVersions.fileSize;
       case 'eventName': return fileVersions.eventName;
+      default: return fileVersions.createdAt;
     }
   }
 

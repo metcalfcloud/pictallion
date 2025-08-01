@@ -53,7 +53,7 @@ const extractPhotoDate = (photo: Photo): Date => {
     // Fallback to upload date if no EXIF date available
     return new Date(photo.createdAt);
   } catch (error) {
-    // Removed console.error('Error extracting photo date:', error);
+    console.error('Error extracting photo date:', error);
     return new Date(photo.createdAt);
   }
 };

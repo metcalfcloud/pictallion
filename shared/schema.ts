@@ -401,7 +401,6 @@ export interface ExifMetadata {
 export interface CombinedMetadata {
   exif?: ExifMetadata;
   ai?: AIMetadata;
-  fileSize?: number;
 }
 
 // Smart Collection Rules

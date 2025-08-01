@@ -75,7 +75,7 @@ export default function BurstSelectionPage() {
       }, 500);
 
     } catch (error) {
-      // Removed console.error('Failed to analyze burst photos:', error);
+      console.error('Failed to analyze burst photos:', error);
       setLoading(false);
       toast({
         title: "Analysis Failed",
@@ -118,7 +118,7 @@ export default function BurstSelectionPage() {
       await scanForBurstPhotos();
 
     } catch (error) {
-      // Removed console.error('Failed to process selections:', error);
+      console.error('Failed to process selections:', error);
       toast({
         title: "Processing Failed",
         description: "Failed to process photo selections.",

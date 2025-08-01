@@ -16,7 +16,6 @@ import SmartCollections from "@/components/smart-collections";
 import { ProcessingStateBadge, getProcessingState } from "@/components/ui/processing-state-badge";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { info } from "@/lib/logger";
 
 import type { Photo } from "@shared/types";
 
@@ -167,7 +166,7 @@ export default function Gallery() {
     };
 
     const handleQuickPromote = (event: CustomEvent) => {
-      bulkPromoteMutation.mutate({ photoIds: [event.detail] });
+      bulkPromoteMutation.mutate([event.detail]);
     };
 
     const handleQuickCollection = (event: CustomEvent) => {
@@ -229,7 +228,7 @@ export default function Gallery() {
       return;
     }
     const photoIds = silverPhotos.map(p => p.id);
-    info(`Processing ${photoIds.length} silver photos`, "Gallery");
+    console.log(`Processing ${photoIds.length} silver photos...`);
     bulkProcessMutation.mutate({ photoIds });
   };
 
@@ -320,7 +319,7 @@ export default function Gallery() {
               <div className="flex items-center bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg px-3 py-2">
                 <Users className="w-4 h-4 text-blue-600 mr-2" />
                 <span className="text-sm text-blue-900 dark:text-blue-100 mr-2">
-                  {(Array.isArray(people) ? people : []).find((p: { id: string; name: string }) => p.id === peopleFilter)?.name || 'Unknown Person'}
+                  {people?.find((p: any) => p.id === peopleFilter)?.name || 'Unknown Person'}
                 </span>
                 <Button
                   variant="ghost"
@@ -426,7 +425,7 @@ export default function Gallery() {
               onFiltersChange={setSearchFilters}
               onSearch={() => {
                 // Apply advanced search filters here
-                info('Advanced search filters', "Gallery", { searchFilters });
+                console.log('Advanced search filters:', searchFilters);
               }}
             />
           </div>
@@ -435,7 +434,14 @@ export default function Gallery() {
         {/* Smart Collections */}
         {showSmartCollections && (
           <div className="mb-6">
-            <SmartCollections />
+            <SmartCollections
+              selectedPhotos={selectedPhotos}
+              onCollectionSelect={(collectionId) => {
+                // Navigate to collection view or filter by collection
+                console.log('Selected collection:', collectionId);
+                setShowSmartCollections(false);
+              }}
+            />
           </div>
         )}
 

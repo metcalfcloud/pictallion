@@ -35,15 +35,6 @@ task = "shell.exec"
 args = "npm run dev"
 waitForPort = 5000
 
-[[workflows.workflow]]
-name = "Check Code"
-mode = "sequential"
-author = 45464018
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "npm run check"
-
 [[ports]]
 localPort = 3001
 externalPort = 3001
@@ -51,14 +42,6 @@ externalPort = 3001
 [[ports]]
 localPort = 5000
 externalPort = 80
-
-[[ports]]
-localPort = 5001
-externalPort = 3000
-
-[[ports]]
-localPort = 5173
-externalPort = 5173
 
 [agent]
 integrations = ["javascript_openai==1.0.0", "javascript_mem_db==1.0.0"]

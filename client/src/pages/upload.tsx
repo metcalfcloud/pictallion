@@ -65,7 +65,7 @@ const extractPhotoDate = (photo: any): Date | null => {
 
     return null;
   } catch (error) {
-    // Removed console.error('Error extracting photo date:', error);
+    console.error('Error extracting photo date:', error);
     return null;
   }
 };

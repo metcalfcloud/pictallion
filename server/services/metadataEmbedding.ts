@@ -1,9 +1,9 @@
 import fs from "fs/promises";
 import path from "path";
 import sharp from "sharp";
+// @ts-ignore - piexifjs doesn't have type definitions
 import piexifjs from "piexifjs";
 import type { FileVersion, CombinedMetadata, AIMetadata, ExifMetadata } from "@shared/schema";
-import { error, info } from "@shared/logger";
 
 export interface EmbeddingOptions {
   preserveOriginal?: boolean;
@@ -17,6 +17,9 @@ class MetadataEmbeddingService {
    * Embed metadata into image file using EXIF/XMP standards
    */
   async embedMetadataToFile(
+    fileVersion: FileVersion, 
+    metadata: CombinedMetadata,
+    options: EmbeddingOptions = {}
   ): Promise<string> {
     const { preserveOriginal = true, outputPath, embedInPlace = false } = options;
     
@@ -24,6 +27,7 @@ class MetadataEmbeddingService {
       const inputPath = fileVersion.filePath;
       const outputFilePath = outputPath || (embedInPlace ? inputPath : this.generateGoldPath(fileVersion));
       
+      // Ensure output directory exists
       await fs.mkdir(path.dirname(outputFilePath), { recursive: true });
       
       if (this.isImageFile(fileVersion.mimeType)) {
@@ -33,9 +37,9 @@ class MetadataEmbeddingService {
       } else {
         throw new Error(`Unsupported file type for metadata embedding: ${fileVersion.mimeType}`);
       }
-    } catch (err: any) {
-      error("Metadata embedding failed", "MetadataEmbedding", { error: err.message, fileVersion: fileVersion.id });
-      throw new Error(`Failed to embed metadata: ${err.message}`);
+    } catch (error: any) {
+      console.error("Metadata embedding failed:", error);
+      throw new Error(`Failed to embed metadata: ${error.message}`);
     }
   }
 
@@ -43,13 +47,19 @@ class MetadataEmbeddingService {
    * Embed metadata into image files using EXIF/XMP
    */
   private async embedImageMetadata(
+    inputPath: string, 
+    outputPath: string, 
+    metadata: CombinedMetadata,
+    fileVersion: FileVersion
   ): Promise<string> {
+    // Read the original image
     const imageBuffer = await fs.readFile(inputPath);
     
     // Check if it's a JPEG (piexifjs only works with JPEG)
     if (fileVersion.mimeType === "image/jpeg") {
       return await this.embedJpegMetadata(imageBuffer, outputPath, metadata, fileVersion);
     } else {
+      // For other formats, use Sharp to convert to JPEG with metadata
       return await this.embedNonJpegMetadata(inputPath, outputPath, metadata, fileVersion);
     }
   }
@@ -58,25 +68,35 @@ class MetadataEmbeddingService {
    * Embed metadata into JPEG files using piexifjs
    */
   private async embedJpegMetadata(
+    imageBuffer: Buffer,
+    outputPath: string,
+    metadata: CombinedMetadata,
+    fileVersion: FileVersion
   ): Promise<string> {
     try {
+      // Convert buffer to base64 for piexifjs
       const imageDataUrl = `data:image/jpeg;base64,${imageBuffer.toString('base64')}`;
       
+      // Create EXIF data object
       const exifObj = this.createExifObject(metadata, fileVersion);
       
+      // Convert EXIF object to bytes
       const exifBytes = piexifjs.dump(exifObj);
       
+      // Insert EXIF data into image
       const newImageDataUrl = piexifjs.insert(exifBytes, imageDataUrl);
       
+      // Convert back to buffer and save
       const base64Data = newImageDataUrl.replace(/^data:image\/jpeg;base64,/, '');
       const newImageBuffer = Buffer.from(base64Data, 'base64');
       
       await fs.writeFile(outputPath, newImageBuffer);
       
-      info(`Successfully embedded metadata into JPEG: ${outputPath}`, "MetadataEmbedding");
+      console.log(`Successfully embedded metadata into JPEG: ${outputPath}`);
       return outputPath;
-    } catch (embedError) {
-      error("JPEG metadata embedding failed", "MetadataEmbedding", { error: embedError, outputPath });
+    } catch (error) {
+      console.error("JPEG metadata embedding failed:", error);
+      // Fallback to copying without embedding
       const inputBuffer = await fs.readFile(fileVersion.filePath);
       await fs.writeFile(outputPath, inputBuffer);
       return outputPath;
@@ -87,6 +107,10 @@ class MetadataEmbeddingService {
    * Embed metadata into non-JPEG images using Sharp
    */
   private async embedNonJpegMetadata(
+    inputPath: string,
+    outputPath: string,
+    metadata: CombinedMetadata,
+    fileVersion: FileVersion
   ): Promise<string> {
     try {
       const exifObj = this.createExifObject(metadata, fileVersion);
@@ -97,10 +121,10 @@ class MetadataEmbeddingService {
         .jpeg({ quality: 95 }) // Convert to JPEG to embed EXIF
         .toFile(outputPath.replace(/\.[^.]+$/, '.jpg'));
 
-      info(`Successfully embedded metadata into image: ${outputPath}`, "MetadataEmbedding");
+      console.log(`Successfully embedded metadata into image: ${outputPath}`);
       return outputPath.replace(/\.[^.]+$/, '.jpg');
-    } catch (embedError) {
-      error("Non-JPEG metadata embedding failed", "MetadataEmbedding", { error: embedError, outputPath });
+    } catch (error) {
+      console.error("Non-JPEG metadata embedding failed:", error);
       // Fallback to copying original
       await fs.copyFile(inputPath, outputPath);
       return outputPath;
@@ -119,6 +143,7 @@ class MetadataEmbeddingService {
       "thumbnail": null
     };
 
+    // Basic image description
     if (metadata.ai?.longDescription) {
       exifObj["0th"][piexifjs.ImageIFD.ImageDescription] = metadata.ai.longDescription;
       exifObj["0th"][piexifjs.ImageIFD.XPComment] = this.stringToUTF16(metadata.ai.longDescription);
@@ -128,16 +153,19 @@ class MetadataEmbeddingService {
       exifObj["0th"][piexifjs.ImageIFD.XPSubject] = this.stringToUTF16(metadata.ai.shortDescription);
     }
 
+    // Keywords/Tags
     if (metadata.ai?.aiTags && metadata.ai.aiTags.length > 0) {
       const keywords = metadata.ai.aiTags.join(';');
       exifObj["0th"][piexifjs.ImageIFD.XPKeywords] = this.stringToUTF16(keywords);
     }
 
+    // Additional keywords from database
     if (fileVersion.keywords && fileVersion.keywords.length > 0) {
       const allKeywords = [...(metadata.ai?.aiTags || []), ...fileVersion.keywords].join(';');
       exifObj["0th"][piexifjs.ImageIFD.XPKeywords] = this.stringToUTF16(allKeywords);
     }
 
+    // Rating
     if (fileVersion.rating && fileVersion.rating > 0) {
       exifObj["0th"][piexifjs.ImageIFD.Rating] = fileVersion.rating;
     }
@@ -154,15 +182,24 @@ class MetadataEmbeddingService {
       }
     }
 
+    // GPS data
     if (metadata.ai?.gpsCoordinates) {
       const { latitude, longitude } = metadata.ai.gpsCoordinates;
       exifObj["GPS"] = this.createGPSExif(latitude, longitude);
     }
 
+    // Software signature
     exifObj["0th"][piexifjs.ImageIFD.Software] = "Pictallion Photo Manager";
 
     // Custom metadata in UserComment (JSON format)
     const customMetadata = {
+      eventType: fileVersion.eventType,
+      eventName: fileVersion.eventName,
+      location: fileVersion.location,
+      perceptualHash: fileVersion.perceptualHash,
+      aiConfidence: metadata.ai?.aiConfidenceScores,
+      detectedObjects: metadata.ai?.detectedObjects,
+      detectedEvents: metadata.ai?.detectedEvents
     };
 
     exifObj["Exif"][piexifjs.ExifIFD.UserComment] = this.encodeUserComment(JSON.stringify(customMetadata));
@@ -174,20 +211,33 @@ class MetadataEmbeddingService {
    * Handle video metadata embedding (sidecar files)
    */
   private async embedVideoMetadata(
+    inputPath: string,
+    outputPath: string,
+    metadata: CombinedMetadata,
+    fileVersion: FileVersion
   ): Promise<string> {
+    // Copy video file
     await fs.copyFile(inputPath, outputPath);
     
+    // Create XMP sidecar file
     const xmpPath = outputPath + '.xmp';
     const xmpContent = this.createXMPSidecar(metadata, fileVersion);
     await fs.writeFile(xmpPath, xmpContent);
     
+    // Create JSON metadata sidecar
     const jsonPath = outputPath + '.json';
     const jsonMetadata = {
       ...metadata,
+      rating: fileVersion.rating,
+      keywords: fileVersion.keywords,
+      eventType: fileVersion.eventType,
+      eventName: fileVersion.eventName,
+      location: fileVersion.location,
+      perceptualHash: fileVersion.perceptualHash
     };
     await fs.writeFile(jsonPath, JSON.stringify(jsonMetadata, null, 2));
     
-    info(`Successfully created video metadata sidecars: ${xmpPath}, ${jsonPath}`, "MetadataEmbedding");
+    console.log(`Successfully created video metadata sidecars: ${xmpPath}, ${jsonPath}`);
     return outputPath;
   }
 
@@ -205,8 +255,8 @@ class MetadataEmbeddingService {
       }
       
       return null;
-    } catch (err) {
-      error("Failed to extract embedded metadata", "MetadataEmbedding", { error: err, filePath });
+    } catch (error) {
+      console.error("Failed to extract embedded metadata:", error);
       return null;
     }
   }
@@ -220,11 +270,13 @@ class MetadataEmbeddingService {
       const exifObj = piexifjs.load(imageDataUrl);
       
       const metadata: CombinedMetadata = {
+        exif: this.parseExifData(exifObj),
+        ai: this.parseAIData(exifObj)
       };
       
       return metadata;
-    } catch (err) {
-      error("Failed to extract image metadata", "MetadataEmbedding", { error: err });
+    } catch (error) {
+      console.error("Failed to extract image metadata:", error);
       return null;
     }
   }
@@ -237,12 +289,13 @@ class MetadataEmbeddingService {
       const jsonPath = videoPath + '.json';
       const jsonContent = await fs.readFile(jsonPath, 'utf8');
       return JSON.parse(jsonContent) as CombinedMetadata;
-    } catch (err) {
-      error("Failed to extract video metadata", "MetadataEmbedding", { error: err });
+    } catch (error) {
+      console.error("Failed to extract video metadata:", error);
       return null;
     }
   }
 
+  // Utility methods
   private generateGoldPath(fileVersion: FileVersion): string {
     const date = new Date();
     const year = date.getFullYear();
@@ -285,6 +338,7 @@ class MetadataEmbeddingService {
   }
 
   private encodeUserComment(comment: string): string {
+    // ASCII encoding identifier + actual comment
     return "ASCII\0\0\0" + comment;
   }
 
@@ -334,6 +388,10 @@ class MetadataEmbeddingService {
 
   private parseExifData(exifObj: any): ExifMetadata {
     return {
+      camera: exifObj["0th"]?.[piexifjs.ImageIFD.Make],
+      lens: exifObj["Exif"]?.[piexifjs.ExifIFD.LensModel],
+      dateTime: exifObj["0th"]?.[piexifjs.ImageIFD.DateTime],
+      // Add more EXIF parsing as needed
     };
   }
 
@@ -345,10 +403,17 @@ class MetadataEmbeddingService {
         const customData = JSON.parse(jsonStr);
         
         return {
+          aiTags: [],
+          shortDescription: "",
+          longDescription: "",
+          detectedObjects: customData.detectedObjects || [],
+          detectedEvents: customData.detectedEvents || [],
+          perceptualHash: customData.perceptualHash,
+          aiConfidenceScores: customData.aiConfidence || {}
         };
       }
-    } catch (err) {
-      error("Failed to parse AI data from EXIF", "MetadataEmbedding", { error: err });
+    } catch (error) {
+      console.error("Failed to parse AI data from EXIF:", error);
     }
     return undefined;
   }

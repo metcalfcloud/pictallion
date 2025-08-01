@@ -175,7 +175,7 @@ export function AIPromptsSettings() {
         </AlertDialog>
       </div>
 
-      <Tabs value={selectedCategory} onValueChange={value => setSelectedCategory(value as "description" | "analysis" | "naming")}>
+      <Tabs value={selectedCategory} onValueChange={setSelectedCategory}>
         <TabsList className="grid w-full grid-cols-3">
           {Object.entries(CATEGORIES).map(([key, { name, icon: Icon }]) => (
             <TabsTrigger key={key} value={key as any} className="flex items-center gap-2">

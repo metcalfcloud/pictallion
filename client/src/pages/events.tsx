@@ -98,7 +98,7 @@ export default function EventsPage() {
       
       return null;
     } catch (error) {
-      // Removed console.error('Error extracting photo date:', error);
+      console.error('Error extracting photo date:', error);
       return null;
     }
   };
@@ -119,7 +119,7 @@ export default function EventsPage() {
               eventsByPhoto[photo.id] = events;
             }
           } catch (error) {
-            // Removed console.error('Error detecting events for photo:', photo.id, error);
+            console.error('Error detecting events for photo:', photo.id, error);
           }
         }
       }

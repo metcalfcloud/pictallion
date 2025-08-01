@@ -590,10 +590,10 @@ export default function SilverReview() {
           <TabsContent value="overview" className="space-y-4">
             {/* Alerts and notifications */}
             {(() => {
-              const photoInBurst = burstAnalysis?.groups?.find((group: any) =>
-                group.photos.some((p: any) => p.id === selectedPhoto?.id)
+              const photoInBurst = burstAnalysis?.groups?.find(group => 
+                group.photos.some(p => p.id === selectedPhoto?.id)
               );
-              const unassignedFaces = facesData?.filter((face: any) => !face.personId)?.length || 0;
+              const unassignedFaces = facesData?.filter(face => !face.personId)?.length || 0;
               const faceDetectionErrors = selectedPhoto?.metadata?.faceDetectionErrors || [];
 
               return (

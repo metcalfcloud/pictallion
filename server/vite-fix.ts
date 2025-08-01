@@ -5,6 +5,7 @@ export function applyViteFix() {
   const originalUse = express.application.use;
   
   express.application.use = function(path: any, ...args: any[]) {
+    // If the path is the problematic "*" pattern, convert it to a regex
     if (typeof path === 'string' && path === '*') {
       return originalUse.apply(this, [/.*/, ...args] as [any, any]);
     }

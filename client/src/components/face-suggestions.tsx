@@ -222,7 +222,12 @@ export function FaceSuggestions() {
   })).filter(s => s.face || s.faceId); // Keep suggestions even if face data is missing
 
   // Debug logging
-  // Removed debug logging for face suggestions
+  console.log('Face suggestions debug:', {
+    totalSuggestions: suggestions.length,
+    unassignedFacesCount: unassignedFaces.length,
+    suggestionsWithFacesCount: suggestionsWithFaces.length,
+    suggestionsError: suggestionsError?.message
+  });
 
   const totalUnassigned = unassignedFaces.length;
   const totalWithSuggestions = suggestions.length;

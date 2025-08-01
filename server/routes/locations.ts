@@ -5,6 +5,7 @@ import { z } from "zod";
 
 const router = express.Router();
 
+// Get all locations
 router.get("/", async (req, res) => {
   try {
     const locations = await storage.getLocations();
@@ -15,6 +16,7 @@ router.get("/", async (req, res) => {
   }
 });
 
+// Get location statistics and hotspots
 router.get("/stats", async (req, res) => {
   try {
     const stats = await storage.getLocationStats();
@@ -25,6 +27,7 @@ router.get("/stats", async (req, res) => {
   }
 });
 
+// Get location hotspots
 router.get("/hotspots", async (req, res) => {
   try {
     const hotspots = await storage.findLocationHotspots();
@@ -35,6 +38,7 @@ router.get("/hotspots", async (req, res) => {
   }
 });
 
+// Get specific location
 router.get("/:id", async (req, res) => {
   try {
     const location = await storage.getLocation(req.params.id);
@@ -48,6 +52,7 @@ router.get("/:id", async (req, res) => {
   }
 });
 
+// Create new location
 router.post("/", async (req, res) => {
   try {
     // Validate request body
@@ -58,6 +63,8 @@ router.post("/", async (req, res) => {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ 
+        message: "Invalid location data", 
+        errors: error.errors 
       });
     }
     console.error("Error creating location:", error);
@@ -65,8 +72,10 @@ router.post("/", async (req, res) => {
   }
 });
 
+// Update location
 router.patch("/:id", async (req, res) => {
   try {
+    // Validate request body - allow partial updates
     const updateData = insertLocationSchema.partial().parse(req.body);
     
     const location = await storage.updateLocation(req.params.id, updateData);
@@ -77,6 +86,8 @@ router.patch("/:id", async (req, res) => {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ 
+        message: "Invalid location data", 
+        errors: error.errors 
       });
     }
     console.error("Error updating location:", error);
@@ -84,6 +95,7 @@ router.patch("/:id", async (req, res) => {
   }
 });
 
+// Delete location
 router.delete("/:id", async (req, res) => {
   try {
     const deleted = await storage.deleteLocation(req.params.id);
@@ -109,6 +121,7 @@ router.post("/from-coordinates", async (req, res) => {
     let placeName = undefined;
     let placeType = undefined;
     
+    // Try reverse geocoding to get place information
     try {
       const { reverseGeocodingService } = await import("../services/reverse-geocoding");
       const geocodingResult = await reverseGeocodingService.reverseGeocode(
@@ -122,11 +135,18 @@ router.post("/from-coordinates", async (req, res) => {
       }
     } catch (geocodingError) {
       console.warn("Reverse geocoding failed:", geocodingError);
+      // Continue without geocoding data
     }
     
     const locationData = {
+      name: name || placeName || "Unknown Location",
+      description: description || undefined,
+      latitude: latitude.toString(),
+      longitude: longitude.toString(),
+      isUserDefined: true,
       placeName,
       placeType,
+      photoCount: 0, // Will be updated when photos are associated
     };
     
     const location = await storage.createLocation(locationData);

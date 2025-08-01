@@ -23,7 +23,7 @@ import { logger } from "./utils/logger";
 
 // Helper function to calculate bounding box overlap (Intersection over Union)
 function calculateBoundingBoxOverlap(
-  box1: [number, number, number, number],
+  box1: [number, number, number, number], 
   box2: [number, number, number, number]
 ): number {
   const [x1, y1, w1, h1] = box1;
@@ -43,39 +43,45 @@ function calculateBoundingBoxOverlap(
   return unionArea > 0 ? overlapArea / unionArea : 0;
 }
 
+// Enhanced Face interface for API responses
 interface EnhancedFace extends Face {
   person?: Person;
   faceCropUrl?: string | null;
   ageInPhoto?: number | null;
 }
 
+// Helper function to extract photo date from metadata or filename
 function extractPhotoDate(photo: any): Date | undefined {
   try {
+    // Extract date from photo metadata or filename
 
+    // First try EXIF datetime fields with various formats
     if (photo.metadata?.exif) {
-      const exif = (photo.metadata as any)?.exif;
+      const exif = photo.metadata.exif;
 
       // Try DateTimeOriginal first (most accurate)
       if (exif.dateTimeOriginal) {
         const date = new Date(exif.dateTimeOriginal);
         if (!isNaN(date.getTime())) {
-          // Using EXIF DateTimeOriginal
+          console.log('Using EXIF DateTimeOriginal:', date.toISOString());
           return date;
         }
       }
 
+      // Try CreateDate
       if (exif.createDate) {
         const date = new Date(exif.createDate);
         if (!isNaN(date.getTime())) {
-          // Using EXIF CreateDate
+          console.log('Using EXIF CreateDate:', date.toISOString());
           return date;
         }
       }
 
+      // Try DateTime
       if (exif.dateTime) {
         const date = new Date(exif.dateTime);
         if (!isNaN(date.getTime())) {
-          // Using EXIF DateTime
+          console.log('Using EXIF DateTime:', date.toISOString());
           return date;
         }
       }
@@ -96,15 +102,16 @@ function extractPhotoDate(photo: any): Date | undefined {
 
       const extractedDate = new Date(year, month, day, hour, minute, second);
       if (!isNaN(extractedDate.getTime())) {
-        // Using filename timestamp
+        console.log('Using filename timestamp:', extractedDate.toISOString());
         return extractedDate;
       }
     }
 
+    // Fall back to file creation time
     if (photo.createdAt) {
       const date = new Date(photo.createdAt);
       if (!isNaN(date.getTime())) {
-        // Using createdAt
+        console.log('Using createdAt:', date.toISOString());
         return date;
       }
     }
@@ -129,7 +136,9 @@ async function findSimilarPhotos(photos: any[]): Promise<any[]> {
     const similarPhotos = [currentPhoto];
     processed.add(currentPhoto.id);
 
+    // Find similar photos based on:
     // 1. Similar filenames (burst photos, sequence shots)
+    // 2. Similar AI tags
     // 3. Same time period (within 5 minutes)
     for (let j = i + 1; j < photos.length; j++) {
       if (processed.has(photos[j].id)) continue;
@@ -141,6 +150,7 @@ async function findSimilarPhotos(photos: any[]): Promise<any[]> {
       const currentName = currentPhoto.mediaAsset.originalFilename.toLowerCase();
       const compareName = comparePhoto.mediaAsset.originalFilename.toLowerCase();
 
+      // Extract base filename without extension and sequence numbers
       const currentBase = currentName.replace(/\d+\.(jpg|jpeg|png|tiff)$/i, '').replace(/_\d+$/, '');
       const compareBase = compareName.replace(/\d+\.(jpg|jpeg|png|tiff)$/i, '').replace(/_\d+$/, '');
 
@@ -174,6 +184,7 @@ async function findSimilarPhotos(photos: any[]): Promise<any[]> {
       }
     }
 
+    // Only create groups with multiple photos
     if (similarPhotos.length > 1) {
       // Find the "best" photo in the group (highest AI confidence or most recent)
       const suggested = similarPhotos.reduce((best, current) => {
@@ -182,14 +193,16 @@ async function findSimilarPhotos(photos: any[]): Promise<any[]> {
 
         if (currentConfidence > bestConfidence) return current;
         if (currentConfidence === bestConfidence) {
+          // If same confidence, prefer more recent
           return new Date(current.createdAt) > new Date(best.createdAt) ? current : best;
         }
         return best;
       });
 
       similarGroups.push({
-        suggested,
-        similar: similarPhotos.filter(p => p.id !== suggested.id)
+        photos: similarPhotos,
+        similarityScore: 0.8, // Average high similarity for grouped photos
+        suggested: suggested
       });
     }
   }
@@ -197,9 +210,13 @@ async function findSimilarPhotos(photos: any[]): Promise<any[]> {
   return similarGroups;
 }
 
+// Configure multer for file uploads
 const upload = multer({
-  storage: multer.memoryStorage(),
-  fileFilter: (req, file, cb) => {
+  dest: 'uploads/temp/',
+  limits: {
+    fileSize: 50 * 1024 * 1024, // 50MB limit
+  },
+  fileFilter: (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
     const allowedTypes = ['image/jpeg', 'image/png', 'image/tiff', 'video/mp4', 'video/mov', 'video/avi'];
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
@@ -210,14 +227,18 @@ const upload = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Initialize prompt manager first
   await promptManager.initialize();
 
+  // Serve uploaded files  
   app.use("/api/files", express.static(path.join(process.cwd(), "data")));
   // Serve temporary files (face crops)  
   app.use("/api/files/temp", express.static(path.join(process.cwd(), "uploads", "temp")));
 
+  // Ensure upload directories exist
   await fileManager.initializeDirectories();
 
+  // Get collection statistics
   app.get("/api/stats", async (req, res) => {
     try {
       const stats = await storage.getCollectionStats();
@@ -240,6 +261,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get recent photos
   app.get("/api/photos/recent", async (req, res) => {
     try {
       const limit = parseInt(req.query.limit as string) || 6;
@@ -251,6 +273,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Global tag library endpoints
   app.get("/api/tags/library", async (req, res) => {
     try {
       const result = await db.execute(sql`
@@ -265,23 +288,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get faces for a specific photo
   app.get("/api/faces/photo/:photoId", async (req, res) => {
     try {
       const faces = await storage.getFacesByPhoto(req.params.photoId);
 
+      // Get the photo to generate face crop URLs
       const photo = await storage.getFileVersion(req.params.photoId);
       if (!photo) {
         return res.status(404).json({ message: "Photo not found" });
       }
 
+      // Enhance faces with person data, face crop URLs, and age-in-photo
       const enhancedFaces: EnhancedFace[] = await Promise.all(
         faces.map(async (face) => {
           let enhancedFace: EnhancedFace = { ...face };
 
+          // Add person data if available
           if (face.personId) {
             const person = await storage.getPerson(face.personId);
             enhancedFace.person = person;
 
+            // Calculate age in photo if person has birthdate and photo has date
             if (person?.birthdate) {
               const photoDate = extractPhotoDate(photo);
               if (photoDate) {
@@ -341,6 +369,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Photo not found" });
       }
 
+      // Get naming pattern from settings
       const namingPatternSetting = await storage.getSettingByKey('gold_naming_pattern');
       const customPatternSetting = await storage.getSettingByKey('custom_naming_pattern');
       const namingPattern = namingPatternSetting?.value || 'datetime';
@@ -352,10 +381,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Media asset not found" });
       }
 
+      // Generate preview filename
       const namingContext = {
+        aiMetadata: {
+          shortDescription: photo.aiShortDescription || '',
+          detectedObjects: (photo.metadata as any)?.ai?.detectedObjects || [],
+          aiTags: (photo.metadata as any)?.ai?.aiTags || []
+        },
+        exifMetadata: (photo.metadata as any)?.exif,
         originalFilename: mediaAsset.originalFilename,
-        createdAt: photo.createdAt,
-        metadata: photo.metadata
+        tier: 'gold' as const
       };
 
       const finalPattern = namingPattern === 'custom' ? customPattern : namingPattern;
@@ -368,10 +403,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get burst photo analysis
   app.get("/api/photos/burst-analysis", async (req, res) => {
     try {
       const limit = parseInt(req.query.limit as string) || 100;
 
+      // Get recent photos to analyze for burst sequences
       const recentPhotos = await storage.getRecentPhotos(limit);
 
       // Group photos by time clusters (photos taken within 5 seconds of each other)
@@ -402,6 +439,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           } else {
             if (currentGroup.length >= 3) { // Consider 3+ photos as a burst
               burstGroups.push({
+                id: `burst-${currentGroup[0].id}`,
+                photos: currentGroup,
+                startTime: (currentGroup[0].metadata as any)?.exif?.dateTime || currentGroup[0].createdAt,
+                endTime: (currentGroup[currentGroup.length - 1].metadata as any)?.exif?.dateTime || currentGroup[currentGroup.length - 1].createdAt,
+                count: currentGroup.length
               });
             }
             currentGroup = [photo];
@@ -412,6 +454,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Don't forget the last group
       if (currentGroup.length >= 3) {
         burstGroups.push({
+          id: `burst-${currentGroup[0].id}`,
+          photos: currentGroup,
+          startTime: (currentGroup[0].metadata as any)?.exif?.dateTime || currentGroup[0].createdAt,
+          endTime: (currentGroup[currentGroup.length - 1].metadata as any)?.exif?.dateTime || currentGroup[currentGroup.length - 1].createdAt,
+          count: currentGroup.length
         });
       }
 
@@ -427,6 +474,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { tags } = req.body;
 
       for (const tag of tags) {
+        // Insert or update tag usage count
         await db.execute(sql`
           INSERT INTO global_tag_library (tag, usage_count, created_at)
           VALUES (${tag}, 1, NOW())
@@ -442,6 +490,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get all photos with optional filters
   app.get("/api/photos", async (req, res) => {
     try {
       const tier = req.query.tier as "silver" | "gold" | "unprocessed" | "all_versions" | undefined;
@@ -457,11 +506,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const hasSilver = versions.some(v => v.tier === 'silver');
           const hasGold = versions.some(v => v.tier === 'gold');
 
+          // Add silver if no gold exists
           if (hasSilver && !hasGold) {
             const silverVersion = versions.find(v => v.tier === 'silver');
             if (silverVersion) {
               const enhancedAsset = {
                 ...asset,
+                displayFilename: path.basename(silverVersion.filePath)
               };
               unprocessedPhotos.push({ ...silverVersion, mediaAsset: enhancedAsset });
             }
@@ -477,6 +528,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const asset = await storage.getMediaAsset(photo.mediaAssetId);
             const enhancedAsset = {
               ...asset,
+              displayFilename: path.basename(photo.filePath)
             };
             return { ...photo, mediaAsset: enhancedAsset };
           })
@@ -488,6 +540,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         let filteredPhotos = photos;
 
         if (!showAllVersions) {
+          // Filter out photos that have been superseded by higher tiers
           const photosWithSuperseded = await Promise.all(
             photos.map(async (photo) => {
               const versions = await storage.getFileVersionsByAsset(photo.mediaAssetId);
@@ -511,12 +564,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const asset = await storage.getMediaAsset(photo.mediaAssetId);
             const enhancedAsset = {
               ...asset,
+              displayFilename: path.basename(photo.filePath)
             };
             return { ...photo, mediaAsset: enhancedAsset };
           })
         );
         res.json(photosWithAssets);
       } else {
+        // Default view: show highest tier version of each asset
         const allAssets = await storage.getAllMediaAssets();
         const highestTierPhotos = [];
 
@@ -531,11 +586,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (highestVersion) {
             const enhancedAsset = {
               ...asset,
+              displayFilename: path.basename(highestVersion.filePath)
             };
             highestTierPhotos.push({ ...highestVersion, mediaAsset: enhancedAsset });
           }
         }
 
+        // Sort by creation date, most recent first
         highestTierPhotos.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
         res.json(highestTierPhotos.slice(0, 100)); // Limit to 100 for performance
@@ -546,6 +603,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get single photo details
   app.get("/api/photos/:id", async (req, res) => {
     try {
       const photo = await storage.getFileVersion(req.params.id);
@@ -557,10 +615,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const history = await storage.getAssetHistory(photo.mediaAssetId);
 
       res.json({
-        photo: {
-          mediaAsset: asset
-        },
-        history
+        ...photo,
+        mediaAsset: asset,
+        history,
       });
     } catch (error) {
       console.error("Error fetching photo details:", error);
@@ -604,10 +661,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             if (exactDuplicate) {
               console.log(`Auto-skipping MD5 identical file: ${file.originalname}`);
               results.push({
-                status: 'skipped',
                 filename: file.originalname,
-                reason: 'MD5 duplicate - exact same file already exists',
-                duplicateId: exactDuplicate.id
+                status: 'skipped',
+                message: 'Identical file already exists - automatically skipped'
               });
               continue;
             }
@@ -615,21 +671,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           if (duplicateConflicts.length > 0) {
 
+            // Only prompt for visual matches or mixed conflicts
             conflicts.push(...duplicateConflicts.map(conflict => ({
               ...conflict,
+              filename: file.originalname
             })));
 
             results.push({
-              status: 'conflict',
               filename: file.originalname,
+              status: 'conflict',
+              message: `${duplicateConflicts.length} potential duplicate(s) found`,
               conflicts: duplicateConflicts
             });
             continue;
           }
 
           // No conflicts - proceed with normal upload
+          // Create media asset
           const mediaAsset = await storage.createMediaAsset({
-            originalFilename: file.originalname
+            originalFilename: file.originalname,
           });
 
           // Process file directly to Silver tier with basic processing only
@@ -641,20 +701,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Create Silver file version with basic metadata only
           const fileVersion = await storage.createFileVersion({
             mediaAssetId: mediaAsset.id,
-            tier: "silver" as const,
+            tier: 'silver',
             filePath: silverPath,
             fileHash,
-            fileSize: (await fs.stat(silverPath)).size,
+            fileSize: file.size,
             mimeType: file.mimetype,
-            metadata: metadata
+            metadata: metadata as any,
+            aiShortDescription: null, // No AI processing at upload
+            isReviewed: false,
           });
 
+          // Detect faces (non-LLM processing) if it's an image
           if (file.mimetype.startsWith('image/')) {
             // Run face detection
             console.log('Running face detection on uploaded photo...');
             const faceDetectionResult = await faceDetectionService.detectFaces(file.path);
             const detectedFaces = faceDetectionResult.faces;
 
+            // Update photo metadata with face detection status
             const currentMetadata = fileVersion.metadata || {};
             const updatedMetadata = {
               ...currentMetadata,
@@ -663,12 +727,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
             await storage.updateFileVersion(fileVersion.id, { metadata: updatedMetadata });
 
+            // Save detected faces to database
             for (const face of detectedFaces) {
               await storage.createFace({
                 photoId: fileVersion.id,
-                boundingBox: face.bbox || face.boundingBox || [0, 0, 100, 100],
-                confidence: Math.round((face.confidence || 50) * 100),
-                embedding: face.embedding
+                boundingBox: face.boundingBox,
+                confidence: face.confidence,
+                embedding: face.embedding,
+                personId: null, // Faces start unassigned
               });
             }
           }
@@ -676,25 +742,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Log ingestion
           await storage.createAssetHistory({
             mediaAssetId: mediaAsset.id,
-            action: 'upload_silver',
-            details: `Uploaded ${file.originalname} to Silver tier with face detection`
+            action: 'INGESTED',
+            details: `File uploaded to Silver tier with basic processing: ${file.originalname}`,
           });
 
           console.log(`Successfully uploaded ${file.originalname} to Silver tier with basic processing and face detection. Asset ID: ${mediaAsset.id}`);
 
           results.push({
-            status: 'success',
             filename: file.originalname,
-            mediaAssetId: mediaAsset.id,
-            fileVersionId: fileVersion.id
+            status: 'success',
+            assetId: mediaAsset.id,
+            versionId: fileVersion.id,
           });
 
         } catch (fileError) {
           console.error(`Error processing file ${file.originalname}:`, fileError);
           results.push({
-            status: 'error',
             filename: file.originalname,
-            error: fileError instanceof Error ? fileError.message : 'Unknown error'
+            status: 'error',
+            message: 'Failed to process file'
           });
         }
       }
@@ -702,6 +768,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Upload complete. Results:`, JSON.stringify(results, null, 2));
       res.json({ 
         results,
+        hasConflicts: conflicts.length > 0,
+        totalConflicts: conflicts.length
       });
     } catch (error) {
       console.error("Error in upload endpoint:", error);
@@ -722,6 +790,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Photo not found" });
       }
 
+      // Handle AI metadata updates
       if (updates.aiTags || updates.aiDescription) {
         const existingMetadata = (photo.metadata as any) || {};
         const updatedMetadata = {
@@ -753,6 +822,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Route for file serving with query parameters and security checks
   app.get("/api/files/media/:tier/:date/:filename", async (req, res) => {
     try {
       const { tier, date, filename } = req.params;
@@ -764,17 +834,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Access denied" });
       }
 
+      // Check if file exists
       try {
         await fs.access(fullPath);
 
+        // Check if this is a face crop request
         if (req.query.crop && req.query.face === 'true') {
           const cropParams = (req.query.crop as string).split(',').map(Number);
           if (cropParams.length === 4) {
+            // For now, return the full image with crop parameters in header
+            // In a real implementation, you would crop the image server-side
             res.setHeader('X-Face-Crop', req.query.crop as string);
             res.setHeader('Content-Type', 'image/jpeg');
           }
         }
 
+        // Check if this is a download request
         if (req.query.download === 'true') {
           const filename = path.basename(fullPath);
           res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
@@ -791,14 +866,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // AI Configuration Routes
   app.get("/api/ai/config", async (req, res) => {
     try {
       const config = aiService.getConfig();
       const providers = await aiService.getAvailableProviders();
 
       res.json({
-        config,
-        providers
+        currentProvider: config.provider,
+        availableProviders: providers,
+        config: {
+          ollama: {
+            baseUrl: config.ollama.baseUrl,
+            visionModel: config.ollama.visionModel,
+            textModel: config.ollama.textModel
+          },
+          openai: {
+            model: config.openai.model,
+            hasApiKey: !!config.openai.apiKey
+          }
+        }
       });
     } catch (error) {
       console.error("Get AI config error:", error);
@@ -829,7 +916,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const providers = await aiService.getAvailableProviders();
 
       res.json({
-        providers
+        ollama: providers.ollama,
+        openai: providers.openai
       });
     } catch (error) {
       console.error("Test AI providers error:", error);
@@ -837,6 +925,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Test face detection endpoint
   app.post("/api/photos/:id/detect-faces", async (req, res) => {
     try {
       const photo = await storage.getFileVersion(req.params.id);
@@ -855,9 +944,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (const face of detectedFaces) {
         const savedFace = await storage.createFace({
           photoId: photo.id,
-          boundingBox: face.bbox || face.boundingBox || [0, 0, 100, 100],
-          confidence: Math.round((face.confidence || 50) * 100),
-          embedding: face.embedding
+          boundingBox: face.boundingBox,
+          confidence: face.confidence,
+          embedding: face.embedding,
+          personId: face.personId || null,
         });
         savedFaces.push(savedFace);
       }
@@ -866,9 +956,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const mediaAsset = await storage.getMediaAsset(photo.mediaAssetId);
 
       res.json({
-        detectedFaces: savedFaces,
-        mediaAsset,
-        photo
+        photo: mediaAsset?.originalFilename || 'Unknown',
+        facesDetected: detectedFaces.length,
+        faces: savedFaces
       });
     } catch (error) {
       console.error("Error in face detection test:", error);
@@ -876,6 +966,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // People & Faces routes
   app.get("/api/people", async (req, res) => {
     try {
       const people = await storage.getPeople();
@@ -887,10 +978,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const faces = await storage.getFacesByPerson(person.id);
             const photoIds = Array.from(new Set(faces.map(face => face.photoId)));
 
+            // Generate face crop for thumbnail - use selected thumbnail or first face
             let coverPhotoPath = null;
             if (faces.length > 0) {
               let selectedFace = faces[0]; // Default to first face
 
+              // Use selected thumbnail face if one is set
               if (person.selectedThumbnailFaceId) {
                 const thumbnailFace = faces.find(f => f.id === person.selectedThumbnailFaceId);
                 if (thumbnailFace) {
@@ -915,11 +1008,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
             return {
               ...person,
+              faceCount: faces.length,
+              photoCount: photoIds.length,
+              coverPhoto: coverPhotoPath
             };
           } catch (error) {
             console.error(`Error processing person ${person.id}:`, error);
+            // Return person with default stats on error
             return {
               ...person,
+              faceCount: 0,
+              photoCount: 0,
+              coverPhoto: null
             };
           }
         })
@@ -981,12 +1081,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Update the person's selected thumbnail face ID
       const updatedPerson = await storage.updatePerson(req.params.id, {
+        selectedThumbnailFaceId: faceId
       });
 
       if (!updatedPerson) {
         return res.status(404).json({ message: "Person not found" });
       }
 
+      // Generate the new cover photo for the response
       const photo = await storage.getFileVersion(face.photoId);
       let coverPhotoPath = null;
 
@@ -1003,6 +1105,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       res.json({ 
+        success: true, 
+        message: "Profile photo updated successfully",
+        coverPhoto: coverPhotoPath
       });
     } catch (error) {
       console.error("Error updating person thumbnail:", error);
@@ -1020,6 +1125,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Relationship routes
   app.get("/api/people/:id/relationships", async (req, res) => {
     try {
       const relationships = await storage.getRelationshipsByPerson(req.params.id);
@@ -1064,6 +1170,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const unassignedFaces = await storage.getUnassignedFaces();
 
+      // Add photo information and face crop URL to each face
       const facesWithPhotos = await Promise.all(
         unassignedFaces.map(async (face) => {
           const photo = await storage.getFileVersion(face.photoId);
@@ -1102,6 +1209,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const faces = await storage.getAllFaces();
 
+      // Add photo information, face crop URL, and age-in-photo to each face
       const facesWithPhotos = await Promise.all(
         faces.map(async (face) => {
           const photo = await storage.getFileVersion(face.photoId);
@@ -1116,6 +1224,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               faceCropUrl = photo.filePath; // Fallback to full image
             }
 
+            // Calculate age in photo if face is assigned to a person with birthdate
             let ageInPhoto: number | null = null;
             if (face.personId) {
               const person = await storage.getPerson(face.personId);
@@ -1136,6 +1245,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               faceCropUrl,
               ageInPhoto,
               photo: {
+                ...photo,
                 mediaAsset: asset
               }
             };
@@ -1168,6 +1278,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Face suggestions endpoint
   app.get('/api/faces/suggestions', async (req, res) => {
     try {
       const unassignedFaces = await storage.getUnassignedFaces();
@@ -1186,12 +1297,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const suggestions = [];
 
+      // Generate suggestions for each unassigned face
       for (const face of unassignedFaces) {
         if (!face.embedding || !Array.isArray(face.embedding)) {
           console.log(`Skipping face ${face.id} - no embedding available`);
           continue;
         }
 
+        // Find similar faces assigned to people - use reasonable threshold for good suggestions
+        // Balanced approach: 0.75 cosine similarity (75%+ match) for suggestions
         const similarFaces = await faceDetectionService.findSimilarFaces(face.embedding, 0.75);
 
         if (similarFaces.length === 0) {
@@ -1199,6 +1313,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           continue;
         }
 
+        // Group by person and calculate confidence scores
         const personMatches = new Map<string, { count: number; totalSimilarity: number }>();
 
         for (const similar of similarFaces) {
@@ -1215,16 +1330,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           continue;
         }
 
+        // Create suggestion entries for this face
         const faceSuggestions = [];
 
         for (const [personId, match] of Array.from(personMatches.entries())) {
           const person = people.find((p: any) => p.id === personId);
           if (person) {
             const avgSimilarity = match.totalSimilarity / match.count;
+            // Convert cosine similarity to confidence percentage
             const confidence = Math.round(avgSimilarity * 100);
 
             console.log(`Person ${person.name}: avgSimilarity=${avgSimilarity.toFixed(3)}, confidence=${confidence}%, matches=${match.count}`);
 
+            // Accept suggestions with reasonable confidence
             if (confidence >= 75) {
               // Get representative face for this person
               let representativeFaceUrl = '';
@@ -1238,10 +1356,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }
 
               faceSuggestions.push({
-                personId: personId,
-                personName: person.name,
+                personId: person.id,
                 confidence: confidence,
-                representativeFaceUrl: representativeFaceUrl
+                representativeFace: representativeFaceUrl,
+                personName: person.name
               });
             }
           }
@@ -1270,12 +1388,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Reprocess unassigned faces after manual assignments
   app.post("/api/faces/reprocess", async (req, res) => {
     try {
       const suggestions = await faceDetectionService.reprocessUnassignedFaces();
       res.json({ 
-        success: true,
-        suggestions: suggestions
+        message: "Faces reprocessed successfully", 
+        suggestions: suggestions.length,
+        data: suggestions 
       });
     } catch (error) {
       console.error("Error reprocessing faces:", error);
@@ -1283,6 +1403,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Batch assign faces using suggestions
   app.post("/api/faces/batch-assign", async (req, res) => {
     try {
       const { assignments } = req.body; // Array of {faceId, personId}
@@ -1294,6 +1415,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Ignore a face
   app.post("/api/faces/:id/ignore", async (req, res) => {
     try {
       await storage.ignoreFace(req.params.id);
@@ -1304,6 +1426,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Unignore a face
   app.post("/api/faces/:id/unignore", async (req, res) => {
     try {
       await storage.unignoreFace(req.params.id);
@@ -1314,9 +1437,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get ignored faces
   app.get("/api/faces/ignored", async (req, res) => {
     try {
       const ignoredFaces = await storage.getIgnoredFaces();
+      // Add photo information and face crop URL to each face
       const facesWithPhotos = await Promise.all(
         ignoredFaces.map(async (face) => {
           const photo = await storage.getFileVersion(face.photoId);
@@ -1351,10 +1476,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get unassigned faces
   app.get("/api/faces/unassigned", async (req, res) => {
     try {
       const unassignedFaces = await storage.getUnassignedFaces();
 
+      // Add photo information and face crop URL to each face
       const facesWithPhotos = await Promise.all(
         unassignedFaces.map(async (face) => {
           const photo = await storage.getFileVersion(face.photoId);
@@ -1401,9 +1528,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Photo not found" });
 
 
+// Smart Collections endpoints
 app.get("/api/smart-collections", async (req, res) => {
   try {
     const collections = await storage.getCollections();
+    // Filter for smart collections
     const smartCollections = collections.filter(c => c.isSmartCollection);
     res.json(smartCollections);
   } catch (error) {
@@ -1419,6 +1548,9 @@ app.post("/api/smart-collections", async (req, res) => {
     const collection = await storage.createCollection({
       name,
       description,
+      isSmartCollection: true,
+      smartRules: rules || {},
+      isPublic: false
     });
 
     res.json(collection);
@@ -1443,6 +1575,7 @@ app.patch("/api/smart-collections/:id/toggle", async (req, res) => {
 
 app.post("/api/smart-collections/organize", async (req, res) => {
   try {
+    // For now, just return a success message
     // TODO: Implement smart collection organization
     res.json({ message: "Smart collection organization completed", organized: 0 });
   } catch (error) {
@@ -1478,6 +1611,7 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
     }
   });
 
+  // Collections routes
   app.get("/api/collections", async (req, res) => {
     try {
       const collections = await storage.getCollections();
@@ -1486,6 +1620,8 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
           const photos = await storage.getCollectionPhotos(collection.id);
           return {
             ...collection,
+            photoCount: photos.length,
+            coverPhoto: photos[0]?.filePath || null
           };
         })
       );
@@ -1526,6 +1662,7 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
     }
   });
 
+  // Batch operations
   app.post("/api/photos/batch", async (req, res) => {
     try {
       const { operation, photoIds, params } = req.body;
@@ -1540,14 +1677,10 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
               const newTags = Array.from(new Set([...existingTags, ...params.tags]));
 
               await storage.updateFileVersion(photoId, {
-                ...photo,
                 metadata: {
                   ...metadata,
-                  ai: {
-                    ...metadata.ai,
-                    aiTags: newTags
-                  }
-                }
+                  ai: { ...(metadata as any).ai, aiTags: newTags }
+                } as any
               });
             }
           }
@@ -1569,7 +1702,7 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
       const stats = await storage.getCollectionStats();
 
       const analytics = {
-        uploadActivity: [
+        uploadTrends: [
           { date: '2025-01-20', count: 5 },
           { date: '2025-01-21', count: 8 },
           { date: '2025-01-22', count: 3 },
@@ -1581,6 +1714,7 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
           { tier: 'Silver', count: stats.silverCount, percentage: Math.round((stats.silverCount / stats.totalPhotos) * 100) || 0 },
           { tier: 'Gold', count: stats.goldCount, percentage: Math.round((stats.goldCount / stats.totalPhotos) * 100) || 0 },
         ],
+
         topTags: [
           { tag: 'landscape', count: 15 },
           { tag: 'portrait', count: 12 },
@@ -1599,8 +1733,10 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
 
 
 
+  // Burst Photo Detection routes
   app.get("/api/burst/analyze", async (req, res) => {
     try {
+      // Get all photos from all tiers for cross-tier burst analysis
       const allPhotos = await storage.getAllFileVersions();
       const photosWithAssets = [];
 
@@ -1634,6 +1770,7 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
       let promoted = 0;
       const errors: string[] = [];
 
+      // Process burst group selections
       for (const selection of selections) {
         const { groupId, selectedPhotoIds } = selection;
 
@@ -1657,6 +1794,7 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
               const aiMetadata = await aiService.analyzeImage(photo.filePath, "openai");
               const enhancedMetadata = await aiService.enhanceMetadataWithShortDescription(aiMetadata, photo.filePath);
 
+              // Detect faces
               const faceDetectionResult = await faceDetectionService.detectFaces(photo.filePath);
               const detectedFaces = faceDetectionResult.faces;
 
@@ -1665,6 +1803,7 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
               const photoWithAsset = { ...photo, mediaAsset: mediaAsset };
               const photoDate = extractPhotoDate(photoWithAsset);
 
+              // Detect events based on photo date
               let eventType: string | undefined;
               let eventName: string | undefined;
               if (photoDate) {
@@ -1672,9 +1811,9 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
                   const detectedEvents = await eventDetectionService.detectEvents(photoDate);
                   if (detectedEvents.length > 0) {
                     const bestEvent = detectedEvents.reduce((max, event) => 
-                      (event.confidence || 0) > (max.confidence || 0) ? event : max
+                      event.confidence > max.confidence ? event : max
                     );
-                    if ((bestEvent.confidence || 0) >= 80) {
+                    if (bestEvent.confidence >= 80) {
                       eventType = bestEvent.eventType;
                       eventName = bestEvent.eventName;
                     }
@@ -1687,20 +1826,26 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
               // Update metadata only (no file operations)
               const combinedMetadata = {
                 ...(photo.metadata || {}),
+                ai: enhancedMetadata,
               };
 
               await storage.updateFileVersion(photo.id, {
-                metadata: combinedMetadata,
-                processingState: "processed" as const
+                metadata: combinedMetadata as any,
+                aiShortDescription: enhancedMetadata.shortDescription,
+                eventType: eventType || undefined,
+                eventName: eventName || undefined,
+                isReviewed: false, // Reset review status
               });
 
+              // Update faces
               await storage.deleteFacesByPhoto(photo.id);
               for (const face of detectedFaces) {
                 await storage.createFace({
                   photoId: photo.id,
-                  boundingBox: face.bbox || face.boundingBox || [0, 0, 100, 100],
-                  confidence: Math.round((face.confidence || 50) * 100),
-                  embedding: face.embedding
+                  boundingBox: face.boundingBox,
+                  confidence: face.confidence,
+                  embedding: face.embedding,
+                  personId: face.personId || null,
                 });
               }
 
@@ -1717,9 +1862,11 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
               continue;
             }
 
+            // Run AI analysis
             const aiMetadata = await aiService.analyzeImage(photo.filePath, "openai");
             const enhancedMetadata = await aiService.enhanceMetadataWithShortDescription(aiMetadata, photo.filePath);
 
+            // Get naming pattern from settings
             const namingPatternSetting = await storage.getSettingByKey('silver_naming_pattern');
             const customPatternSetting = await storage.getSettingByKey('custom_naming_pattern');
             const namingPattern = namingPatternSetting?.value || 'datetime';
@@ -1728,36 +1875,46 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
             // Get media asset for filename generation
             const mediaAsset = await storage.getMediaAsset(photo.mediaAssetId);
 
+            // Generate filename
             let newFilename: string | undefined = undefined;
             if (enhancedMetadata.shortDescription && mediaAsset) {
               const namingContext = {
-                originalFilename: mediaAsset.originalFilename,
-                aiMetadata: enhancedMetadata,
-                exifMetadata: photo.metadata?.exif
-                  ? ((photo.metadata as any)?.exif as { dateTime?: string; dateTimeOriginal?: string; createDate?: string; camera?: string; lens?: string })
+                aiMetadata: {
+                  shortDescription: enhancedMetadata.shortDescription,
+                  detectedObjects: enhancedMetadata.detectedObjects || [],
+                  aiTags: enhancedMetadata.aiTags || []
+                },
+                exifMetadata: (photo.metadata && typeof photo.metadata === 'object' && 'exif' in photo.metadata && typeof photo.metadata.exif === 'object')
+                  ? (photo.metadata.exif as { dateTime?: string; dateTimeOriginal?: string; createDate?: string; camera?: string; lens?: string })
                   : undefined,
+                originalFilename: mediaAsset.originalFilename,
+                tier: 'silver' as const
               };
               const finalPattern = namingPattern === 'custom' ? customPattern : namingPattern;
               newFilename = await generateSilverFilename(namingContext, finalPattern);
             }
 
+            // Copy to silver tier
             const photoWithAsset = { ...photo, mediaAsset: mediaAsset };
             const photoDate = extractPhotoDate(photoWithAsset);
             const silverPath = await fileManager.copyToSilver(photo.filePath, newFilename, photoDate);
 
+            // Detect faces
            const faceDetectionResult = await faceDetectionService.detectFaces(photo.filePath);
             const detectedFaces = faceDetectionResult.faces;
 
+            // Detect events based on photo date
             let eventType: string | undefined;
             let eventName: string | undefined;
             if (photoDate) {
               try {
                 const detectedEvents = await eventDetectionService.detectEvents(photoDate);
                 if (detectedEvents.length > 0) {
+                  // Use the highest confidence event
                   const bestEvent = detectedEvents.reduce((max, event) => 
-                    (event.confidence || 0) > (max.confidence || 0) ? event : max
+                    event.confidence > max.confidence ? event : max
                   );
-                  if ((bestEvent.confidence || 0) >= 80) { // Only use high-confidence matches
+                  if (bestEvent.confidence >= 80) { // Only use high-confidence matches
                     eventType = bestEvent.eventType;
                     eventName = bestEvent.eventName;
                   }
@@ -1770,38 +1927,44 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
             // Create silver version
             const combinedMetadata = {
               ...(photo.metadata || {}),
+              ai: enhancedMetadata,
             };
 
             const silverVersion = await storage.createFileVersion({
               mediaAssetId: photo.mediaAssetId,
-              tier: "silver" as const,
+              tier: 'silver',
               filePath: silverPath,
               fileHash: photo.fileHash,
               fileSize: photo.fileSize,
               mimeType: photo.mimeType,
-              processingState: "processed" as const,
-              metadata: combinedMetadata
+              metadata: combinedMetadata as any,
+              aiShortDescription: enhancedMetadata.shortDescription,
+              eventType: eventType || undefined,
+              eventName: eventName || undefined,
+              isReviewed: false,
             });
 
+            // Save detected faces
             for (const face of detectedFaces) {
               await storage.createFace({
                 photoId: silverVersion.id,
-                boundingBox: face.bbox || face.boundingBox || [0, 0, 100, 100],
-                confidence: Math.round((face.confidence || 50) * 100),
-                embedding: face.embedding
+                boundingBox: face.boundingBox,
+                confidence: face.confidence,
+                embedding: face.embedding,
+                personId: face.personId || null,
               });
             }
 
             // Mark bronze photo as promoted
             await storage.updateFileVersion(photo.id, {
-              processingState: "promoted" as const
+              processingState: 'promoted'
             });
 
             // Log promotion
             await storage.createAssetHistory({
               mediaAssetId: photo.mediaAssetId,
-              action: 'promote_to_silver',
-              details: `Promoted from Bronze to Silver tier`
+              action: 'PROMOTED',
+              details: 'Promoted from Bronze to Silver tier via burst selection',
             });
 
             promoted++;
@@ -1811,6 +1974,7 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
         }
 
         // Mark remaining photos in group as processed (but keep in bronze)
+        // Handle smart demotion logic here for mixed-tier groups
         try {
           // Find all photos in this burst group from the analysis to mark non-selected ones as processed
           const allPhotos = await storage.getAllFileVersions();
@@ -1822,14 +1986,15 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
             }
           }
           const analysis = await burstPhotoService.analyzeBurstPhotos(photosWithAssets);
-          const group = (analysis as any).groups?.find((g: any) => g.id === groupId);
+          const group = analysis.groups.find(g => g.id === groupId);
 
           if (group) {
             for (const groupPhoto of group.photos) {
+              // Get the actual file version to check tier
               const fileVersion = await storage.getFileVersion(groupPhoto.id);
               if (!selectedPhotoIds.includes(groupPhoto.id) && fileVersion?.tier === 'bronze') {
                 await storage.updateFileVersion(groupPhoto.id, {
-                  processingState: "processed" as const
+                  processingState: 'processed'
                 });
               }
             }
@@ -1849,6 +2014,7 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
               continue;
             }
 
+            // Process same as grouped photos
             const aiMetadata = await aiService.analyzeImage(photo.filePath, "openai");
             const enhancedMetadata = await aiService.enhanceMetadataWithShortDescription(aiMetadata, photo.filePath);
 
@@ -1863,11 +2029,16 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
             let newFilename: string | undefined = undefined;
             if (enhancedMetadata.shortDescription && mediaAsset) {
               const namingContext = {
-                originalFilename: mediaAsset.originalFilename,
-                aiMetadata: enhancedMetadata,
-                exifMetadata: photo.metadata?.exif
-                  ? ((photo.metadata as any)?.exif as { dateTime?: string; dateTimeOriginal?: string; createDate?: string; camera?: string; lens?: string })
+                aiMetadata: {
+                  shortDescription: enhancedMetadata.shortDescription,
+                  detectedObjects: enhancedMetadata.detectedObjects || [],
+                  aiTags: enhancedMetadata.aiTags || []
+                },
+                exifMetadata: (photo.metadata && typeof photo.metadata === 'object' && 'exif' in photo.metadata && typeof photo.metadata.exif === 'object')
+                  ? (photo.metadata.exif as { dateTime?: string; dateTimeOriginal?: string; createDate?: string; camera?: string; lens?: string })
                   : undefined,
+                originalFilename: mediaAsset.originalFilename,
+                tier: 'silver' as const
               };
               const finalPattern = namingPattern === 'custom' ? customPattern : namingPattern;
               newFilename = await generateSilverFilename(namingContext, finalPattern);
@@ -1881,16 +2052,18 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
             const faceDetectionResult = await faceDetectionService.detectFaces(photo.filePath);
             const detectedFaces = faceDetectionResult.faces;
 
+            // Detect events based on photo date
             let eventType: string | undefined;
             let eventName: string | undefined;
             if (photoDate) {
               try {
                 const detectedEvents = await eventDetectionService.detectEvents(photoDate);
                 if (detectedEvents.length > 0) {
+                  // Use the highest confidence event
                   const bestEvent = detectedEvents.reduce((max, event) => 
-                    (event.confidence || 0) > (max.confidence || 0) ? event : max
+                    event.confidence > max.confidence ? event : max
                   );
-                  if ((bestEvent.confidence || 0) >= 80) { // Only use high-confidence matches
+                  if (bestEvent.confidence >= 80) { // Only use high-confidence matches
                     eventType = bestEvent.eventType;
                     eventName = bestEvent.eventName;
                   }
@@ -1900,42 +2073,48 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
               }
             }
 
+            // Refresh EXIF metadata to ensure we have all date fields
             const refreshedMetadata = await fileManager.extractMetadata(photo.filePath);
 
             const combinedMetadata = {
               ...(photo.metadata || {}),
               ...refreshedMetadata,
+              ai: enhancedMetadata,
             };
 
             const silverVersion = await storage.createFileVersion({
               mediaAssetId: photo.mediaAssetId,
-              tier: "silver" as const,
-              filePath: photo.filePath,
+              tier: 'silver',
+              filePath: silverPath,
               fileHash: photo.fileHash,
               fileSize: photo.fileSize,
               mimeType: photo.mimeType,
-              processingState: "processed" as const,
-              metadata: combinedMetadata
+              metadata: combinedMetadata as any,
+              aiShortDescription: enhancedMetadata.shortDescription,
+              eventType: eventType || undefined,
+              eventName: eventName || undefined,
+              isReviewed: false,
             });
 
             for (const face of detectedFaces) {
               await storage.createFace({
                 photoId: silverVersion.id,
-                boundingBox: face.bbox || face.boundingBox || [0, 0, 100, 100],
-                confidence: Math.round((face.confidence || 50) * 100),
-                embedding: face.embedding
+                boundingBox: face.boundingBox,
+                confidence: face.confidence,
+                embedding: face.embedding,
+                personId: face.personId || null,
               });
             }
 
             // Mark bronze photo as promoted
             await storage.updateFileVersion(photo.id, {
-              processingState: "promoted" as const
+              processingState: 'promoted'
             });
 
             await storage.createAssetHistory({
               mediaAssetId: photo.mediaAssetId,
-              action: 'promote_ungrouped_to_silver',
-              details: `Promoted ungrouped photo to Silver tier`
+              action: 'PROMOTED',
+              details: 'Promoted from Bronze to Silver tier via burst processing',
             });
 
             promoted++;
@@ -1954,11 +2133,13 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
     }
   });
 
+  // Advanced search endpoint
   app.post("/api/photos/search", async (req, res) => {
     try {
       const { filters = {}, sort = { field: 'createdAt', direction: 'desc' }, limit = 50, offset = 0 } = req.body;
 
       // For now, use the existing silver photos endpoint as a fallback
+      // TODO: Implement full advanced search functionality
       const allPhotos = await storage.getFileVersionsByTier('silver');
       const photosWithAssets = [];
 
@@ -1984,10 +2165,12 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
         });
       }
 
+      // Apply tier filter
       if (filters.tier) {
         filteredPhotos = filteredPhotos.filter(photo => photo.tier === filters.tier);
       }
 
+      // Apply rating filter
       if (filters.rating?.min !== undefined || filters.rating?.max !== undefined) {
         filteredPhotos = filteredPhotos.filter(photo => {
           const rating = photo.rating || 0;
@@ -1997,18 +2180,18 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
         });
       }
 
+      // Simple facets
       const facets = {
-        tiers: ['bronze', 'silver', 'gold'],
-        ratings: [1, 2, 3, 4, 5],
-        eventTypes: ['birthday', 'wedding', 'vacation', 'holiday']
+        tiers: { silver: filteredPhotos.length },
+        ratings: {},
+        mimeTypes: {},
+        eventTypes: {}
       };
 
       const results = {
         photos: filteredPhotos.slice(offset, offset + limit),
-        facets,
-        total: filteredPhotos.length,
-        offset,
-        limit
+        totalCount: filteredPhotos.length,
+        facets
       };
 
       res.json(results);
@@ -2018,6 +2201,7 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
     }
   });
 
+  // Find similar photos
   app.get("/api/photos/:id/similar", async (req, res) => {
     try {
       const { threshold = 85, limit = 20 } = req.query;
@@ -2081,18 +2265,28 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
       }
 
       // Embed metadata and create Gold version
-      const goldPath = await metadataEmbedding.embedMetadataToFile(photo.filePath);
+      const goldPath = await metadataEmbedding.embedMetadataToFile(
+        photo,
+        photo.metadata || {},
+        { preserveOriginal: true }
+      );
 
       // Create Gold file version
       const goldVersion = await storage.createFileVersion({
         mediaAssetId: photo.mediaAssetId,
-        tier: 'gold' as const,
+        tier: 'gold',
         filePath: goldPath,
         fileHash: photo.fileHash,
         fileSize: photo.fileSize,
         mimeType: photo.mimeType,
-        metadata: photo.metadata,
-        processingState: 'processed' as const
+        metadata: photo.metadata as any,
+        isReviewed: photo.isReviewed,
+        rating: photo.rating,
+        keywords: photo.keywords,
+        location: photo.location,
+        eventType: photo.eventType,
+        eventName: photo.eventName,
+        perceptualHash: photo.perceptualHash,
       });
 
       // Save tags to global library
@@ -2114,8 +2308,8 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
       // Log the embedding
       await storage.createAssetHistory({
         mediaAssetId: photo.mediaAssetId,
-        action: 'promote_to_gold',
-        details: 'Metadata embedded and promoted to Gold tier'
+        action: 'EMBEDDED',
+        details: 'Metadata embedded into file and promoted to Gold tier',
       });
 
       res.json({ success: true, goldVersion });
@@ -2125,6 +2319,7 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
     }
   });
 
+  // Update smart collections
   app.post("/api/collections/smart/update", async (req, res) => {
     try {
       await advancedSearch.updateSmartCollections();
@@ -2147,6 +2342,7 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
         return res.status(400).json({ message: "Photo must be in Silver tier for promotion" });
       }
 
+      // Copy file to Gold tier
       const asset = await storage.getMediaAsset(photo.mediaAssetId);
       const photoWithAsset = { ...photo, mediaAsset: asset };
       const photoDate = extractPhotoDate(photoWithAsset);
@@ -2155,20 +2351,20 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
       // Create Gold file version with embedded metadata
       const goldVersion = await storage.createFileVersion({
         mediaAssetId: photo.mediaAssetId,
-        tier: 'gold' as const,
+        tier: 'gold',
         filePath: goldPath,
         fileHash: photo.fileHash,
         fileSize: photo.fileSize,
         mimeType: photo.mimeType,
-        metadata: photo.metadata,
-        processingState: 'processed' as const
+        metadata: photo.metadata as any,
+        isReviewed: true,
       });
 
       // Log promotion
       await storage.createAssetHistory({
         mediaAssetId: photo.mediaAssetId,
-        action: 'promote_to_gold',
-        details: 'Promoted from Silver to Gold tier'
+        action: 'PROMOTED',
+        details: 'Promoted from Silver to Gold tier',
       });
 
       res.json(goldVersion);
@@ -2178,6 +2374,7 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
     }
   });
 
+  // Manual AI processing for Silver tier photos
   app.post("/api/photos/:id/process-ai", async (req, res) => {
     try {
       const photo = await storage.getFileVersion(req.params.id);
@@ -2199,6 +2396,7 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
         return res.status(400).json({ message: "Photo already has AI processing" });
       }
 
+      // Get existing faces and people information to provide context
       const existingFaces = await storage.getFacesByPhoto(photo.id);
       const peopleContext = [];
 
@@ -2206,6 +2404,7 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
         if (face.personId) {
           const person = await storage.getPerson(face.personId);
           if (person) {
+            // Calculate age in photo if birthdate is available
             let ageInPhoto = null;
             const asset = await storage.getMediaAsset(photo.mediaAssetId);
             const photoWithAsset = { ...photo, mediaAsset: asset };
@@ -2220,15 +2419,22 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
             const relationshipInfo = relationships.map(rel => {
               const otherPersonId = rel.person1Id === person.id ? rel.person2Id : rel.person1Id;
               return {
+                type: rel.relationshipType,
+                otherPersonId: otherPersonId
               };
             });
 
             peopleContext.push({
+              name: person.name,
+              ageInPhoto: ageInPhoto,
+              relationships: relationshipInfo,
+              boundingBox: face.boundingBox
             });
           }
         }
       }
 
+      // Run AI analysis with people context
       const aiMetadata = await aiService.analyzeImageWithPeopleContext(
         photo.filePath, 
         "openai", 
@@ -2236,6 +2442,7 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
       );
       const enhancedMetadata = await aiService.enhanceMetadataWithShortDescription(aiMetadata, photo.filePath);
 
+      // Detect events based on photo date
       let eventType: string | undefined;
       let eventName: string | undefined;
       const asset = await storage.getMediaAsset(photo.mediaAssetId);
@@ -2246,9 +2453,9 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
           const detectedEvents = await eventDetectionService.detectEvents(photoDate);
           if (detectedEvents.length > 0) {
             const bestEvent = detectedEvents.reduce((max, event) => 
-              (event.confidence || 0) > (max.confidence || 0) ? event : max
+              event.confidence > max.confidence ? event : max
             );
-            if ((bestEvent.confidence || 0) >= 80) {
+            if (bestEvent.confidence >= 80) {
               eventType = bestEvent.eventType;
               eventName = bestEvent.eventName;
             }
@@ -2258,24 +2465,31 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
         }
       }
 
+      // Update metadata with AI analysis
       const combinedMetadata = {
         ...(photo.metadata || {}),
+        ai: enhancedMetadata,
       };
 
       await storage.updateFileVersion(photo.id, {
-        metadata: combinedMetadata
+        metadata: combinedMetadata as any,
+        aiShortDescription: enhancedMetadata.shortDescription,
+        eventType: eventType || undefined,
+        eventName: eventName || undefined,
+        isReviewed: false, // Reset review status since we have new AI data
       });
 
       // Log AI processing
       await storage.createAssetHistory({
         mediaAssetId: photo.mediaAssetId,
-        action: 'ai_processing',
-        details: 'Added AI metadata and tags'
+        action: 'AI_PROCESSED',
+        details: 'AI analysis completed with enhanced metadata and descriptions',
       });
 
       res.json({ 
-        success: true,
-        metadata: combinedMetadata
+        success: true, 
+        message: "AI processing completed successfully",
+        aiMetadata: enhancedMetadata 
       });
     } catch (error) {
       console.error("Error in AI processing:", error);
@@ -2283,6 +2497,7 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
     }
   });
 
+  // Batch AI processing for multiple Silver tier photos
   app.post("/api/photos/batch-ai-process", async (req, res) => {
     try {
       const { photoIds } = req.body;
@@ -2332,15 +2547,22 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
                 const relationshipInfo = relationships.map(rel => {
                   const otherPersonId = rel.person1Id === person.id ? rel.person2Id : rel.person1Id;
                   return {
+                    type: rel.relationshipType,
+                    otherPersonId: otherPersonId
                   };
                 });
 
                 peopleContext.push({
+                  name: person.name,
+                  ageInPhoto: ageInPhoto,
+                  relationships: relationshipInfo,
+                  boundingBox: face.boundingBox
                 });
               }
             }
           }
 
+          // Run AI analysis
           const aiMetadata = await aiService.analyzeImageWithPeopleContext(
             photo.filePath, 
             "openai", 
@@ -2359,9 +2581,9 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
               const detectedEvents = await eventDetectionService.detectEvents(photoDate);
               if (detectedEvents.length > 0) {
                 const bestEvent = detectedEvents.reduce((max, event) => 
-                  (event.confidence || 0) > (max.confidence || 0) ? event : max
+                  event.confidence > max.confidence ? event : max
                 );
-                if ((bestEvent.confidence || 0) >= 80) {
+                if (bestEvent.confidence >= 80) {
                   eventType = bestEvent.eventType;
                   eventName = bestEvent.eventName;
                 }
@@ -2374,16 +2596,21 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
           // Update metadata
           const combinedMetadata = {
             ...(photo.metadata || {}),
+            ai: enhancedMetadata,
           };
 
           await storage.updateFileVersion(photo.id, {
-            metadata: combinedMetadata
+            metadata: combinedMetadata as any,
+            aiShortDescription: enhancedMetadata.shortDescription,
+            eventType: eventType || undefined,
+            eventName: eventName || undefined,
+            isReviewed: false,
           });
 
           await storage.createAssetHistory({
             mediaAssetId: photo.mediaAssetId,
-            action: 'ai_processing',
-            details: 'AI metadata processing completed'
+            action: 'AI_PROCESSED',
+            details: 'Batch AI processing completed',
           });
 
           processed++;
@@ -2399,6 +2626,7 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
     }
   });
 
+  // Batch process photos from Bronze to Silver
   app.post("/api/photos/batch-process", async (req, res) => {
     try {
       const { photoIds } = req.body;
@@ -2424,13 +2652,16 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
             continue;
           }
 
+          // Check if file is an image
           if (!photo.mimeType.startsWith('image/')) {
             continue;
           }
 
+          // Run AI analysis with OpenAI as preferred provider
           const aiMetadata = await aiService.analyzeImage(photo.filePath, "openai");
           const enhancedMetadata = await aiService.enhanceMetadataWithShortDescription(aiMetadata, photo.filePath);
 
+          // Get naming pattern from settings
           const namingPatternSetting = await storage.getSettingByKey('silver_naming_pattern');
           const customPatternSetting = await storage.getSettingByKey('custom_naming_pattern');
           const namingPattern = namingPatternSetting?.value || 'datetime';
@@ -2439,24 +2670,35 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
           // Get asset for both filename generation and photo date extraction
           const asset = await storage.getMediaAsset(photo.mediaAssetId);
 
+          // Generate new filename for Silver tier
           let newFilename: string | undefined;
           if (namingPattern !== 'original') {
             const namingContext = {
-              originalFilename: asset?.originalFilename || '',
-              aiMetadata: enhancedMetadata,
-              exifMetadata: (photo.metadata as any)?.exif,
+              aiMetadata: {
+                shortDescription: enhancedMetadata.shortDescription,
+                detectedObjects: enhancedMetadata.detectedObjects,
+                aiTags: enhancedMetadata.aiTags,
+              },
+              exifMetadata: (photo.metadata && typeof photo.metadata === 'object' && 'exif' in photo.metadata && typeof photo.metadata.exif === 'object')
+                ? (photo.metadata.exif as { dateTime?: string; dateTimeOriginal?: string; createDate?: string; camera?: string; lens?: string })
+                : undefined,
+              originalFilename: asset?.originalFilename || 'unknown.jpg',
+              tier: 'silver' as const
             };
             const finalPattern = namingPattern === 'custom' ? customPattern : namingPattern;
             newFilename = await generateSilverFilename(namingContext, finalPattern);
           }
 
+          // Copy file to Silver tier with new filename
           const photoWithAsset = { ...photo, mediaAsset: asset };
           const photoDate = extractPhotoDate(photoWithAsset);
           const silverPath = await fileManager.copyToSilver(photo.filePath, newFilename, photoDate);
 
+          // Detect faces in the image
           const faceDetectionResult = await faceDetectionService.detectFaces(photo.filePath);
           const detectedFaces = faceDetectionResult.faces;
 
+          // Detect events based on photo date
           let eventType: string | undefined;
           let eventName: string | undefined;
           if (photoDate) {
@@ -2464,9 +2706,9 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
               const detectedEvents = await eventDetectionService.detectEvents(photoDate);
               if (detectedEvents.length > 0) {
                 const bestEvent = detectedEvents.reduce((max, event) => 
-                  (event.confidence || 0) > (max.confidence || 0) ? event : max
+                  event.confidence > max.confidence ? event : max
                 );
-                if ((bestEvent.confidence || 0) >= 80) {
+                if (bestEvent.confidence >= 80) {
                   eventType = bestEvent.eventType;
                   eventName = bestEvent.eventName;
                 }
@@ -2482,34 +2724,40 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
           const combinedMetadata = {
             ...existingMetadata,
             ...refreshedMetadata,
+            ai: enhancedMetadata,
           };
 
           // Create Silver file version
           const silverVersion = await storage.createFileVersion({
             mediaAssetId: photo.mediaAssetId,
-            tier: 'silver' as const,
+            tier: 'silver',
             filePath: silverPath,
             fileHash: photo.fileHash,
             fileSize: photo.fileSize,
             mimeType: photo.mimeType,
-            metadata: combinedMetadata,
-            processingState: 'processed' as const
+            metadata: combinedMetadata as any,
+            aiShortDescription: enhancedMetadata.shortDescription,
+            eventType: eventType || undefined,
+            eventName: eventName || undefined,
+            isReviewed: false,
           });
 
+          // Save detected faces to database
           for (const face of detectedFaces) {
             await storage.createFace({
               photoId: silverVersion.id,
-              boundingBox: face.bbox || face.boundingBox || [0, 0, 100, 100],
-              confidence: Math.round((face.confidence || 50) * 100),
-              embedding: face.embedding
+              boundingBox: face.boundingBox,
+              confidence: face.confidence,
+              embedding: face.embedding,
+              personId: face.personId || null,
             });
           }
 
           // Log promotion
           await storage.createAssetHistory({
             mediaAssetId: photo.mediaAssetId,
-            action: 'promote_to_silver',
-            details: 'Promoted from Bronze to Silver tier'
+            action: 'PROMOTED',
+            details: 'Batch promoted from Bronze to Silver tier with AI processing',
           });
 
           processed++;
@@ -2544,6 +2792,7 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
             continue;
           }
 
+          // Copy file to Gold tier
           const asset = await storage.getMediaAsset(photo.mediaAssetId);
           const photoWithAsset = { ...photo, mediaAsset: asset };
           const photoDate = extractPhotoDate(photoWithAsset);
@@ -2552,20 +2801,20 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
           // Create Gold file version
           await storage.createFileVersion({
             mediaAssetId: photo.mediaAssetId,
-            tier: 'gold' as const,
+            tier: 'gold',
             filePath: goldPath,
             fileHash: photo.fileHash,
             fileSize: photo.fileSize,
             mimeType: photo.mimeType,
-            metadata: photo.metadata,
-            processingState: 'processed' as const
+            metadata: photo.metadata as any,
+            isReviewed: true,
           });
 
           // Log promotion
           await storage.createAssetHistory({
             mediaAssetId: photo.mediaAssetId,
-            action: 'promote_to_gold',
-            details: 'Promoted from Silver to Gold tier'
+            action: 'PROMOTED',
+            details: 'Batch promoted from Silver to Gold tier',
           });
 
           promoted++;
@@ -2581,6 +2830,7 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
     }
   });
 
+  // Demote photo to lower tier
   app.post("/api/photos/:id/demote", async (req, res) => {
     try {
       const photo = await storage.getFileVersion(req.params.id);
@@ -2588,10 +2838,12 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
         return res.status(404).json({ message: "Photo not found" });
       }
 
+      // Can only demote Gold to Silver or Silver to Bronze
       if (photo.tier === 'bronze') {
         return res.status(400).json({ message: "Cannot demote Bronze tier photos" });
       }
 
+      // Check if lower tier version exists to revert to
       const versions = await storage.getFileVersionsByAsset(photo.mediaAssetId);
       let targetVersion = null;
 
@@ -2613,19 +2865,21 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
       // Log demotion
       await storage.createAssetHistory({
         mediaAssetId: photo.mediaAssetId,
-        action: 'demote',
-        details: `Demoted from ${photo.tier} tier`
+        action: 'DEMOTED',
+        details: `Demoted from ${photo.tier} tier back to ${targetVersion!.tier} tier`,
       });
 
+      // Return the target version info
       const asset = await storage.getMediaAsset(targetVersion!.mediaAssetId);
       const enhancedAsset = {
         ...asset,
-        currentVersion: targetVersion
+        displayFilename: path.basename(targetVersion!.filePath)
       };
 
       res.json({ 
-        success: true,
-        asset: enhancedAsset
+        success: true, 
+        message: `Photo demoted from ${photo.tier} to ${targetVersion!.tier}`,
+        activeVersion: { ...targetVersion, mediaAsset: enhancedAsset }
       });
     } catch (error) {
       console.error("Error demoting photo:", error);
@@ -2649,6 +2903,7 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
         return res.status(400).json({ message: "AI reprocessing only supports images" });
       }
 
+      // Get existing faces and people information to provide context
       const existingFaces = await storage.getFacesByPhoto(photo.id);
       const peopleContext = [];
 
@@ -2656,6 +2911,7 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
         if (face.personId) {
           const person = await storage.getPerson(face.personId);
           if (person) {
+            // Calculate age in photo if birthdate is available
             let ageInPhoto = null;
             const asset = await storage.getMediaAsset(photo.mediaAssetId);
             const photoWithAsset = { ...photo, mediaAsset: asset };
@@ -2671,15 +2927,22 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
             const relationshipInfo = relationships.map(rel => {
               const otherPersonId = rel.person1Id === person.id ? rel.person2Id : rel.person1Id;
               return {
+                type: rel.relationshipType,
+                otherPersonId: otherPersonId
               };
             });
 
             peopleContext.push({
+              name: person.name,
+              ageInPhoto: ageInPhoto,
+              relationships: relationshipInfo,
+              boundingBox: face.boundingBox
             });
           }
         }
       }
 
+      // Re-run AI analysis with enhanced context about people
       const aiMetadata = await aiService.analyzeImageWithPeopleContext(
         photo.filePath, 
         "openai", 
@@ -2687,8 +2950,10 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
       );
       const enhancedMetadata = await aiService.enhanceMetadataWithShortDescription(aiMetadata, photo.filePath);
 
+      // Re-detect faces
       const detectedFaces = await faceDetectionService.detectFaces(photo.filePath);
 
+      // Re-detect events
       let eventType: string | undefined;
       let eventName: string | undefined;
       const asset = await storage.getMediaAsset(photo.mediaAssetId);
@@ -2699,9 +2964,9 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
           const detectedEvents = await eventDetectionService.detectEvents(photoDate);
           if (detectedEvents.length > 0) {
             const bestEvent = detectedEvents.reduce((max, event) => 
-              (event.confidence || 0) > (max.confidence || 0) ? event : max
+              event.confidence > max.confidence ? event : max
             );
-            if ((bestEvent.confidence || 0) >= 80) {
+            if (bestEvent.confidence >= 80) {
               eventType = bestEvent.eventType;
               eventName = bestEvent.eventName;
             }
@@ -2714,9 +2979,15 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
       // Update metadata
       const combinedMetadata = {
         ...(photo.metadata || {}),
+        ai: enhancedMetadata,
       };
 
       const updatedPhoto = await storage.updateFileVersion(photo.id, {
+        metadata: combinedMetadata as any,
+        aiShortDescription: enhancedMetadata.shortDescription,
+        eventType: eventType || undefined,
+        eventName: eventName || undefined,
+        isReviewed: false, // Reset review status since metadata changed
       });
 
       // Preserve existing face assignments during reprocessing
@@ -2747,10 +3018,15 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
         }
 
         if (bestMatch) {
+          // Update existing face with new detection data but preserve person assignment
           await storage.updateFace(bestMatch.id, {
+            boundingBox: newFace.boundingBox,
+            confidence: newFace.confidence,
+            embedding: newFace.embedding,
             // Keep existing personId
           });
 
+          // Remove from unmatched list
           const index = unmatchedExistingFaces.indexOf(bestMatch);
           unmatchedExistingFaces.splice(index, 1);
           matchedFaces.push(bestMatch);
@@ -2759,8 +3035,9 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
           await storage.createFace({
             photoId: photo.id,
             boundingBox: newFace.boundingBox,
-            confidence: Math.round((newFace.confidence || 50) * 100),
-            embedding: newFace.embedding
+            confidence: newFace.confidence,
+            embedding: newFace.embedding,
+            personId: null, // New face starts unassigned
           });
         }
       }
@@ -2773,13 +3050,14 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
       // Log reprocessing
       await storage.createAssetHistory({
         mediaAssetId: photo.mediaAssetId,
-        action: 'reprocess',
-        details: 'Photo reprocessed with updated AI analysis'
+        action: 'REPROCESSED',
+        details: `${photo.tier} tier photo reprocessed with updated AI analysis`,
       });
 
       res.json({ 
-        success: true,
-        updatedPhoto: photo
+        success: true, 
+        message: "Photo reprocessed successfully",
+        updatedPhoto 
       });
     } catch (error) {
       console.error("Error reprocessing photo:", error);
@@ -2787,6 +3065,7 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
     }
   });
 
+  // Get all versions of a media asset
   app.get("/api/photos/:id/versions", async (req, res) => {
     try {
       const photo = await storage.getFileVersion(req.params.id);
@@ -2800,6 +3079,7 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
           const asset = await storage.getMediaAsset(version.mediaAssetId);
           const enhancedAsset = {
             ...asset,
+            displayFilename: path.basename(version.filePath)
           };
           return { ...version, mediaAsset: enhancedAsset };
         })
@@ -2835,6 +3115,7 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
     }
     });
 
+  // Settings routes
   app.get("/api/settings", async (req, res) => {
     try {
       const settings = await storage.getAllSettings();
@@ -2889,6 +3170,7 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
     }
   });
 
+  // Get naming patterns
   app.get("/api/settings/naming/patterns", async (req, res) => {
     try {
       const { BUILTIN_NAMING_PATTERNS } = await import("./services/aiNaming");
@@ -2899,6 +3181,7 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
     }
   });
 
+  // Event Detection Routes
   app.get("/api/events", async (req, res) => {
     try {
       const events = await storage.getEvents();
@@ -2968,6 +3251,7 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
     }
   });
 
+  // AI Prompts API routes
   app.get("/api/ai/prompts", async (req, res) => {
     try {
       const prompts = await storage.getAllAIPrompts();
@@ -3064,8 +3348,10 @@ app.get("/api/smart-collections/:id/photos", async (req, res) => {
     }
   });
 
+  // Location routes
   app.use("/api/locations", locationRoutes);
 
+  // Update photo endpoint
 app.put('/api/photos/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -3075,9 +3361,9 @@ app.put('/api/photos/:id', async (req, res) => {
 
     // Log the update activity
     await storage.createAssetHistory({
-      mediaAssetId: updatedPhoto.mediaAssetId,
-      action: 'update',
-      details: 'Photo metadata updated'
+      mediaAssetId: id,
+      action: 'METADATA_UPDATED',
+      details: `Updated metadata: ${Object.keys(updates).join(', ')}`
     });
 
     res.json(updatedPhoto);
@@ -3087,6 +3373,7 @@ app.put('/api/photos/:id', async (req, res) => {
   }
 });
 
+// Get available tags endpoint
 app.get('/api/tags/library', async (req, res) => {
   try {
     const tags = await storage.getAllTags();
@@ -3097,6 +3384,7 @@ app.get('/api/tags/library', async (req, res) => {
   }
 });
 
+// Add tag to library endpoint
 app.post('/api/tags/library', async (req, res) => {
   try {
     const { tag } = req.body;

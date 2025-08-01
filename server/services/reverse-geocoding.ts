@@ -4,6 +4,8 @@
  */
 
 interface GeocodingResult {
+  placeName: string;
+  placeType: string;
   address?: {
     house_number?: string;
     road?: string;
@@ -17,17 +19,12 @@ interface GeocodingResult {
   };
 }
 
-interface ReverseGeocodeResult {
-  placeName: string;
-  placeType: string;
-}
-
 export class ReverseGeocodingService {
   private readonly baseUrl = 'https://nominatim.openstreetmap.org/reverse';
   private readonly requestDelay = 1000; // 1 second delay between requests per Nominatim usage policy
   private lastRequestTime = 0;
 
-  async reverseGeocode(latitude: number, longitude: number): Promise<ReverseGeocodeResult | null> {
+  async reverseGeocode(latitude: number, longitude: number): Promise<GeocodingResult | null> {
     try {
       // Rate limiting to respect Nominatim usage policy
       const now = Date.now();
@@ -38,6 +35,11 @@ export class ReverseGeocodingService {
       this.lastRequestTime = Date.now();
 
       const params = new URLSearchParams({
+        format: 'json',
+        lat: latitude.toString(),
+        lon: longitude.toString(),
+        zoom: '18', // High detail level
+        addressdetails: '1',
       });
 
       const response = await fetch(`${this.baseUrl}?${params}`, {
@@ -47,7 +49,7 @@ export class ReverseGeocodingService {
       });
 
       if (!response.ok) {
-        // warn(`Reverse geocoding failed: ${response.status} ${response.statusText}`);
+        console.warn(`Reverse geocoding failed: ${response.status} ${response.statusText}`);
         return null;
       }
 
@@ -57,15 +59,17 @@ export class ReverseGeocodingService {
         return null;
       }
 
+      // Extract meaningful place name
       const placeName = this.extractPlaceName(data);
       const placeType = this.determinePlaceType(data);
 
       return {
         placeName,
-        placeType
+        placeType,
+        address: data.address,
       };
     } catch (error) {
-      // error('Reverse geocoding error:', error);
+      console.error('Reverse geocoding error:', error);
       return null;
     }
   }
@@ -73,6 +77,7 @@ export class ReverseGeocodingService {
   private extractPlaceName(data: any): string {
     const address = data.address || {};
     
+    // Priority order for place naming
     const candidates = [
       address.amenity,           // Specific venues (restaurants, shops, etc.)
       address.shop,              // Shops and stores
@@ -89,12 +94,14 @@ export class ReverseGeocodingService {
       address.county,            // County
     ];
 
+    // Find first non-empty candidate
     for (const candidate of candidates) {
       if (candidate && typeof candidate === 'string' && candidate.trim()) {
         return candidate.trim();
       }
     }
 
+    // Fallback to display name
     return data.display_name || 'Unknown Location';
   }
 
@@ -113,8 +120,9 @@ export class ReverseGeocodingService {
     return 'location';
   }
 
-  async batchReverseGeocode(coordinates: Array<{latitude: number, longitude: number}>): Promise<Array<ReverseGeocodeResult | null>> {
-    const results: Array<ReverseGeocodeResult | null> = [];
+  // Batch geocoding with rate limiting
+  async batchReverseGeocode(coordinates: Array<{latitude: number, longitude: number}>): Promise<Array<GeocodingResult | null>> {
+    const results: Array<GeocodingResult | null> = [];
     
     for (const coord of coordinates) {
       const result = await this.reverseGeocode(coord.latitude, coord.longitude);
@@ -124,7 +132,12 @@ export class ReverseGeocodingService {
     return results;
   }
 
-  static areCoordinatesSimilar(lat1: number, lon1: number, lat2: number, lon2: number, toleranceMeters: number): boolean {
+  // Check if coordinates look like they're for the same general location
+  static areCoordinatesSimilar(
+    lat1: number, lon1: number, 
+    lat2: number, lon2: number, 
+    toleranceMeters: number = 100
+  ): boolean {
     const R = 6371000; // Earth's radius in meters
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;

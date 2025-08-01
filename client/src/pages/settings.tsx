@@ -163,7 +163,7 @@ export default function SettingsPage() {
       });
     },
     onError: (error: any) => {
-      // Removed console.error('Settings update error:', error);
+      console.error('Settings update error:', error);
       toast({
         title: "Error",
         description: "Failed to update settings.",
@@ -184,7 +184,7 @@ export default function SettingsPage() {
       });
     },
     onError: (error: any) => {
-      // Removed console.error('Settings create error:', error);
+      console.error('Settings create error:', error);
       toast({
         title: "Error",
         description: "Failed to create setting.",
@@ -195,7 +195,7 @@ export default function SettingsPage() {
 
   const handleSaveNamingSettings = async () => {
     try {
-      // Removed console.log('Saving naming settings:', { selectedPattern, customPattern });
+      console.log('Saving naming settings:', { selectedPattern, customPattern });
 
       // Update or create the silver naming pattern setting
       const existingSetting = settings.find((s: Setting) => s.key === 'silver_naming_pattern');
@@ -230,9 +230,9 @@ export default function SettingsPage() {
       setOriginalPattern(selectedPattern);
       setOriginalCustomPattern(customPattern);
 
-      // Removed console.log('Settings saved successfully');
+      console.log('Settings saved successfully');
     } catch (error) {
-      // Removed console.error('Failed to save settings:', error);
+      console.error('Failed to save settings:', error);
       toast({
         title: "Error",
         description: "Failed to save settings. Please try again.",

@@ -1,79 +1,71 @@
+
 import { storage } from '../storage.js';
 import type { Photo } from '../../shared/types.js';
 
 interface SmartCollection {
   id: string;
   name: string;
-  description?: string | null;
-  isPublic?: boolean | null;
-  coverPhoto?: string | null;
-  isSmartCollection: boolean | null;
-  smartRules: CollectionRule[];
-  createdAt: Date;
-  updatedAt: Date;
+  description: string;
+  type: 'auto' | 'manual';
+  rules: CollectionRule[];
+  isActive: boolean;
+  icon: string;
+  color: string;
+  photoCount: number;
+  lastUpdated: string;
 }
 
 interface CollectionRule {
+  id: string;
   field: string;
   operator: string;
-  value: any;
+  value: string;
   weight: number;
 }
 
 interface OrganizationResult {
   organized: number;
-  collections: Array<any>; // Replace 'any' with a more specific type if available
+  collections: Array<{
+    id: string;
+    name: string;
+    photosAdded: number;
+  }>;
 }
 
 class SmartCollectionService {
   
   async organizeAllPhotos(): Promise<OrganizationResult> {
-    const collections = await storage.getCollections();
-    const activeCollections = collections.filter(c => c.isSmartCollection);
+    const collections = await storage.getSmartCollections();
+    const activeCollections = collections.filter(c => c.isActive && c.type === 'auto');
     
     if (activeCollections.length === 0) {
       return { organized: 0, collections: [] };
     }
 
     // Get all photos that could be organized
-    // Fallback: fetch a large number of recent photos as a proxy for all photos
-    let photos = await storage.getRecentPhotos(10000);
-    // Map to satisfy Photo type: ensure isReviewed is boolean and mediaAsset exists
-    photos = photos.map((p: any) => ({
-      ...p,
-      isReviewed: !!p.isReviewed,
-      rating: p.rating === null ? undefined : p.rating,
-      mediaAsset: { id: p.mediaAssetId ?? '', originalFilename: '' },
-      keywords: p.keywords === null ? undefined : p.keywords,
-      location: p.location === null ? undefined : p.location,
-      eventType: p.eventType === null ? undefined : p.eventType,
-      eventName: p.eventName === null ? undefined : p.eventName,
-      perceptualHash: p.perceptualHash === null ? undefined : p.perceptualHash,
-      createdAt: typeof p.createdAt === 'string' ? p.createdAt : (p.createdAt instanceof Date ? p.createdAt.toISOString() : '')
-    }));
+    const photos = await storage.getPhotosForSmartCollections();
     const result: OrganizationResult = { organized: 0, collections: [] };
     
     for (const collection of activeCollections) {
-      // Cast smartRules to CollectionRule[] if needed
-      const collectionWithRules = {
-        ...collection,
-        smartRules: Array.isArray(collection.smartRules) ? collection.smartRules : []
-      };
-      const matchingPhotos = await this.findMatchingPhotos(photos, collectionWithRules);
+      const matchingPhotos = await this.findMatchingPhotos(photos, collection);
       
       if (matchingPhotos.length > 0) {
-        for (const photo of matchingPhotos) {
-          await storage.addPhotoToCollection(collection.id, photo.id);
-        }
+        // Add photos to collection
+        await storage.addPhotosToSmartCollection(collection.id, matchingPhotos.map(p => p.id));
         
         result.collections.push({
+          id: collection.id,
+          name: collection.name,
+          photosAdded: matchingPhotos.length
         });
         
         result.organized += matchingPhotos.length;
       }
       
       // Update collection photo count and last updated
-      await storage.updateCollection(collection.id, {
+      await storage.updateSmartCollection(collection.id, {
+        photoCount: await storage.getSmartCollectionPhotoCount(collection.id),
+        lastUpdated: new Date().toISOString()
       });
     }
     
@@ -84,32 +76,16 @@ class SmartCollectionService {
     const photo = await storage.getFileVersion(photoId);
     if (!photo) return;
 
-    const collections = await storage.getCollections();
-    const activeCollections = collections.filter(c => c.isSmartCollection);
+    const collections = await storage.getSmartCollections();
+    const activeCollections = collections.filter(c => c.isActive && c.type === 'auto');
     
     for (const collection of activeCollections) {
-      // Ensure photo has required properties for Photo type
-      const normalizedPhoto = {
-        ...photo,
-        isReviewed: !!photo.isReviewed,
-        rating: photo.rating === null ? undefined : photo.rating,
-        mediaAsset: { id: photo.mediaAssetId ?? '', originalFilename: '' },
-        keywords: photo.keywords === null ? undefined : photo.keywords,
-        location: photo.location === null ? undefined : photo.location,
-        eventType: photo.eventType === null ? undefined : photo.eventType,
-        eventName: photo.eventName === null ? undefined : photo.eventName,
-        perceptualHash: photo.perceptualHash === null ? undefined : photo.perceptualHash,
-        createdAt: typeof photo.createdAt === 'string' ? photo.createdAt : (photo.createdAt instanceof Date ? photo.createdAt.toISOString() : '')
-      };
-      // Ensure smartRules is always an array of CollectionRule
-      const collectionWithRules = {
-        ...collection,
-        smartRules: Array.isArray(collection.smartRules) ? collection.smartRules : []
-      };
-      const isMatch = await this.isPhotoMatch(normalizedPhoto, collectionWithRules);
+      const isMatch = await this.isPhotoMatch(photo, collection);
       if (isMatch) {
-        await storage.addPhotoToCollection(collection.id, photoId);
-        await storage.updateCollection(collection.id, {
+        await storage.addPhotoToSmartCollection(collection.id, photoId);
+        await storage.updateSmartCollection(collection.id, {
+          photoCount: await storage.getSmartCollectionPhotoCount(collection.id),
+          lastUpdated: new Date().toISOString()
         });
       }
     }
@@ -119,15 +95,9 @@ class SmartCollectionService {
     const matchingPhotos: Photo[] = [];
     
     for (const photo of photos) {
-      // Ensure each photo matches the Photo type
-      const normalizedPhoto = {
-        ...photo,
-        isReviewed: !!photo.isReviewed,
-        mediaAsset: photo.mediaAsset ?? {}
-      };
-      const isMatch = await this.isPhotoMatch(normalizedPhoto, collection);
+      const isMatch = await this.isPhotoMatch(photo, collection);
       if (isMatch) {
-        matchingPhotos.push(normalizedPhoto);
+        matchingPhotos.push(photo);
       }
     }
     
@@ -141,22 +111,16 @@ class SmartCollectionService {
     // Get enhanced photo data for matching
     const photoData = await this.getEnhancedPhotoData(photo);
     
-    // Use smartRules for rule evaluation
-    const rules: CollectionRule[] = Array.isArray(collection.smartRules)
-      ? collection.smartRules
-      : [];
-    if (!rules.length) {
-      return false;
-    }
-    for (const rule of rules) {
+    for (const rule of collection.rules) {
       maxPossibleScore += rule.weight;
-
+      
       const ruleScore = this.evaluateRule(rule, photoData);
       if (ruleScore > 0) {
         totalScore += rule.weight * ruleScore;
       }
     }
     
+    // Require at least 60% confidence to include in collection
     const confidence = maxPossibleScore > 0 ? totalScore / maxPossibleScore : 0;
     return confidence >= 0.6;
   }
@@ -164,32 +128,32 @@ class SmartCollectionService {
   private evaluateRule(rule: CollectionRule, photoData: any): number {
     const { field, operator, value } = rule;
     const fieldValue = this.getFieldValue(field, photoData);
-
+    
     switch (operator) {
       case 'contains':
         if (Array.isArray(fieldValue)) {
-          return fieldValue.some(item =>
+          return fieldValue.some(item => 
             item.toLowerCase().includes(value.toLowerCase())
           ) ? 1 : 0;
         } else if (typeof fieldValue === 'string') {
           return fieldValue.toLowerCase().includes(value.toLowerCase()) ? 1 : 0;
         }
         return 0;
-
+        
       case 'equals':
         return fieldValue === value ? 1 : 0;
-
+        
       case '>=':
         const numValue = parseFloat(value);
         return typeof fieldValue === 'number' && fieldValue >= numValue ? 1 : 0;
-
+        
       case '<=':
         const maxValue = parseFloat(value);
         return typeof fieldValue === 'number' && fieldValue <= maxValue ? 1 : 0;
-
+        
       case 'time_range':
         return this.evaluateTimeRange(fieldValue, value);
-
+        
       default:
         return 0;
     }
@@ -209,6 +173,7 @@ class SmartCollectionService {
         return photoData.averageAge || 0;
       case 'metadata.time':
         return photoData.timeOfDay || '';
+      default:
         return '';
     }
   }
@@ -262,8 +227,10 @@ class SmartCollectionService {
   }
 
   private async getEnhancedPhotoData(photo: Photo): Promise<any> {
+    // Get AI tags from metadata
     const aiTags = photo.metadata?.aiTags || [];
     
+    // Get face count
     const faces = await storage.getFacesByPhoto(photo.id);
     const faceCount = faces.length;
     
@@ -286,6 +253,7 @@ class SmartCollectionService {
       }
     }
     
+    // Extract time of day from metadata
     let timeOfDay = '';
     if (photo.metadata?.exif?.dateTimeOriginal) {
       const date = new Date(photo.metadata.exif.dateTimeOriginal);
@@ -301,6 +269,8 @@ class SmartCollectionService {
       faceCount,
       averageAge,
       timeOfDay,
+      eventType: photo.eventType || '',
+      location: photo.location || ''
     };
   }
 }
