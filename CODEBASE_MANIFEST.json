@@ -1,4 +1,3 @@
-
 {
   "project": {
     "name": "Pictallion",
@@ -16,19 +15,37 @@
     "client/src/components/": {
       "role": "Reusable UI components",
       "expectedFileTypes": [".tsx"],
-      "allowedImports": ["client/src/hooks", "client/src/lib", "client/src/contexts", "shared/*"],
-      "conventions": ["PascalCase naming", "Export default component", "Props interface defined"]
+      "allowedImports": [
+        "client/src/hooks",
+        "client/src/lib",
+        "client/src/contexts",
+        "shared/*"
+      ],
+      "conventions": [
+        "PascalCase naming",
+        "Export default component",
+        "Props interface defined"
+      ]
     },
     "client/src/components/ui/": {
       "role": "Base UI component library (Shadcn/ui)",
       "expectedFileTypes": [".tsx"],
       "allowedImports": ["@radix-ui/*", "client/src/lib/utils"],
-      "conventions": ["Lower kebab-case file names", "Radix UI based", "Styled with Tailwind"]
+      "conventions": [
+        "Lower kebab-case file names",
+        "Radix UI based",
+        "Styled with Tailwind"
+      ]
     },
     "client/src/pages/": {
       "role": "Page-level route components",
       "expectedFileTypes": [".tsx"],
-      "allowedImports": ["client/src/components", "client/src/hooks", "client/src/lib", "shared/*"],
+      "allowedImports": [
+        "client/src/components",
+        "client/src/hooks",
+        "client/src/lib",
+        "shared/*"
+      ],
       "conventions": ["kebab-case file names", "Default export page component"]
     },
     "client/src/hooks/": {
@@ -47,7 +64,10 @@
       "role": "React context providers",
       "expectedFileTypes": [".tsx"],
       "allowedImports": ["client/src/hooks", "client/src/lib"],
-      "conventions": ["kebab-case-context.tsx naming", "Provider and hook exports"]
+      "conventions": [
+        "kebab-case-context.tsx naming",
+        "Provider and hook exports"
+      ]
     },
     "server/": {
       "role": "Express.js backend API server",
@@ -66,7 +86,10 @@
       "role": "Business logic and AI processing services",
       "expectedFileTypes": [".ts"],
       "allowedImports": ["server/utils", "shared/*"],
-      "conventions": ["Service classes or exported functions", "Async operations"]
+      "conventions": [
+        "Service classes or exported functions",
+        "Async operations"
+      ]
     },
     "server/utils/": {
       "role": "Server-side utilities",
@@ -186,13 +209,6 @@
       "description": "No test files found in codebase",
       "locations": ["entire project"],
       "recommendation": "Add test files alongside components and services"
-    },
-    {
-      "severity": "low",
-      "type": "organization",
-      "description": "Backup files in source tree",
-      "locations": ["client/src/components/simple-upload.tsx.backup", "vite.config.ts.backup"],
-      "recommendation": "Remove backup files or move to separate directory"
     },
     {
       "severity": "low",
