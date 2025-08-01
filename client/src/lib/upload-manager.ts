@@ -41,7 +41,8 @@ class UploadManager {
   private getProgress(): UploadProgress {
     const uploads = Array.from(this.uploads.values());
     const totalFiles = uploads.length;
-    const completedFiles = uploads.filter(f => ['success', 'error', 'skipped'].includes(f.status)).length;
+    // Include 'conflict' status in completed files since they are processed, just waiting for user action
+    const completedFiles = uploads.filter(f => ['success', 'error', 'skipped', 'conflict'].includes(f.status)).length;
     const uploadingFile = uploads.find(f => f.status === 'uploading');
     
     let overallProgress = 0;
@@ -201,6 +202,30 @@ class UploadManager {
       }
     });
     this.notify();
+  }
+
+  // Clear conflicts after resolution
+  clearResolvedConflicts() {
+    Array.from(this.uploads.entries()).forEach(([id, upload]) => {
+      if (upload.status === 'conflict') {
+        this.uploads.delete(id);
+      }
+    });
+    this.notify();
+  }
+
+  // Resolve a specific conflict
+  resolveConflict(uploadId: string, action: 'keep_existing' | 'replace_with_new' | 'keep_both') {
+    const upload = this.uploads.get(uploadId);
+    if (upload && upload.status === 'conflict') {
+      // Mark as resolved - this could trigger a backend call
+      this.uploads.set(uploadId, {
+        ...upload,
+        status: 'success',
+        message: `Resolved: ${action.replace('_', ' ')}`
+      });
+      this.notify();
+    }
   }
 
   clearAll() {
