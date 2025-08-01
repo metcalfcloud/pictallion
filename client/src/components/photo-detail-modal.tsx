@@ -630,6 +630,10 @@ export default function PhotoDetailModal({
                 onLoad={(e) => {
                   setImageWidth(e.currentTarget.offsetWidth);
                   setImageHeight(e.currentTarget.offsetHeight);
+                  console.log('Image loaded:', {
+                    displayed: { width: e.currentTarget.offsetWidth, height: e.currentTarget.offsetHeight },
+                    natural: { width: e.currentTarget.naturalWidth, height: e.currentTarget.naturalHeight }
+                  });
                 }}
                 onError={(e) => {
                   e.currentTarget.src = '/placeholder-image.svg';
@@ -651,11 +655,13 @@ export default function PhotoDetailModal({
                                       photo.metadata?.exif?.ImageHeight || 
                                       photo.metadata?.exif?.ExifImageHeight;
 
-              // If no EXIF dimensions, estimate based on face coordinates
+              // If no EXIF dimensions, try to get natural dimensions from the image element or estimate
               if (!originalImageWidth || !originalImageHeight || originalImageWidth === 1 || originalImageHeight === 1) {
-                // Estimate original dimensions based on face coordinates
-                // If face coordinates are much larger than displayed image, assume original is larger
-                if (x > imageWidth || y > imageHeight || x > 1000 || y > 1000) {
+                // Try to get natural dimensions from the loaded image
+                if (imageRef.current && imageRef.current.naturalWidth && imageRef.current.naturalHeight) {
+                  originalImageWidth = imageRef.current.naturalWidth;
+                  originalImageHeight = imageRef.current.naturalHeight;
+                } else if (x > imageWidth || y > imageHeight || x > 1000 || y > 1000) {
                   // Face coordinates suggest high resolution original
                   originalImageWidth = 3072; // Common camera width
                   originalImageHeight = 4080; // Common camera height
@@ -697,17 +703,15 @@ export default function PhotoDetailModal({
                   key={face.id}
                   className={`absolute border-4 transition-all duration-200 ${
                     isHovered 
-                      ? 'border-cyan-400 bg-cyan-400/30 shadow-lg animate-pulse' 
-                      : face.personId 
-                        ? 'border-green-400 bg-green-400/10' 
-                        : 'border-yellow-400 bg-yellow-400/10'
+                      ? 'border-cyan-400 bg-cyan-400/30 shadow-lg animate-pulse opacity-100' 
+                      : 'border-transparent bg-transparent opacity-0'
                   }`}
                   style={{
                     left: `${Math.round(x * scaleX)}px`,
                     top: `${Math.round(y * scaleY)}px`,
                     width: `${Math.round(width * scaleX)}px`,
                     height: `${Math.round(height * scaleY)}px`,
-                    zIndex: isHovered ? 10 : 5,
+                    zIndex: isHovered ? 10 : 1,
                     minWidth: '20px',
                     minHeight: '20px',
                   }}
