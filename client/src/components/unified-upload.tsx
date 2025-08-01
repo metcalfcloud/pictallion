@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, DragEvent, ChangeEvent } from 'react';
+import React, { useState, useCallback, useRef, DragEvent, ChangeEvent, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -71,6 +71,33 @@ export function UnifiedUpload({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const xhrRef = useRef<XMLHttpRequest | null>(null);
+
+  // Handle navigation warnings and cleanup
+  useEffect(() => {
+    const isUploading = uploadFiles.some(f => f.status === 'uploading');
+    
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isUploading) {
+        e.preventDefault();
+        e.returnValue = 'You have uploads in progress. Leaving this page will stop all uploads. Are you sure?';
+        return e.returnValue;
+      }
+    };
+
+    if (isUploading) {
+      window.addEventListener('beforeunload', handleBeforeUnload);
+    }
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      // Cleanup xhr if component unmounts during upload
+      if (xhrRef.current) {
+        xhrRef.current.abort();
+        xhrRef.current = null;
+      }
+    };
+  }, [uploadFiles]);
 
   // File handling
   const handleFilesSelected = useCallback((files: File[]) => {
