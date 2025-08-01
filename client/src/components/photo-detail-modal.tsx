@@ -681,6 +681,20 @@ export default function PhotoDetailModal({
                 return null;
               }
 
+              // Calculate image position within container for proper alignment
+              const imageElement = imageRef.current;
+              let imageOffsetX = 0;
+              let imageOffsetY = 0;
+              
+              if (imageElement) {
+                const containerRect = imageElement.parentElement?.getBoundingClientRect();
+                const imageRect = imageElement.getBoundingClientRect();
+                if (containerRect && imageRect) {
+                  imageOffsetX = imageRect.left - containerRect.left;
+                  imageOffsetY = imageRect.top - containerRect.top;
+                }
+              }
+
               // Debug logging for face overlay positioning
               if (isHovered) {
                 console.log('Face overlay debug:', {
@@ -697,20 +711,6 @@ export default function PhotoDetailModal({
                     height: Math.round(height * scaleY)
                   }
                 });
-              }
-
-              // Calculate image position within container for proper alignment
-              const imageElement = imageRef.current;
-              let imageOffsetX = 0;
-              let imageOffsetY = 0;
-              
-              if (imageElement) {
-                const containerRect = imageElement.parentElement?.getBoundingClientRect();
-                const imageRect = imageElement.getBoundingClientRect();
-                if (containerRect && imageRect) {
-                  imageOffsetX = imageRect.left - containerRect.left;
-                  imageOffsetY = imageRect.top - containerRect.top;
-                }
               }
 
               return (
