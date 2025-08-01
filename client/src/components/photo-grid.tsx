@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Heart, Bot, Eye, Star, MoreVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
-
+import { OptimizedImage } from "@/components/optimized-image";
 
 import type { Photo } from "@shared/types";
 
@@ -122,10 +122,12 @@ export default function PhotoGrid({
                   className="w-32 h-32 cursor-pointer"
                   onClick={() => onPhotoClick(photo)}
                 >
-                  <img 
+                  <OptimizedImage 
                     src={`/api/files/${photo.filePath}`}
                     alt={photo.mediaAsset.originalFilename}
                     className="w-full h-full object-cover"
+                    quality="thumb"
+                    onClick={() => onPhotoClick(photo)}
                   />
                 </div>
                 <div className="flex-1 p-4">
@@ -240,11 +242,13 @@ export default function PhotoGrid({
               photo.tier === 'silver' && "bg-slate-500", 
               photo.tier === 'gold' && "bg-yellow-500"
             )}>
-              <div className="bg-gray-200 rounded-sm overflow-hidden w-full h-full">
-                <img 
+              <div className="bg-gray-200 rounded-sm overflow-hidden w-full h-full relative">
+                <OptimizedImage 
                   src={`/api/files/${photo.filePath}`}
                   alt={photo.mediaAsset.originalFilename}
                   className="w-full h-full object-cover"
+                  quality="thumb"
+                  onClick={() => onPhotoClick(photo)}
                 />
                 <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-200" />
               </div>

@@ -13,6 +13,8 @@ import PhotoDetailModal from "@/components/photo-detail-modal";
 import { AdvancedSearch } from "@/components/advanced-search";
 import BatchOperations from "@/components/batch-operations";
 import SmartCollections from "@/components/smart-collections";
+import { Pagination } from "@/components/pagination";
+import { usePagination } from "@/hooks/use-pagination";
 import { ProcessingStateBadge, getProcessingState } from "@/components/ui/processing-state-badge";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -211,6 +213,12 @@ export default function Gallery() {
 
     return true;
   }) || [];
+
+  // Add pagination for better performance with large photo collections
+  const pagination = usePagination({
+    data: filteredPhotos,
+    itemsPerPage: 50 // Show 50 photos per page
+  });
 
   const handleProcessPhoto = (photoId: string) => {
     processPhotoMutation.mutate(photoId);
@@ -448,7 +456,7 @@ export default function Gallery() {
         {/* Results Summary */}
         <div className="mb-6">
           <p className="text-sm text-muted-foreground">
-            Showing {filteredPhotos.length} photos
+            Showing {pagination.currentItems.length} of {filteredPhotos.length} photos
             {tierFilter !== 'all' && ` in ${tierFilter} tier`}
             {searchQuery && ` matching "${searchQuery}"`}
           </p>
@@ -462,21 +470,33 @@ export default function Gallery() {
             ))}
           </div>
         ) : filteredPhotos.length > 0 ? (
-          <PhotoGrid 
-            photos={filteredPhotos}
-            viewMode={viewMode}
-            onPhotoClick={setSelectedPhoto}
-            onProcessPhoto={handleProcessPhoto}
-            isProcessing={processPhotoMutation.isPending || bulkProcessMutation.isPending || bulkPromoteMutation.isPending}
-            selectedPhotos={selectedPhotos}
-            onPhotoSelect={(photoId, selected) => {
-              if (selected) {
-                setSelectedPhotos(prev => [...prev, photoId]);
-              } else {
-                setSelectedPhotos(prev => prev.filter(id => id !== photoId));
-              }
-            }}
-          />
+          <div className="space-y-6">
+            <PhotoGrid 
+              photos={pagination.currentItems}
+              viewMode={viewMode}
+              onPhotoClick={setSelectedPhoto}
+              onProcessPhoto={handleProcessPhoto}
+              isProcessing={processPhotoMutation.isPending || bulkProcessMutation.isPending || bulkPromoteMutation.isPending}
+              selectedPhotos={selectedPhotos}
+              onPhotoSelect={(photoId, selected) => {
+                if (selected) {
+                  setSelectedPhotos(prev => [...prev, photoId]);
+                } else {
+                  setSelectedPhotos(prev => prev.filter(id => id !== photoId));
+                }
+              }}
+            />
+            
+            {/* Pagination */}
+            <Pagination
+              currentPage={pagination.currentPage}
+              totalPages={pagination.totalPages}
+              onPageChange={pagination.goToPage}
+              startIndex={pagination.startIndex}
+              endIndex={pagination.endIndex}
+              totalItems={pagination.totalItems}
+            />
+          </div>
         ) : (
           <Card>
             <CardContent className="p-12 text-center">

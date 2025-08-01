@@ -20,6 +20,7 @@ import { db } from "./db";
 import { promptManager } from "./services/promptManager";
 import locationRoutes from "./routes/locations";
 import { logger } from "./utils/logger";
+import { thumbnailService } from "./services/thumbnailService";
 
 // Helper function to calculate bounding box overlap (Intersection over Union)
 function calculateBoundingBoxOverlap(
@@ -227,16 +228,68 @@ const upload = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Initialize prompt manager first
-  await promptManager.initialize();
+  // Initialize services
+  await Promise.all([
+    promptManager.initialize(),
+    fileManager.initializeDirectories()
+  ]);
 
-  // Serve uploaded files  
+  // Serve uploaded files with thumbnail support
+  app.get("/api/files/media/:tier/:date/:filename", async (req, res) => {
+    try {
+      const { tier, date, filename } = req.params;
+      const { quality, w, h } = req.query as { quality?: string; w?: string; h?: string };
+      
+      const filePath = `${tier}/${date}/${filename}`;
+      const fullPath = path.join(process.cwd(), 'data', 'media', filePath);
+
+      // Security check to prevent directory traversal
+      if (!fullPath.startsWith(path.join(process.cwd(), 'data'))) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      // Check if file exists
+      try {
+        await fs.access(fullPath);
+      } catch {
+        return res.status(404).json({ message: "File not found" });
+      }
+
+      // Handle thumbnail requests
+      if (quality && quality !== 'full') {
+        try {
+          const thumbnailOptions = thumbnailService.getQualityPreset(quality as any);
+          
+          // Override with custom dimensions if provided
+          if (w) thumbnailOptions.width = parseInt(w);
+          if (h) thumbnailOptions.height = parseInt(h);
+
+          const thumbnailPath = await thumbnailService.getThumbnail(fullPath, thumbnailOptions);
+          
+          if (thumbnailPath) {
+            // Set appropriate headers for caching
+            res.setHeader('Cache-Control', 'public, max-age=604800'); // 1 week
+            res.setHeader('Content-Type', 'image/jpeg');
+            return res.sendFile(thumbnailPath);
+          }
+        } catch (error) {
+          console.warn('Thumbnail generation failed, falling back to original:', error);
+        }
+      }
+
+      // Serve original file
+      res.setHeader('Cache-Control', 'public, max-age=86400'); // 1 day for originals
+      res.sendFile(fullPath);
+    } catch (error) {
+      console.error("Error serving file:", error);
+      res.status(500).json({ message: "Failed to serve file" });
+    }
+  });
+
+  // Serve static files fallback
   app.use("/api/files", express.static(path.join(process.cwd(), "data")));
   // Serve temporary files (face crops)  
   app.use("/api/files/temp", express.static(path.join(process.cwd(), "uploads", "temp")));
-
-  // Ensure upload directories exist
-  await fileManager.initializeDirectories();
 
   // Get collection statistics
   app.get("/api/stats", async (req, res) => {
@@ -822,49 +875,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Route for file serving with query parameters and security checks
-  app.get("/api/files/media/:tier/:date/:filename", async (req, res) => {
-    try {
-      const { tier, date, filename } = req.params;
-      const filePath = `${tier}/${date}/${filename}`;
-      const fullPath = path.join(process.cwd(), 'data', 'media', filePath);
 
-      // Security check to prevent directory traversal
-      if (!fullPath.startsWith(path.join(process.cwd(), 'data'))) {
-        return res.status(403).json({ message: "Access denied" });
-      }
-
-      // Check if file exists
-      try {
-        await fs.access(fullPath);
-
-        // Check if this is a face crop request
-        if (req.query.crop && req.query.face === 'true') {
-          const cropParams = (req.query.crop as string).split(',').map(Number);
-          if (cropParams.length === 4) {
-            // For now, return the full image with crop parameters in header
-            // In a real implementation, you would crop the image server-side
-            res.setHeader('X-Face-Crop', req.query.crop as string);
-            res.setHeader('Content-Type', 'image/jpeg');
-          }
-        }
-
-        // Check if this is a download request
-        if (req.query.download === 'true') {
-          const filename = path.basename(fullPath);
-          res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-          res.setHeader('Content-Type', 'application/octet-stream');
-        }
-
-        res.sendFile(fullPath);
-      } catch {
-        res.status(404).json({ message: "File not found" });
-      }
-    } catch (error) {
-      console.error("Error serving file:", error);
-      res.status(500).json({ message: "Failed to serve file" });
-    }
-  });
 
   // AI Configuration Routes
   app.get("/api/ai/config", async (req, res) => {
