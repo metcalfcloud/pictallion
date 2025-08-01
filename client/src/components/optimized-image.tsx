@@ -1,5 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
-import { useLazyImage } from '@/hooks/use-lazy-image';
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
 interface OptimizedImageProps {
@@ -16,9 +15,9 @@ interface OptimizedImageProps {
 }
 
 const THUMBNAIL_SIZES = {
-  small: 200,
-  medium: 400,
-  large: 800
+  small: 150,
+  medium: 250,
+  large: 400
 } as const;
 
 const QUALITY_VALUES = {
@@ -36,12 +35,10 @@ export function OptimizedImage({
   aspectRatio = 'auto',
   onLoad,
   onError,
-  loading = 'lazy',
-  placeholder = true
+  loading = 'eager',
+  placeholder = false // Disable placeholder for instant loading
 }: OptimizedImageProps) {
   const [imageError, setImageError] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const imgRef = useRef<HTMLImageElement>(null);
 
   // Generate optimized image URL
   const getOptimizedSrc = (originalSrc: string) => {
@@ -54,7 +51,7 @@ export function OptimizedImage({
       // Add thumbnail parameters to existing API route
       try {
         const url = new URL(originalSrc, window.location.origin);
-        url.searchParams.set('quality', quality);
+        url.searchParams.set('quality', 'low'); // Force low quality for speed
         url.searchParams.set('w', size.toString());
         url.searchParams.set('h', size.toString());
         return url.pathname + url.search;
@@ -67,46 +64,6 @@ export function OptimizedImage({
   };
 
   const optimizedSrc = getOptimizedSrc(src);
-  
-  const {
-    ref: lazyRef,
-    isLoaded: lazyIsLoaded,
-    isInView,
-    imageSrc
-  } = useLazyImage({ 
-    src: loading === 'lazy' ? optimizedSrc : '', 
-    threshold: 0.1 
-  });
-
-  const shouldLoadEagerly = loading === 'eager';
-  const finalImageSrc = shouldLoadEagerly ? optimizedSrc : imageSrc;
-
-  useEffect(() => {
-    if (finalImageSrc && imgRef.current) {
-      const img = imgRef.current;
-      
-      const handleLoad = () => {
-        setIsLoading(false);
-        onLoad?.();
-      };
-      
-      const handleError = () => {
-        setImageError(true);
-        setIsLoading(false);
-        onError?.();
-      };
-
-      img.addEventListener('load', handleLoad);
-      img.addEventListener('error', handleError);
-
-      return () => {
-        img.removeEventListener('load', handleLoad);
-        img.removeEventListener('error', handleError);
-      };
-    }
-  }, [finalImageSrc, onLoad, onError]);
-
-
 
   if (imageError) {
     return (
@@ -123,42 +80,26 @@ export function OptimizedImage({
   }
 
   return (
-    <div 
-      ref={loading === 'lazy' ? lazyRef : undefined}
-      className={cn(
-        "relative overflow-hidden",
-        aspectRatio === 'square' && "aspect-square",
-        className
-      )}
-    >
-      {/* Placeholder */}
-      {placeholder && (isLoading || (loading === 'lazy' && !isInView)) && (
-        <div className={cn(
-          "absolute inset-0 bg-muted animate-pulse",
+    <div className={cn(
+      "relative overflow-hidden bg-muted",
+      aspectRatio === 'square' && "aspect-square",
+      className
+    )}>
+      <img
+        src={optimizedSrc}
+        alt={alt}
+        className={cn(
+          "w-full h-full object-cover",
           aspectRatio === 'square' && "aspect-square"
-        )} />
-      )}
-
-      {/* Main optimized image */}
-      {finalImageSrc && (shouldLoadEagerly || (loading === 'lazy' && isInView)) && (
-        <img
-          ref={imgRef}
-          src={finalImageSrc}
-          alt={alt}
-          className={cn(
-            "w-full h-full object-cover transition-opacity duration-200",
-            aspectRatio === 'square' && "aspect-square",
-            isLoading && "opacity-0"
-          )}
-        />
-      )}
-
-      {/* Loading indicator */}
-      {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-        </div>
-      )}
+        )}
+        onLoad={onLoad}
+        onError={() => {
+          setImageError(true);
+          onError?.();
+        }}
+        decoding="async"
+        loading="eager"
+      />
     </div>
   );
 }

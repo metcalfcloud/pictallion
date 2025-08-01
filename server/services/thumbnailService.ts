@@ -52,16 +52,14 @@ export class ThumbnailService {
         let sharpInstance = sharp(originalPath)
           .resize(size, size, {
             fit: 'cover',
-            position: 'center'
-          });
-
-        if (format === 'jpeg') {
-          sharpInstance = sharpInstance.jpeg({ quality });
-        } else if (format === 'webp') {
-          sharpInstance = sharpInstance.webp({ quality });
-        } else if (format === 'png') {
-          sharpInstance = sharpInstance.png({ quality });
-        }
+            position: 'center',
+            kernel: sharp.kernel.nearest // Faster resizing
+          })
+          .jpeg({ 
+            quality, 
+            progressive: false, // Faster loading
+            mozjpeg: true // Better compression
+          })
 
         await sharpInstance.toFile(cachePath);
         return cachePath;
