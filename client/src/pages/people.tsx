@@ -106,6 +106,33 @@ export default function PeoplePage() {
     enabled: viewMode === 'faces' || isSelectThumbnailOpen,
   });
 
+  // Get grouped faces for improved organization
+  const { data: groupedFaces, isLoading: groupedFacesLoading } = useQuery<{
+    assignedGroups: Array<{
+      type: 'person';
+      personId: string;
+      personName: string;
+      faces: Face[];
+    }>;
+    unassignedGroups: Array<{
+      type: 'similarity' | 'single';
+      groupId: string;
+      groupName: string;
+      faces: Face[];
+      avgConfidence: number;
+    }>;
+    totalFaces: number;
+    assignedCount: number;
+    unassignedCount: number;
+  }>({
+    queryKey: ["/api/faces/grouped"],
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    gcTime: 300000,
+    enabled: viewMode === 'faces',
+  });
+
   const { data: personPhotos = [], isLoading: personPhotosLoading } = useQuery<any[]>({
     queryKey: ["/api/people", selectedPerson, "photos"],
     enabled: !!selectedPerson,
@@ -189,6 +216,7 @@ export default function PeoplePage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/faces"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/faces/grouped"] });
       queryClient.invalidateQueries({ queryKey: ["/api/people"] });
       setSelectedFaces([]);
       toast({ title: "Faces assigned successfully" });
@@ -386,7 +414,7 @@ export default function PeoplePage() {
 
         {/* Face Suggestions View */}
         {viewMode === 'suggestions' && (
-          <FaceSuggestions />
+          <FaceSuggestions isOpen={true} />
         )}
 
         {/* Ignored Faces View */}
@@ -560,14 +588,14 @@ export default function PeoplePage() {
 
         {/* Faces View */}
         {viewMode === 'faces' && (
-          <div className="space-y-4">
-            {facesLoading ? (
+          <div className="space-y-6">
+            {groupedFacesLoading ? (
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                 {Array.from({ length: 24 }).map((_, i) => (
                   <div key={i} className="w-32 h-32 bg-muted rounded animate-pulse"></div>
                 ))}
               </div>
-            ) : filteredFaces.length > 0 ? (
+            ) : groupedFaces ? (
               <>
                 {selectedFaces.length > 0 && (
                   <div className="flex items-center justify-between bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
@@ -579,7 +607,7 @@ export default function PeoplePage() {
                         Clear Selection
                       </Button>
                       <Button size="sm" onClick={() => {
-                        setAssignFacesSearchQuery(''); // Clear search when opening dialog
+                        setAssignFacesSearchQuery('');
                         setIsMergeFacesOpen(true);
                       }}>
                         <Merge className="w-4 h-4 mr-2" />
@@ -589,50 +617,168 @@ export default function PeoplePage() {
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                  {filteredFaces.map((face) => (
-                    <div
-                      key={face.id}
-                      className={`relative group cursor-pointer ${
-                        selectedFaces.includes(face.id) ? 'ring-2 ring-blue-500' : ''
-                      }`}
-                      onClick={() => handleFaceSelection(face.id)}
-                    >
-                      <div className="w-32 h-32 bg-muted rounded overflow-hidden">
-                        {face.faceCropUrl ? (
-                          <img
-                            src={`/api/files/${face.faceCropUrl}`}
-                            alt="Face crop"
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              // Fallback to user icon if image fails to load
-                              e.currentTarget.style.display = 'none';
-                              e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                            }}
-                          />
-                        ) : null}
-                        <div className={`w-full h-full flex items-center justify-center ${face.faceCropUrl ? 'hidden' : ''}`}>
-                          <User className="w-8 h-8 text-gray-400" />
-                        </div>
-                      </div>
-
-                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all rounded"></div>
-
-                      {/* Selection indicator in top-right corner */}
-                      <div className="absolute top-2 right-2">
-                        {selectedFaces.includes(face.id) ? (
-                          <CheckSquare className="w-5 h-5 text-blue-500 bg-white rounded shadow-sm" />
-                        ) : (
-                          <Square className="w-5 h-5 text-white opacity-0 group-hover:opacity-100 bg-black bg-opacity-50 rounded" />
-                        )}
-                      </div>
-
-                      {face.personId && (
-                        <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
-                      )}
-                    </div>
-                  ))}
+                {/* Stats */}
+                <div className="flex gap-4 text-sm text-muted-foreground">
+                  <span>Total: {groupedFaces.totalFaces} faces</span>
+                  <span>Assigned: {groupedFaces.assignedCount}</span>
+                  <span>Unassigned: {groupedFaces.unassignedCount}</span>
                 </div>
+
+                {/* Assigned Groups (People) */}
+                {groupedFaces.assignedGroups.length > 0 && (
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold flex items-center gap-2">
+                      <Users className="w-5 h-5" />
+                      Assigned to People
+                    </h3>
+                    {groupedFaces.assignedGroups.map((group) => (
+                      <Card key={group.personId} className="p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="font-medium text-base">{group.personName}</h4>
+                          <Badge variant="secondary">{group.faces.length} faces</Badge>
+                        </div>
+                        <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
+                          {group.faces.map((face) => (
+                            <div
+                              key={face.id}
+                              className={`relative group cursor-pointer ${
+                                selectedFaces.includes(face.id) ? 'ring-2 ring-blue-500' : ''
+                              }`}
+                              onClick={() => handleFaceSelection(face.id)}
+                            >
+                              <div className="w-20 h-20 bg-muted rounded overflow-hidden">
+                                {face.faceCropUrl ? (
+                                  <img
+                                    src={`/api/files/${face.faceCropUrl}`}
+                                    alt="Face crop"
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = 'none';
+                                      e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                                    }}
+                                  />
+                                ) : null}
+                                <div className={`w-full h-full flex items-center justify-center ${face.faceCropUrl ? 'hidden' : ''}`}>
+                                  <User className="w-4 h-4 text-gray-400" />
+                                </div>
+                              </div>
+
+                              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all rounded"></div>
+
+                              {/* Selection indicator */}
+                              <div className="absolute top-1 right-1">
+                                {selectedFaces.includes(face.id) ? (
+                                  <CheckSquare className="w-4 h-4 text-blue-500 bg-white rounded shadow-sm" />
+                                ) : (
+                                  <Square className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 bg-black bg-opacity-50 rounded" />
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+
+                {/* Unassigned Groups */}
+                {groupedFaces.unassignedGroups.length > 0 && (
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold flex items-center gap-2">
+                      <Sparkles className="w-5 h-5" />
+                      Unassigned Faces
+                    </h3>
+                    {groupedFaces.unassignedGroups.map((group) => (
+                      <Card key={group.groupId} className="p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-medium text-base">{group.groupName}</h4>
+                            {group.type === 'similarity' && group.avgConfidence > 0 && (
+                              <Badge variant="outline">{group.avgConfidence}% similar</Badge>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="secondary">{group.faces.length} faces</Badge>
+                            {group.faces.length > 1 && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  // Select all faces in this group
+                                  const groupFaceIds = group.faces.map(f => f.id);
+                                  setSelectedFaces(prev => {
+                                    const allSelected = groupFaceIds.every(id => prev.includes(id));
+                                    if (allSelected) {
+                                      // Deselect all if all are selected
+                                      return prev.filter(id => !groupFaceIds.includes(id));
+                                    } else {
+                                      // Select all that aren't selected
+                                      const newSelections = groupFaceIds.filter(id => !prev.includes(id));
+                                      return [...prev, ...newSelections];
+                                    }
+                                  });
+                                }}
+                              >
+                                {group.faces.every(f => selectedFaces.includes(f.id)) ? 'Deselect All' : 'Select All'}
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
+                          {group.faces.map((face) => (
+                            <div
+                              key={face.id}
+                              className={`relative group cursor-pointer ${
+                                selectedFaces.includes(face.id) ? 'ring-2 ring-blue-500' : ''
+                              }`}
+                              onClick={() => handleFaceSelection(face.id)}
+                            >
+                              <div className="w-20 h-20 bg-muted rounded overflow-hidden">
+                                {face.faceCropUrl ? (
+                                  <img
+                                    src={`/api/files/${face.faceCropUrl}`}
+                                    alt="Face crop"
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = 'none';
+                                      e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                                    }}
+                                  />
+                                ) : null}
+                                <div className={`w-full h-full flex items-center justify-center ${face.faceCropUrl ? 'hidden' : ''}`}>
+                                  <User className="w-4 h-4 text-gray-400" />
+                                </div>
+                              </div>
+
+                              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all rounded"></div>
+
+                              {/* Selection indicator */}
+                              <div className="absolute top-1 right-1">
+                                {selectedFaces.includes(face.id) ? (
+                                  <CheckSquare className="w-4 h-4 text-blue-500 bg-white rounded shadow-sm" />
+                                ) : (
+                                  <Square className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 bg-black bg-opacity-50 rounded" />
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+
+                {groupedFaces.assignedGroups.length === 0 && groupedFaces.unassignedGroups.length === 0 && (
+                  <Card>
+                    <CardContent className="p-12 text-center">
+                      <Image className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-card-foreground dark:text-white mb-2">No faces found</h3>
+                      <p className="text-muted-foreground mb-4">
+                        Upload photos with people to see detected faces
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
               </>
             ) : (
               <Card>
@@ -640,7 +786,7 @@ export default function PeoplePage() {
                   <Image className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold text-card-foreground dark:text-white mb-2">No faces found</h3>
                   <p className="text-muted-foreground mb-4">
-                    {filterUnassigned ? 'All faces have been assigned to people' : 'Upload photos with people to see detected faces'}
+                    Upload photos with people to see detected faces
                   </p>
                 </CardContent>
               </Card>

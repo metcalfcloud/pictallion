@@ -1465,6 +1465,128 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get grouped faces for better organization
+  app.get("/api/faces/grouped", async (req, res) => {
+    try {
+      const allFaces = await storage.getAllFaces();
+      const people = await storage.getPeople();
+      
+      // Add photo information and face crop URL to each face
+      const facesWithPhotos = await Promise.all(
+        allFaces.map(async (face) => {
+          const photo = await storage.getFileVersion(face.photoId);
+          if (photo) {
+            const asset = await storage.getMediaAsset(photo.mediaAssetId);
+            
+            // Generate face crop URL
+            let faceCropUrl: string;
+            try {
+              faceCropUrl = await faceDetectionService.generateFaceCrop(photo.filePath, face.boundingBox as [number, number, number, number]);
+            } catch (error) {
+              console.error('Failed to generate face crop:', error);
+              faceCropUrl = photo.filePath; // Fallback to full image
+            }
+
+            return {
+              ...face,
+              faceCropUrl,
+              photo: {
+                ...photo,
+                mediaAsset: asset
+              }
+            };
+          }
+          return face;
+        })
+      );
+
+      // Separate assigned and unassigned faces
+      const assignedFaces = facesWithPhotos.filter(face => face.personId && !face.ignored);
+      const unassignedFaces = facesWithPhotos.filter(face => !face.personId && !face.ignored);
+
+      // Group assigned faces by person
+      const assignedGroups = new Map();
+      for (const face of assignedFaces) {
+        const personId = face.personId!;
+        if (!assignedGroups.has(personId)) {
+          const person = people.find(p => p.id === personId);
+          assignedGroups.set(personId, {
+            type: 'person',
+            personId,
+            personName: person?.name || 'Unknown',
+            faces: []
+          });
+        }
+        assignedGroups.get(personId).faces.push(face);
+      }
+
+      // Group unassigned faces by similarity
+      const unassignedGroups = [];
+      const processedFaceIds = new Set();
+
+      for (const face of unassignedFaces) {
+        if (processedFaceIds.has(face.id) || !face.embedding || !Array.isArray(face.embedding)) {
+          continue;
+        }
+
+        // Find similar faces using a higher threshold for grouping (0.85)
+        const similarFaces = await faceDetectionService.findSimilarFaces(face.embedding, 0.85);
+        
+        // Filter to only include unassigned faces from our current list
+        const similarUnassignedFaces = similarFaces.filter(sf => 
+          unassignedFaces.some(uf => uf.id === sf.id) && 
+          !processedFaceIds.has(sf.id)
+        );
+
+        // Create a group with the current face and its similar faces
+        const groupFaces = [face];
+        processedFaceIds.add(face.id);
+
+        for (const similar of similarUnassignedFaces) {
+          const similarFace = unassignedFaces.find(uf => uf.id === similar.id);
+          if (similarFace && !processedFaceIds.has(similarFace.id)) {
+            groupFaces.push(similarFace);
+            processedFaceIds.add(similarFace.id);
+          }
+        }
+
+        // Only create groups with multiple faces (2+) or single faces without matches
+        if (groupFaces.length >= 2) {
+          unassignedGroups.push({
+            type: 'similarity',
+            groupId: `similar_${face.id}`,
+            groupName: `Similar Faces (${groupFaces.length})`,
+            faces: groupFaces,
+            avgConfidence: similarUnassignedFaces.length > 0 ? 
+              Math.round(similarUnassignedFaces.reduce((sum, sf) => sum + sf.similarity, 0) / similarUnassignedFaces.length * 100) : 0
+          });
+        } else {
+          // Single faces that don't match others
+          unassignedGroups.push({
+            type: 'single',
+            groupId: `single_${face.id}`,
+            groupName: 'Unmatched Face',
+            faces: [face],
+            avgConfidence: 0
+          });
+        }
+      }
+
+      const response = {
+        assignedGroups: Array.from(assignedGroups.values()),
+        unassignedGroups,
+        totalFaces: facesWithPhotos.length,
+        assignedCount: assignedFaces.length,
+        unassignedCount: unassignedFaces.length
+      };
+
+      res.json(response);
+    } catch (error) {
+      console.error("Error fetching grouped faces:", error);
+      res.status(500).json({ message: "Failed to fetch grouped faces" });
+    }
+  });
+
   // Get ignored faces
   app.get("/api/faces/ignored", async (req, res) => {
     try {
