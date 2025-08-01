@@ -4,7 +4,7 @@
  * 
  * This script completely resets Pictallion for clean end-to-end testing:
  * - Removes all media files from bronze, silver, gold, and temp directories
- * - Truncates all database tables
+ * - Truncates all database tables (including locations, people, collections, etc.)
  * - Preserves directory structure
  * - Provides confirmation prompts for safety
  */
@@ -49,6 +49,7 @@ const TABLES_TO_TRUNCATE = [
   'file_versions',
   'collections',
   'people',
+  'locations',
   'media_assets',
   'settings'
 ];
