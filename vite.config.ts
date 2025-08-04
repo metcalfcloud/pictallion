@@ -1,9 +1,10 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import viteTsconfigPaths from 'vite-tsconfig-paths'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), viteTsconfigPaths()],
   root: 'client',
   build: {
     outDir: '../dist'
@@ -26,4 +27,17 @@ export default defineConfig({
       }
     }
   }
-})
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: [],
+    alias: {
+      "@": "/client/src",
+      "@shared": "/shared"
+    }
+    },
+    test: {
+      globals: true,
+      environment: 'jsdom'
+    }
+  })

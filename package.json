@@ -16,7 +16,7 @@
     "check": "tsc",
     "electron:dev": "electron electron/main.js",
     "electron:build": "electron-builder",
-    "test": "echo \"No tests implemented\" && exit 0"
+    "test": "vitest --coverage"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.0",
@@ -85,18 +85,25 @@
     "@replit/vite-plugin-runtime-error-modal": "^0.0.3",
     "@tailwindcss/typography": "^0.5.16",
     "@tailwindcss/vite": "^4.1.11",
+    "@testing-library/jest-dom": "^6.6.4",
+    "@testing-library/react": "^16.3.0",
     "@types/node": "^24.1.0",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@types/react-query": "^1.2.8",
     "@vitejs/plugin-react": "^4.7.0",
+    "@vitest/coverage-v8": "^3.2.4",
+    "@vitest/ui": "^3.2.4",
     "autoprefixer": "^10.4.21",
     "electron": "^37.2.4",
     "electron-builder": "^26.0.12",
+    "jsdom": "^26.1.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.8.3",
-    "vite": "^6.3.5"
+    "vite": "^6.3.5",
+    "vite-tsconfig-paths": "^5.1.4",
+    "vitest": "^3.2.4"
   },
   "optionalDependencies": {
     "@img/sharp-darwin-arm64": "^0.34.3",

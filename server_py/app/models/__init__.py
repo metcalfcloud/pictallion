@@ -5,67 +5,29 @@ Contains all SQLModel data models for database tables and API schemas.
 """
 
 # Import base classes
-from .base import UUIDMixin, TimestampMixin
-
+from .base import TimestampMixin, UUIDMixin
 # Import all database models
-from .media_asset import (
-    User,
-    MediaAsset,
-    FileVersion,
-    AssetHistory,
-    Collection,
-    CollectionPhoto,
-    Person,
-    Face,
-    Setting,
-    AIPrompt,
-    Event,
-    GlobalTagLibrary,
-    Relationship,
-    Location
-)
-
+from .media_asset import (AIPrompt, AssetHistory, Collection, CollectionPhoto,
+                          Event, Face, FileVersion, GlobalTagLibrary, Location,
+                          MediaAsset, Person, Relationship, Setting, User)
 # Import schemas and types
-from .schemas import (
-    # Enums
-    TierEnum,
-    ProcessingStateEnum,
-    EventTypeEnum,
-    RecurringTypeEnum,
-    AIProviderEnum,
-    AICategoryEnum,
-    RelationshipTypeEnum,
-    
-    # Metadata types
-    AIMetadata,
-    ExifMetadata,
-    CombinedMetadata,
-    SmartCollectionRule,
-    SmartCollectionRules,
-    
-    # Insert schemas
-    InsertUser,
-    InsertMediaAsset,
-    InsertFileVersion,
-    InsertAssetHistory,
-    InsertCollection,
-    InsertCollectionPhoto,
-    InsertPerson,
-    InsertFace,
-    InsertSetting,
-    InsertEvent,
-    InsertGlobalTagLibrary,
-    InsertRelationship,
-    InsertLocation,
-    InsertAIPrompt
-)
+from .schemas import (AICategoryEnum,  # Enums; Metadata types; Insert schemas
+                      AIMetadata, AIProviderEnum, CombinedMetadata,
+                      EventTypeEnum, ExifMetadata, InsertAIPrompt,
+                      InsertAssetHistory, InsertCollection,
+                      InsertCollectionPhoto, InsertEvent, InsertFace,
+                      InsertFileVersion, InsertGlobalTagLibrary,
+                      InsertLocation, InsertMediaAsset, InsertPerson,
+                      InsertRelationship, InsertSetting, InsertUser,
+                      ProcessingStateEnum, RecurringTypeEnum,
+                      RelationshipTypeEnum, SmartCollectionRule,
+                      SmartCollectionRules, TierEnum)
 
 # Export all models for easy importing
 __all__ = [
     # Base classes
     "UUIDMixin",
     "TimestampMixin",
-    
     # Database models
     "User",
     "MediaAsset",
@@ -81,7 +43,6 @@ __all__ = [
     "GlobalTagLibrary",
     "Relationship",
     "Location",
-    
     # Enums
     "TierEnum",
     "ProcessingStateEnum",
@@ -90,14 +51,12 @@ __all__ = [
     "AIProviderEnum",
     "AICategoryEnum",
     "RelationshipTypeEnum",
-    
     # Metadata types
     "AIMetadata",
     "ExifMetadata",
     "CombinedMetadata",
     "SmartCollectionRule",
     "SmartCollectionRules",
-    
     # Insert schemas
     "InsertUser",
     "InsertMediaAsset",
@@ -112,5 +71,5 @@ __all__ = [
     "InsertGlobalTagLibrary",
     "InsertRelationship",
     "InsertLocation",
-    "InsertAIPrompt"
+    "InsertAIPrompt",
 ]

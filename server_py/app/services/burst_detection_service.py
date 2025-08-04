@@ -6,4 +6,5 @@ class BurstDetectionService:
         # Stub method
         return []
 
+
 burst_detection_service = BurstDetectionService()

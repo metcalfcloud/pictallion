@@ -6,9 +6,10 @@ the TypeScript schema definitions.
 """
 
 from datetime import datetime
-from typing import Optional, Dict, Any, List, Union
-from pydantic import BaseModel, Field
 from enum import Enum
+from typing import Any, Dict, List, Optional, Union
+
+from pydantic import BaseModel, Field
 
 
 # Enums matching TypeScript schema
@@ -61,20 +62,32 @@ class RelationshipTypeEnum(str, Enum):
 # Metadata interfaces matching TypeScript
 class AIMetadata(BaseModel):
     """AI-generated metadata for photos."""
+
     ai_tags: List[str] = Field(default_factory=list, alias="aiTags")
     short_description: str = Field(alias="shortDescription")
     long_description: str = Field(alias="longDescription")
-    detected_objects: List[Dict[str, Any]] = Field(default_factory=list, alias="detectedObjects")
-    detected_faces: Optional[List[Dict[str, Any]]] = Field(default=None, alias="detectedFaces")
-    detected_events: Optional[List[Dict[str, Any]]] = Field(default=None, alias="detectedEvents")
+    detected_objects: List[Dict[str, Any]] = Field(
+        default_factory=list, alias="detectedObjects"
+    )
+    detected_faces: Optional[List[Dict[str, Any]]] = Field(
+        default=None, alias="detectedFaces"
+    )
+    detected_events: Optional[List[Dict[str, Any]]] = Field(
+        default=None, alias="detectedEvents"
+    )
     place_name: Optional[str] = Field(default=None, alias="placeName")
-    gps_coordinates: Optional[Dict[str, float]] = Field(default=None, alias="gpsCoordinates")
+    gps_coordinates: Optional[Dict[str, float]] = Field(
+        default=None, alias="gpsCoordinates"
+    )
     perceptual_hash: Optional[str] = Field(default=None, alias="perceptualHash")
-    ai_confidence_scores: Dict[str, float] = Field(default_factory=dict, alias="aiConfidenceScores")
+    ai_confidence_scores: Dict[str, float] = Field(
+        default_factory=dict, alias="aiConfidenceScores"
+    )
 
 
 class ExifMetadata(BaseModel):
     """EXIF metadata from photos."""
+
     camera: Optional[str] = None
     lens: Optional[str] = None
     aperture: Optional[str] = None
@@ -103,6 +116,7 @@ class ExifMetadata(BaseModel):
 
 class CombinedMetadata(BaseModel):
     """Combined EXIF and AI metadata."""
+
     exif: Optional[ExifMetadata] = None
     ai: Optional[AIMetadata] = None
 
@@ -110,6 +124,7 @@ class CombinedMetadata(BaseModel):
 # Smart Collection Rules
 class SmartCollectionRule(BaseModel):
     """Rule for smart collections."""
+
     field: str
     operator: str  # equals, contains, greater_than, less_than, between, in
     value: Any
@@ -117,6 +132,7 @@ class SmartCollectionRule(BaseModel):
 
 class SmartCollectionRules(BaseModel):
     """Rules configuration for smart collections."""
+
     rules: List[SmartCollectionRule]
     operator: str  # AND, OR
 
@@ -124,17 +140,20 @@ class SmartCollectionRules(BaseModel):
 # Insert schemas for API endpoints
 class InsertUser(BaseModel):
     """Schema for creating users."""
+
     username: str
     password: str
 
 
 class InsertMediaAsset(BaseModel):
     """Schema for creating media assets."""
+
     original_filename: str = Field(alias="originalFilename")
 
 
 class InsertFileVersion(BaseModel):
     """Schema for creating file versions."""
+
     media_asset_id: str = Field(alias="mediaAssetId")
     tier: TierEnum
     file_path: str = Field(alias="filePath")
@@ -148,12 +167,17 @@ class InsertFileVersion(BaseModel):
     event_type: Optional[str] = Field(default=None, alias="eventType")
     event_name: Optional[str] = Field(default=None, alias="eventName")
     perceptual_hash: Optional[str] = Field(default=None, alias="perceptualHash")
-    ai_short_description: Optional[str] = Field(default=None, alias="aiShortDescription")
-    processing_state: ProcessingStateEnum = Field(default=ProcessingStateEnum.PROCESSED, alias="processingState")
+    ai_short_description: Optional[str] = Field(
+        default=None, alias="aiShortDescription"
+    )
+    processing_state: ProcessingStateEnum = Field(
+        default=ProcessingStateEnum.PROCESSED, alias="processingState"
+    )
 
 
 class InsertAssetHistory(BaseModel):
     """Schema for creating asset history."""
+
     media_asset_id: str = Field(alias="mediaAssetId")
     action: str
     details: Optional[str] = None
@@ -161,32 +185,40 @@ class InsertAssetHistory(BaseModel):
 
 class InsertCollection(BaseModel):
     """Schema for creating collections."""
+
     name: str
     description: Optional[str] = None
     is_public: bool = Field(default=False, alias="isPublic")
     cover_photo: Optional[str] = Field(default=None, alias="coverPhoto")
     is_smart_collection: bool = Field(default=False, alias="isSmartCollection")
-    smart_rules: Optional[SmartCollectionRules] = Field(default=None, alias="smartRules")
+    smart_rules: Optional[SmartCollectionRules] = Field(
+        default=None, alias="smartRules"
+    )
 
 
 class InsertCollectionPhoto(BaseModel):
     """Schema for adding photos to collections."""
+
     collection_id: str = Field(alias="collectionId")
     photo_id: str = Field(alias="photoId")
 
 
 class InsertPerson(BaseModel):
     """Schema for creating people."""
+
     name: str
     notes: Optional[str] = None
     birthdate: Optional[datetime] = None
     face_count: int = Field(default=0, alias="faceCount")
     representative_face: Optional[str] = Field(default=None, alias="representativeFace")
-    selected_thumbnail_face_id: Optional[str] = Field(default=None, alias="selectedThumbnailFaceId")
+    selected_thumbnail_face_id: Optional[str] = Field(
+        default=None, alias="selectedThumbnailFaceId"
+    )
 
 
 class InsertFace(BaseModel):
     """Schema for creating faces."""
+
     photo_id: str = Field(alias="photoId")
     person_id: Optional[str] = Field(default=None, alias="personId")
     bounding_box: Dict[str, Any] = Field(alias="boundingBox")
@@ -197,6 +229,7 @@ class InsertFace(BaseModel):
 
 class InsertSetting(BaseModel):
     """Schema for creating settings."""
+
     key: str
     value: str
     category: str = Field(default="general")
@@ -205,11 +238,14 @@ class InsertSetting(BaseModel):
 
 class InsertEvent(BaseModel):
     """Schema for creating events."""
+
     name: str
     type: EventTypeEnum
     date: datetime
     is_recurring: bool = Field(default=False, alias="isRecurring")
-    recurring_type: Optional[RecurringTypeEnum] = Field(default=None, alias="recurringType")
+    recurring_type: Optional[RecurringTypeEnum] = Field(
+        default=None, alias="recurringType"
+    )
     country: Optional[str] = None
     region: Optional[str] = None
     person_id: Optional[str] = Field(default=None, alias="personId")
@@ -219,12 +255,14 @@ class InsertEvent(BaseModel):
 
 class InsertGlobalTagLibrary(BaseModel):
     """Schema for creating global tags."""
+
     tag: str
     usage_count: int = Field(default=1, alias="usageCount")
 
 
 class InsertRelationship(BaseModel):
     """Schema for creating relationships."""
+
     person1_id: str = Field(alias="person1Id")
     person2_id: str = Field(alias="person2Id")
     relationship_type: RelationshipTypeEnum = Field(alias="relationshipType")
@@ -233,6 +271,7 @@ class InsertRelationship(BaseModel):
 
 class InsertLocation(BaseModel):
     """Schema for creating locations."""
+
     name: str
     description: Optional[str] = None
     latitude: str
@@ -246,6 +285,7 @@ class InsertLocation(BaseModel):
 
 class InsertAIPrompt(BaseModel):
     """Schema for creating AI prompts."""
+
     name: str
     description: Optional[str] = None
     category: AICategoryEnum

@@ -1,6 +1,6 @@
 """
 Test Configuration and Fixtures
- 
+
 Global pytest fixtures and configuration for the Pictallion test suite.
 Provides database isolation, mock services, and test utilities.
 """
@@ -8,23 +8,24 @@ Provides database isolation, mock services, and test utilities.
 import asyncio
 import os
 import tempfile
+from pathlib import Path
+from typing import AsyncGenerator, Generator
+from unittest.mock import AsyncMock, Mock, patch
+
+import aiofiles
 import pytest
 import pytest_asyncio
-from typing import AsyncGenerator, Generator
-from unittest.mock import Mock, AsyncMock, patch
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
-from sqlmodel import SQLModel
+from app.core.config import settings
+from app.core.crud import (collection, face, file_version, media_asset, person,
+                           setting)
+from app.core.database import get_async_session
+from app.main import app
+from app.models import *
 from fastapi.testclient import TestClient
 from httpx import AsyncClient
-import aiofiles
-from pathlib import Path
-
-from app.main import app
-from app.core.config import settings
-from app.core.database import get_async_session
-from app.models import *
-from app.core.crud import media_asset, file_version, person, face, collection, setting
-
+from sqlalchemy.ext.asyncio import (AsyncSession, async_sessionmaker,
+                                    create_async_engine)
+from sqlmodel import SQLModel
 
 # Test database configuration
 TEST_DATABASE_URL = "sqlite+aiosqlite:///./test_pictallion.db"
@@ -34,7 +35,7 @@ test_engine = create_async_engine(
     TEST_DATABASE_URL,
     echo=False,
     future=True,
-    connect_args={"check_same_thread": False}
+    connect_args={"check_same_thread": False},
 )
 
 TestSessionLocal = async_sessionmaker(
@@ -42,7 +43,7 @@ TestSessionLocal = async_sessionmaker(
     class_=AsyncSession,
     expire_on_commit=False,
     autoflush=False,
-    autocommit=False
+    autocommit=False,
 )
 
 
@@ -60,13 +61,13 @@ async def setup_test_database():
     # Create all tables
     async with test_engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
-    
+
     yield
-    
+
     # Clean up
     async with test_engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.drop_all)
-    
+
     await test_engine.dispose()
 
 
@@ -88,15 +89,25 @@ async def clean_db_session(setup_test_database) -> AsyncGenerator[AsyncSession, 
         try:
             # Clear all tables in reverse order to handle foreign keys
             tables = [
-                "relationships", "faces", "collection_photos", "collections",
-                "asset_history", "file_versions", "media_assets", "people",
-                "settings", "ai_prompts", "events", "global_tag_library",
-                "locations", "users"
+                "relationships",
+                "faces",
+                "collection_photos",
+                "collections",
+                "asset_history",
+                "file_versions",
+                "media_assets",
+                "people",
+                "settings",
+                "ai_prompts",
+                "events",
+                "global_tag_library",
+                "locations",
+                "users",
             ]
-            
+
             for table in tables:
                 await session.execute(f"DELETE FROM {table}")
-            
+
             await session.commit()
             yield session
         finally:
@@ -145,13 +156,13 @@ async def temp_media_dir(temp_dir: Path) -> Path:
     """Create temporary media directory structure."""
     media_dir = temp_dir / "media"
     bronze_dir = media_dir / "bronze"
-    silver_dir = media_dir / "silver" 
+    silver_dir = media_dir / "silver"
     gold_dir = media_dir / "gold"
-    
+
     bronze_dir.mkdir(parents=True)
     silver_dir.mkdir(parents=True)
     gold_dir.mkdir(parents=True)
-    
+
     return media_dir
 
 
@@ -159,49 +170,49 @@ async def temp_media_dir(temp_dir: Path) -> Path:
 def sample_image_path(temp_dir: Path) -> Path:
     """Create a sample test image file."""
     from PIL import Image
-    
+
     # Create a simple test image
-    image = Image.new('RGB', (100, 100), color='red')
+    image = Image.new("RGB", (100, 100), color="red")
     image_path = temp_dir / "test_image.jpg"
     image.save(image_path, "JPEG")
-    
+
     return image_path
 
 
 @pytest.fixture
 def sample_image_with_exif(temp_dir: Path) -> Path:
     """Create a sample test image with EXIF data."""
+    import piexif
     from PIL import Image
     from PIL.ExifTags import TAGS
-    import piexif
-    
+
     # Create image with EXIF data
-    image = Image.new('RGB', (200, 150), color='blue')
-    
+    image = Image.new("RGB", (200, 150), color="blue")
+
     # Create EXIF data
     exif_dict = {
         "0th": {
             piexif.ImageIFD.Make: "Test Camera",
             piexif.ImageIFD.Model: "Test Model",
-            piexif.ImageIFD.DateTime: "2024:01:01 12:00:00"
+            piexif.ImageIFD.DateTime: "2024:01:01 12:00:00",
         },
         "Exif": {
             piexif.ExifIFD.DateTimeOriginal: "2024:01:01 12:00:00",
             piexif.ExifIFD.FocalLength: (50, 1),
-            piexif.ExifIFD.FNumber: (28, 10)
+            piexif.ExifIFD.FNumber: (28, 10),
         },
         "GPS": {
             piexif.GPSIFD.GPSLatitude: ((40, 1), (45, 1), (0, 1)),
-            piexif.GPSIFD.GPSLatitudeRef: 'N',
+            piexif.GPSIFD.GPSLatitudeRef: "N",
             piexif.GPSIFD.GPSLongitude: ((73, 1), (59, 1), (0, 1)),
-            piexif.GPSIFD.GPSLongitudeRef: 'W'
-        }
+            piexif.GPSIFD.GPSLongitudeRef: "W",
+        },
     }
-    
+
     exif_bytes = piexif.dump(exif_dict)
     image_path = temp_dir / "test_image_with_exif.jpg"
     image.save(image_path, "JPEG", exif=exif_bytes)
-    
+
     return image_path
 
 
@@ -209,67 +220,75 @@ def sample_image_with_exif(temp_dir: Path) -> Path:
 @pytest.fixture
 def mock_ai_service():
     """Mock AI service for testing."""
-    with patch('app.services.ai_service.ai_service') as mock:
+    with patch("app.services.ai_service.ai_service") as mock:
         # Configure mock responses
-        mock.analyze_image = AsyncMock(return_value={
-            "tags": ["test", "photo"],
-            "description": "A test image",
-            "confidence": 95,
-            "provider": "mock"
-        })
+        mock.analyze_image = AsyncMock(
+            return_value={
+                "tags": ["test", "photo"],
+                "description": "A test image",
+                "confidence": 95,
+                "provider": "mock",
+            }
+        )
         mock.generate_tags = AsyncMock(return_value=["test", "photo", "mock"])
-        mock.health_check = AsyncMock(return_value={
-            "openai": {"available": False},
-            "ollama": {"available": False}
-        })
+        mock.health_check = AsyncMock(
+            return_value={
+                "openai": {"available": False},
+                "ollama": {"available": False},
+            }
+        )
         yield mock
 
 
 @pytest.fixture
 def mock_face_detection_service():
     """Mock face detection service for testing."""
-    with patch('app.services.face_detection_service.face_detection_service') as mock:
-        mock.detect_faces = AsyncMock(return_value=[
-            {
-                "location": {"top": 10, "left": 20, "bottom": 100, "right": 120},
-                "encoding": [0.1] * 128,  # 128-dimensional face encoding
-                "confidence": 95
-            }
-        ])
+    with patch("app.services.face_detection_service.face_detection_service") as mock:
+        mock.detect_faces = AsyncMock(
+            return_value=[
+                {
+                    "location": {"top": 10, "left": 20, "bottom": 100, "right": 120},
+                    "encoding": [0.1] * 128,  # 128-dimensional face encoding
+                    "confidence": 95,
+                }
+            ]
+        )
         mock.generate_face_encoding = AsyncMock(return_value=[0.1] * 128)
-        mock.health_check = AsyncMock(return_value={
-            "status": "healthy",
-            "model": "mock",
-            "tolerance": 0.6,
-            "library_available": True
-        })
+        mock.health_check = AsyncMock(
+            return_value={
+                "status": "healthy",
+                "model": "mock",
+                "tolerance": 0.6,
+                "library_available": True,
+            }
+        )
         yield mock
 
 
 @pytest.fixture
 def mock_file_manager_service():
     """Mock file manager service for testing."""
-    with patch('app.services.file_manager_service.file_manager_service') as mock:
+    with patch("app.services.file_manager_service.file_manager_service") as mock:
         mock.save_file = AsyncMock(return_value="/test/path/file.jpg")
         mock.delete_file = AsyncMock(return_value=True)
         mock.move_file = AsyncMock(return_value="/new/path/file.jpg")
-        mock.get_file_info = AsyncMock(return_value={
-            "size": 1024,
-            "hash": "abc123",
-            "mime_type": "image/jpeg"
-        })
+        mock.get_file_info = AsyncMock(
+            return_value={"size": 1024, "hash": "abc123", "mime_type": "image/jpeg"}
+        )
         yield mock
 
 
 @pytest.fixture
 def mock_thumbnail_service():
     """Mock thumbnail service for testing."""
-    with patch('app.services.thumbnail_service.thumbnail_service') as mock:
-        mock.generate_thumbnails = AsyncMock(return_value={
-            150: "/test/thumbnails/150.jpg",
-            300: "/test/thumbnails/300.jpg",
-            600: "/test/thumbnails/600.jpg"
-        })
+    with patch("app.services.thumbnail_service.thumbnail_service") as mock:
+        mock.generate_thumbnails = AsyncMock(
+            return_value={
+                150: "/test/thumbnails/150.jpg",
+                300: "/test/thumbnails/300.jpg",
+                600: "/test/thumbnails/600.jpg",
+            }
+        )
         mock.get_thumbnail_path = AsyncMock(return_value="/test/thumbnails/300.jpg")
         yield mock
 
@@ -277,19 +296,18 @@ def mock_thumbnail_service():
 @pytest.fixture
 def mock_metadata_service():
     """Mock metadata service for testing."""
-    with patch('app.services.metadata_service.metadata_service') as mock:
-        mock.extract_metadata = AsyncMock(return_value={
-            "exif": {
-                "camera": "Test Camera",
-                "date_taken": "2024-01-01T12:00:00",
-                "gps_latitude": 40.75,
-                "gps_longitude": -73.98
-            },
-            "ai": {
-                "tags": ["test", "photo"],
-                "description": "A test image"
+    with patch("app.services.metadata_service.metadata_service") as mock:
+        mock.extract_metadata = AsyncMock(
+            return_value={
+                "exif": {
+                    "camera": "Test Camera",
+                    "date_taken": "2024-01-01T12:00:00",
+                    "gps_latitude": 40.75,
+                    "gps_longitude": -73.98,
+                },
+                "ai": {"tags": ["test", "photo"], "description": "A test image"},
             }
-        })
+        )
         yield mock
 
 
@@ -297,31 +315,31 @@ def mock_metadata_service():
 @pytest.fixture
 def user_factory():
     """Factory for creating test users."""
+
     def _create_user(**kwargs):
-        defaults = {
-            "username": "testuser",
-            "password": "testpass"
-        }
+        defaults = {"username": "testuser", "password": "testpass"}
         defaults.update(kwargs)
         return User(**defaults)
+
     return _create_user
 
 
 @pytest.fixture
 def media_asset_factory():
     """Factory for creating test media assets."""
+
     def _create_media_asset(**kwargs):
-        defaults = {
-            "original_filename": "test_photo.jpg"
-        }
+        defaults = {"original_filename": "test_photo.jpg"}
         defaults.update(kwargs)
         return MediaAsset(**defaults)
+
     return _create_media_asset
 
 
 @pytest.fixture
 def file_version_factory():
     """Factory for creating test file versions."""
+
     def _create_file_version(**kwargs):
         defaults = {
             "tier": "silver",
@@ -331,52 +349,56 @@ def file_version_factory():
             "mime_type": "image/jpeg",
             "rating": 0,
             "keywords": [],
-            "processing_state": "processed"
+            "processing_state": "processed",
         }
         defaults.update(kwargs)
         return FileVersion(**defaults)
+
     return _create_file_version
 
 
 @pytest.fixture
 def person_factory():
     """Factory for creating test people."""
+
     def _create_person(**kwargs):
-        defaults = {
-            "name": "Test Person",
-            "face_count": 0
-        }
+        defaults = {"name": "Test Person", "face_count": 0}
         defaults.update(kwargs)
         return Person(**defaults)
+
     return _create_person
 
 
 @pytest.fixture
 def face_factory():
     """Factory for creating test faces."""
+
     def _create_face(**kwargs):
         defaults = {
             "bounding_box": {"top": 10, "left": 20, "bottom": 100, "right": 120},
             "confidence": 95,
-            "ignored": False
+            "ignored": False,
         }
         defaults.update(kwargs)
         return Face(**defaults)
+
     return _create_face
 
 
 @pytest.fixture
 def collection_factory():
     """Factory for creating test collections."""
+
     def _create_collection(**kwargs):
         defaults = {
             "name": "Test Collection",
             "description": "A test collection",
             "is_public": False,
-            "is_smart_collection": False
+            "is_smart_collection": False,
         }
         defaults.update(kwargs)
         return Collection(**defaults)
+
     return _create_collection
 
 
@@ -384,12 +406,7 @@ def collection_factory():
 @pytest.fixture
 def benchmark_config():
     """Configuration for benchmark tests."""
-    return {
-        "min_rounds": 5,
-        "max_time": 10.0,
-        "warmup": True,
-        "warmup_iterations": 2
-    }
+    return {"min_rounds": 5, "max_time": 10.0, "warmup": True, "warmup_iterations": 2}
 
 
 # Test environment cleanup
@@ -397,7 +414,7 @@ def benchmark_config():
 def cleanup_test_files():
     """Automatically cleanup test files after each test."""
     yield
-    
+
     # Cleanup test database file
     test_db_path = "./test_pictallion.db"
     if os.path.exists(test_db_path):

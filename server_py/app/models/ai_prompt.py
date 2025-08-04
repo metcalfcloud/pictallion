@@ -1,5 +1,7 @@
 from typing import Optional
+
 from pydantic import BaseModel
+
 
 class AIPrompt(BaseModel):
     id: str
@@ -14,6 +16,7 @@ class AIPrompt(BaseModel):
     created_at: str
     updated_at: str
 
+
 class AIPromptCreate(BaseModel):
     name: str
     description: Optional[str]
@@ -23,6 +26,7 @@ class AIPromptCreate(BaseModel):
     user_prompt: str
     is_default: bool = False
     is_active: bool = True
+
 
 class AIPromptUpdate(BaseModel):
     name: Optional[str] = None
