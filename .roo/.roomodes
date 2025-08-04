@@ -1,0 +1,40 @@
+customModes:
+  - slug: code-implementer
+    name: Code Implementer
+    description: Turns feature specs into production‑ready code & unit tests.
+    roleDefinition: See .roo/rules-code-implementer/01_role.md
+    whenToUse: Any task that requires writing or refactoring code.
+    groups:
+      - read
+      - edit
+      - command     # run scripts / just targets
+      - mcp         # allowed to call MCP tools
+  - slug: qa-engineer
+    name: QA Engineer
+    description: Designs and executes test strategies, raises defects.
+    roleDefinition: See .roo/rules-qa-engineer/01_role.md
+    groups:
+      - read
+      - ["edit", {fileRegex: "\\.(test|spec)\\.(py|ts|tsx)$"}]
+      - command
+      - mcp
+  - slug: security-analyst
+    name: Security Analyst
+    description: Performs security reviews and hardens code.
+    groups: [read, edit, command, mcp]
+  - slug: doc-writer
+    name: Documentation Writer
+    description: Maintains Markdown docs and diagrams.
+    groups: [read, ["edit", {fileRegex: "\\.(md|mdx)$"}]]
+  - slug: devops
+    name: DevOps Engineer
+    description: Owns CI/CD, Docker, infra scripts.
+    groups: [read, edit, command]
+  - slug: telemetry
+    name: Telemetry Engineer
+    description: Adds observability & metrics.
+    groups: [read, edit, command]
+  - slug: orchestrator
+    name: Orchestrator
+    description: Delegates complex tasks to specialised modes.
+    groups: [read, mcp]

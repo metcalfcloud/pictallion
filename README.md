@@ -1,8 +1,93 @@
 # Pictallion - AI-Powered Photo Management
 
+---
+
+## 🐍 Python FastAPI Backend
+
+Pictallion now uses a robust Python backend built with FastAPI, replacing the legacy TypeScript/Node.js backend. All core services, database layers, and API routes have been systematically converted and tested for full compatibility.
+
+- **Backend:** Python 3.11+, FastAPI, SQLModel, SQLAlchemy, Alembic
+- **Frontend:** React 18+, TypeScript, Tailwind CSS
+- **AI/ML:** Ollama (local), OpenAI (cloud), TensorFlow, face_recognition, dlib
+- **Database:** PostgreSQL (production), SQLite (development)
+- **Testing:** pytest, coverage, CI/CD via GitHub Actions
+
+### 📦 Key Backend Features
+
+- 13 core Python services (AI, face detection, file management, search, events, collections, etc.)
+- 150+ API endpoints, fully documented and compatible
+- Tiered photo processing (Bronze → Silver → Gold)
+- Advanced metadata, EXIF/XMP embedding, and batch operations
+- Secure file uploads, validation, and session management
+- Scalable Docker deployment and environment configuration
+
+### 🏗️ Architecture Overview
+
+See [`ARCHITECTURE.md`](ARCHITECTURE.md) for detailed diagrams and service relationships.
+
+```mermaid
+graph TB
+    Client[Frontend Client] --> API[FastAPI Application]
+    API --> Auth[Authentication Layer]
+    API --> Routes[API Routes Layer]
+    Routes --> PhotoRoutes[Photo Management]
+    Routes --> PeopleRoutes[People & Faces]
+    Routes --> AIRoutes[AI Processing]
+    Routes --> CollectionRoutes[Collections]
+    Routes --> EventRoutes[Events]
+    Routes --> LocationRoutes[Locations]
+    Routes --> SettingsRoutes[Settings]
+    PhotoRoutes --> PhotoService[Photo Service]
+    PeopleRoutes --> FaceService[Face Detection Service]
+    AIRoutes --> AIService[AI Service]
+    CollectionRoutes --> CollectionService[Collection Service]
+    EventRoutes --> EventService[Event Detection Service]
+    LocationRoutes --> LocationService[Location Service]
+    SettingsRoutes --> SettingsService[Settings Service]
+    PhotoService --> FileManager[File Manager]
+    PhotoService --> MetadataService[Metadata Service]
+    PhotoService --> ThumbnailService[Thumbnail Service]
+    FaceService --> AILib[Face Recognition Lib]
+    AIService --> Ollama[Ollama API]
+    AIService --> OpenAI[OpenAI API]
+    AIService --> TensorFlow[TensorFlow]
+    FileManager --> Storage[File System]
+    MetadataService --> ImageLib[Pillow/PIL]
+    PhotoService --> Database[SQLModel/SQLAlchemy]
+    FaceService --> Database
+    AIService --> Database
+    CollectionService --> Database
+    EventService --> Database
+    LocationService --> Database
+    SettingsService --> Database
+    Database --> SQLite[SQLite File]
+    Database --> Postgres[PostgreSQL]
+```
+
+### 🔄 Migration Notes
+
+- All TypeScript backend code has been removed.
+- Data migration and schema conversion are complete.
+- See [`MIGRATION_GUIDE.md`](MIGRATION_GUIDE.md) for process, lessons, and rollback.
+
+### 📚 Documentation
+
+- [`API_DOCUMENTATION.md`](API_DOCUMENTATION.md): Full FastAPI endpoint reference, request/response schemas, authentication, error handling, usage examples.
+- [`DEPLOYMENT.md`](DEPLOYMENT.md): Production Docker setup, environment variables, scaling, and automation.
+- [`DEVELOPMENT.md`](DEVELOPMENT.md): Dual frontend/backend development workflow.
+- [`ARCHITECTURE.md`](ARCHITECTURE.md): System, service, and database diagrams.
+- [`CONTRIBUTING.md`](CONTRIBUTING.md): Python backend contribution guidelines, code style, and testing.
+- [`SECURITY.md`](SECURITY.md): Security best practices, authentication, and operational security.
+
+### 🚀 Quick Start
+
+See [`DEPLOYMENT.md`](DEPLOYMENT.md) for production deployment and [`DEVELOPMENT.md`](DEVELOPMENT.md) for local development setup.
+
+---
+
 [![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/yourusername/pictallion/releases)
-[![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.6+-blue.svg)](https://www.typescriptlang.org/)
+[![Python](https://img.shields.io/badge/Python-3.11+-green.svg)](https://python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-Latest-blue.svg)](https://fastapi.tiangolo.com/)
 [![React](https://img.shields.io/badge/React-18+-blue.svg)](https://reactjs.org/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![CI](https://github.com/yourusername/pictallion/workflows/CI%2FCD/badge.svg)](https://github.com/yourusername/pictallion/actions)
@@ -56,7 +141,8 @@ A comprehensive photo management platform with intelligent tiered processing (Br
 
 ### Prerequisites
 
-- Node.js 18 or higher
+- Python 3.11 or higher
+- Node.js 18 or higher (for frontend development)
 - PostgreSQL database (local or cloud)
 - Optional: Ollama for local AI processing
 - Optional: OpenAI API key for cloud AI processing
@@ -69,29 +155,42 @@ A comprehensive photo management platform with intelligent tiered processing (Br
    cd pictallion
    ```
 
-2. **Install dependencies**
+2. **Install Python backend dependencies**
+   ```bash
+   cd server_py
+   pip install -r requirements.txt
+   ```
+
+3. **Install frontend dependencies**
    ```bash
    npm install
    ```
 
-3. **Set up environment variables**
+4. **Set up environment variables**
    ```bash
    cp .env.example .env
    # Edit .env with your database credentials and AI provider settings
    ```
 
-4. **Set up the database**
+5. **Set up the database**
    ```bash
-   npm run db:push
+   cd server_py
+   python manage_db.py migrate
    ```
 
-5. **Start the development server**
+6. **Start the backend server**
+   ```bash
+   cd server_py
+   python -m uvicorn app.main:app --reload --port 8000
+   ```
+
+7. **Start the frontend development server**
    ```bash
    npm run dev
    ```
 
-6. **Open your browser**
-   Navigate to `http://localhost:5000`
+8. **Open your browser**
+   Navigate to `http://localhost:5173` (frontend) - API proxy configured to `http://localhost:8000`
 
 ### First Steps
 
@@ -156,8 +255,7 @@ Includes PostgreSQL database and Ollama for complete local setup with:
 DATABASE_URL=postgresql://username:password@localhost:5432/pictallion
 
 # Server
-PORT=5000
-NODE_ENV=development
+PORT=8000
 
 # AI Providers
 AI_PROVIDER=ollama  # Options: ollama, openai, both
@@ -189,13 +287,16 @@ pictallion/
 │   │   ├── pages/          # Application pages
 │   │   ├── hooks/          # Custom React hooks
 │   │   └── lib/            # Utilities and API client
-├── server/                 # Express.js backend
-│   ├── services/           # Business logic
-│   │   ├── ai.ts          # AI processing
-│   │   └── fileManager.ts # File operations
-│   ├── routes.ts          # API routes
-│   └── index.ts           # Server entry point
-├── shared/                 # Shared TypeScript types
+├── server_py/              # Python FastAPI backend
+│   ├── app/
+│   │   ├── api/           # API routes
+│   │   ├── core/          # Core functionality
+│   │   ├── models/        # Database models
+│   │   ├── services/      # Business logic
+│   │   └── utils/         # Utilities
+│   ├── requirements.txt   # Python dependencies
+│   └── manage_db.py       # Database management
+├── shared/                 # Shared TypeScript types (for frontend)
 ├── data/                   # Photo storage
 │   └── media/
 │       ├── bronze/        # Raw uploads
@@ -219,17 +320,23 @@ pictallion/
 ### Development Commands
 
 ```bash
-npm run dev          # Start development server
-npm run build        # Build for production
-npm run check        # Type checking
-npm run db:push      # Push database schema changes
+# Frontend
+npm run dev          # Start frontend development server
+npm run build        # Build frontend for production
+npm run check        # TypeScript checking
+
+# Backend
+cd server_py
+python -m uvicorn app.main:app --reload  # Start backend development server
+python manage_db.py migrate              # Run database migrations
+python -m pytest                         # Run backend tests
 ```
 
 ### Tech Stack
 
 - **Frontend**: React 18, TypeScript, Tailwind CSS, Wouter (routing)
-- **Backend**: Node.js, Express.js, TypeScript
-- **Database**: PostgreSQL with Drizzle ORM
+- **Backend**: Python 3.11, FastAPI, SQLAlchemy
+- **Database**: PostgreSQL with Alembic migrations
 - **AI**: Ollama (local) and OpenAI (cloud) integration
 - **Storage**: Local file system with organized directory structure
 

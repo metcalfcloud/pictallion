@@ -1,17 +1,33 @@
 # Dockerfile for external database setup
 
-FROM node:18-alpine
+FROM python:3.11-slim
 
 WORKDIR /app
 
-COPY package.json package-lock.json ./
-RUN npm ci --production
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
 
-COPY . .
+# Copy Python backend requirements
+COPY server_py/requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
 
-ENV NODE_ENV=production
+# Copy Python backend code
+COPY server_py/ ./
+
+# Copy shared frontend assets if needed
+COPY client/dist/ ./static/
+
+# Copy data directory for media files
+COPY data/ ./data/
+
+ENV PYTHONPATH=/app
 ENV DB_TYPE=postgres
 # DB config via environment variables:
-# DB_TYPE, DB_HOST, DB_PORT, DB_USER, DB_PASS, DB_NAME
+# DATABASE_URL, DB_HOST, DB_PORT, DB_USER, DB_PASS, DB_NAME
 
-CMD ["npm", "start"]
+EXPOSE 8000
+
+CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

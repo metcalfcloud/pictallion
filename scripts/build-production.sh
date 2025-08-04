@@ -21,18 +21,11 @@ if [ ! -d "dist/public" ]; then
     exit 1
 fi
 
-# Build backend to dist
-echo "Building backend..."
-NODE_ENV=production npx esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
-
-# Verify backend build
-if [ ! -f "dist/index.js" ]; then
-    echo "Error: Backend build failed - dist/index.js not created"
-    exit 1
-fi
-
 echo "Build completed successfully!"
 echo "Frontend assets: ./dist/public/"
-echo "Backend bundle: ./dist/index.js"
+echo "Python backend: Use server_py/ directory with requirements.txt"
 ls -la dist/
 ls -la dist/public/
+echo ""
+echo "To run the Python backend:"
+echo "cd server_py && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000"
