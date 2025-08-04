@@ -31,6 +31,11 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
+      - name: 🚦 Check line endings
+        run: |
+          chmod +x scripts/ci/check-line-endings.sh
+          scripts/ci/check-line-endings.sh
+
       - name: 📦 Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -42,8 +47,9 @@ jobs:
 
       - name: 🎨 Lint code
         run: |
-          # Add linting when available
-          echo "Linting step - add ESLint/Prettier when configured"
+          cd client
+          npx eslint . --max-warnings=0
+          npx prettier --check .
 
       - name: 🏗️ Build client
         run: cd client && npm run build
@@ -56,10 +62,22 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/pictallion_test
 
-      - name: 🧪 Run tests
+      - name: 🧪 Run client tests with coverage
         run: |
-          # Add test runner when tests are available
-          echo "Test step - add Jest/Vitest when configured"
+          cd client
+          npx vitest run --coverage --reporter=lcov
+          npx vitest run --coverage --reporter=text
+          # Enforce minimum coverage (example: 85%)
+          npx vitest run --coverage --reporter=text | grep 'Coverage' | grep -q '85%' || (echo "❌ Coverage below threshold" && exit 1)
+      - name: Upload client coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: client/coverage/lcov.info
+          flags: client
+          name: client-coverage
+      - name: 🧪 Run server tests (placeholder)
+        run: |
+          echo "Server tests are managed in test-python-backend.yml"
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/pictallion_test
 
@@ -92,6 +110,15 @@ jobs:
           ./scripts/build-docker.sh
           docker build -t pictallion:test .
 
+      - name: 🔍 Scan Docker image with Trivy
+        uses: aquasecurity/trivy-action@v0.13.1
+        with:
+          image-ref: pictallion:test
+          format: table
+          exit-code: 1
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+
   security:
     name: 🔒 Basic Security Check
     runs-on: ubuntu-latest
@@ -109,7 +136,7 @@ jobs:
       - name: 🔧 Install dependencies
         run: npm ci
 
-      - name: 🔍 Run security audit
+      - name: 🔍 Run security audit (npm)
         run: |
           # Run audit and capture output
           npm audit --audit-level=high --json > audit-results.json || true
@@ -129,3 +156,8 @@ jobs:
               echo "ℹ️ Found $TOTAL total vulnerabilities (see weekly security report for details)"
             fi
           fi
+
+      - name: 🔍 Run pip-audit for Python backend
+        run: |
+          pip install pip-audit
+          pip-audit --requirement server_py/requirements.txt || pip-audit --skip-editable

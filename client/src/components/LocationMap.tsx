@@ -1,14 +1,34 @@
-import { useState } from "react";
-import { MapPin, Camera, Zap } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import type { Location } from "@shared/schema";
+import { useState } from 'react';
+import { MapPin, Camera, Zap } from 'lucide-react';
+import { Badge } from './ui/badge';
+import { Button } from './ui/button';
+interface Location {
+  id: string;
+  latitude: string;
+  longitude: string;
+  name?: string;
+  description?: string;
+  placeName?: string;
+  photoCount: number;
+  isUserDefined?: boolean;
+}
+
+function isLocation(obj: unknown): obj is Location {
+  return (
+    typeof obj === 'object' &&
+    obj !== null &&
+    'latitude' in obj &&
+    typeof (obj as Location).latitude === 'string' &&
+    'longitude' in obj &&
+    typeof (obj as Location).longitude === 'string'
+  );
+}
 
 interface LocationHotspot {
   latitude: number;
   longitude: number;
   photoCount: number;
-  photos: any[];
+  photos: Record<string, unknown>[];
   suggestedName?: string;
 }
 
@@ -18,37 +38,62 @@ interface LocationMapProps {
 }
 
 export default function LocationMap({ locations, hotspots }: LocationMapProps) {
+  const validLocations: Location[] = Array.isArray(locations)
+    ? locations.filter(isLocation)
+    : [];
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
   const [selectedHotspot, setSelectedHotspot] = useState<LocationHotspot | null>(null);
 
   // Calculate map bounds from all locations and hotspots
   const allPoints = [
-    ...locations.map(loc => ({ lat: parseFloat(loc.latitude), lng: parseFloat(loc.longitude) })),
-    ...hotspots.map(spot => ({ lat: spot.latitude, lng: spot.longitude }))
+    ...locations.map((loc) => ({
+      lat: (() => {
+        if (isLocation(loc) && typeof loc.latitude === 'string') {
+          return parseFloat(loc.latitude);
+        }
+        return 0;
+      })(),
+      lng: (() => {
+        if (isLocation(loc) && typeof loc.longitude === 'string') {
+          return parseFloat(loc.longitude);
+        }
+        return 0;
+      })(),
+    })),
+    ...hotspots.map((spot) => ({ lat: spot.latitude, lng: spot.longitude })),
   ];
 
-  const bounds = allPoints.length > 0 ? {
-    minLat: Math.min(...allPoints.map(p => p.lat)),
-    maxLat: Math.max(...allPoints.map(p => p.lat)),
-    minLng: Math.min(...allPoints.map(p => p.lng)),
-    maxLng: Math.max(...allPoints.map(p => p.lng))
-  } : null;
+  const bounds =
+    allPoints.length > 0
+      ? {
+          minLat: Math.min(...allPoints.map((p) => p.lat)),
+          maxLat: Math.max(...allPoints.map((p) => p.lat)),
+          minLng: Math.min(...allPoints.map((p) => p.lng)),
+          maxLng: Math.max(...allPoints.map((p) => p.lng)),
+        }
+      : null;
 
   // Calculate center point
-  const center = bounds ? {
-    lat: (bounds.minLat + bounds.maxLat) / 2,
-    lng: (bounds.minLng + bounds.maxLng) / 2
-  } : { lat: 0, lng: 0 };
+  const center = bounds
+    ? {
+        lat: (bounds.minLat + bounds.maxLat) / 2,
+        lng: (bounds.minLng + bounds.maxLng) / 2,
+      }
+    : { lat: 0, lng: 0 };
 
   // Convert coordinates to map position (simple projection)
   const coordsToMapPosition = (lat: number, lng: number) => {
     if (!bounds) return { x: 50, y: 50 };
-    
-    const xPercent = bounds.maxLng === bounds.minLng ? 50 : 
-      ((lng - bounds.minLng) / (bounds.maxLng - bounds.minLng)) * 80 + 10;
-    const yPercent = bounds.maxLat === bounds.minLat ? 50 : 
-      ((bounds.maxLat - lat) / (bounds.maxLat - bounds.minLat)) * 80 + 10;
-    
+
+    const xPercent =
+      bounds.maxLng === bounds.minLng
+        ? 50
+        : ((lng - bounds.minLng) / (bounds.maxLng - bounds.minLng)) * 80 + 10;
+    const yPercent =
+      bounds.maxLat === bounds.minLat
+        ? 50
+        : ((bounds.maxLat - lat) / (bounds.maxLat - bounds.minLat)) * 80 + 10;
+
     return { x: xPercent, y: yPercent };
   };
 
@@ -73,7 +118,12 @@ export default function LocationMap({ locations, hotspots }: LocationMapProps) {
         <svg className="w-full h-full">
           <defs>
             <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
-              <path d="M 20 0 L 0 0 0 20" fill="none" stroke="currentColor" strokeWidth="0.5"/>
+              <path
+                d="M 20 0 L 0 0 0 20"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="0.5"
+              />
             </pattern>
           </defs>
           <rect width="100%" height="100%" fill="url(#grid)" />
@@ -81,12 +131,15 @@ export default function LocationMap({ locations, hotspots }: LocationMapProps) {
       </div>
 
       {/* Location Markers */}
-      {locations.map((location) => {
-        const pos = coordsToMapPosition(parseFloat(location.latitude), parseFloat(location.longitude));
+      {validLocations.map((location) => {
+        const lat = parseFloat(location.latitude);
+        const lng = parseFloat(location.longitude);
+        const pos = coordsToMapPosition(lat, lng);
+        const selected = selectedLocation?.id === location.id;
         return (
           <Button
             key={location.id}
-            variant={selectedLocation?.id === location.id ? "default" : "secondary"}
+            variant={selected ? 'default' : 'secondary'}
             size="sm"
             className="absolute transform -translate-x-1/2 -translate-y-1/2 shadow-lg"
             style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
@@ -104,7 +157,7 @@ export default function LocationMap({ locations, hotspots }: LocationMapProps) {
         return (
           <Button
             key={`hotspot-${index}`}
-            variant={selectedHotspot === hotspot ? "default" : "outline"}
+            variant={selectedHotspot === hotspot ? 'default' : 'outline'}
             size="sm"
             className="absolute transform -translate-x-1/2 -translate-y-1/2 shadow-lg border-dashed"
             style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
@@ -140,31 +193,33 @@ export default function LocationMap({ locations, hotspots }: LocationMapProps) {
         <div className="absolute bottom-4 right-4 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm rounded-lg p-4 shadow-lg max-w-sm">
           <div className="flex items-start justify-between mb-2">
             <h4 className="font-medium">{selectedLocation.name}</h4>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setSelectedLocation(null)}
-            >
+            <Button variant="ghost" size="sm" onClick={() => setSelectedLocation(null)}>
               ×
             </Button>
           </div>
-          {selectedLocation.description && (
-            <p className="text-sm text-muted-foreground mb-2">{selectedLocation.description}</p>
+          {selectedLocation.description != null && selectedLocation.description !== '' && (
+            <p className="text-sm text-muted-foreground mb-2">
+              {selectedLocation.description}
+            </p>
           )}
-          {selectedLocation.placeName && (
-            <p className="text-sm text-blue-600 dark:text-blue-400 mb-2">{selectedLocation.placeName}</p>
+          {selectedLocation.placeName != null && selectedLocation.placeName !== '' && (
+            <p className="text-sm text-blue-600 dark:text-blue-400 mb-2">
+              {selectedLocation.placeName}
+            </p>
           )}
           <div className="flex items-center justify-between text-sm">
             <Badge variant="outline" className="flex items-center space-x-1">
               <Camera className="w-3 h-3" />
               <span>{selectedLocation.photoCount} photos</span>
             </Badge>
-            <Badge variant={selectedLocation.isUserDefined ? "default" : "secondary"}>
-              {selectedLocation.isUserDefined ? "Custom" : "Auto"}
+            <Badge variant={selectedLocation.isUserDefined === true ? 'default' : 'secondary'}>
+              {selectedLocation.isUserDefined === true ? 'Custom' : 'Auto'}
             </Badge>
           </div>
           <p className="text-xs text-muted-foreground mt-2">
-            {selectedLocation.latitude}, {selectedLocation.longitude}
+            {selectedLocation.latitude && selectedLocation.longitude
+              ? `${selectedLocation.latitude}, ${selectedLocation.longitude}`
+              : ''}
           </p>
         </div>
       )}
@@ -174,15 +229,11 @@ export default function LocationMap({ locations, hotspots }: LocationMapProps) {
         <div className="absolute bottom-4 right-4 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm rounded-lg p-4 shadow-lg max-w-sm">
           <div className="flex items-start justify-between mb-2">
             <h4 className="font-medium">Photo Hotspot</h4>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setSelectedHotspot(null)}
-            >
+            <Button variant="ghost" size="sm" onClick={() => setSelectedHotspot(null)}>
               ×
             </Button>
           </div>
-          {selectedHotspot.suggestedName && (
+          {selectedHotspot.suggestedName != null && selectedHotspot.suggestedName !== '' && (
             <p className="text-sm text-blue-600 dark:text-blue-400 mb-2">
               Suggested: {selectedHotspot.suggestedName}
             </p>
@@ -195,7 +246,8 @@ export default function LocationMap({ locations, hotspots }: LocationMapProps) {
             <Badge variant="secondary">Unnamed</Badge>
           </div>
           <p className="text-xs text-muted-foreground">
-            {selectedHotspot.latitude.toFixed(6)}, {selectedHotspot.longitude.toFixed(6)}
+            {selectedHotspot.latitude.toFixed(6)},{' '}
+            {selectedHotspot.longitude.toFixed(6)}
           </p>
         </div>
       )}

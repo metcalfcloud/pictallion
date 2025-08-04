@@ -1,11 +1,11 @@
-import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { 
-  Upload as UploadIcon, 
-  Images, 
-  Bot, 
-  Eye, 
+import { useQuery } from '@tanstack/react-query';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import {
+  Upload as UploadIcon,
+  Images,
+  Bot,
+  Eye,
   Star,
   ChartLine,
   WandSparkles,
@@ -16,13 +16,16 @@ import {
   CheckCircle,
   ArrowRight,
   Heart,
-  Sparkles
-} from "lucide-react";
-import { Link } from "wouter";
-import { useState } from "react";
-import { CompactDropzone } from "@/components/compact-dropzone";
-import PhotoDetailModal from "@/components/photo-detail-modal";
-import { ProcessingStateBadge, getProcessingState } from "@/components/ui/processing-state-badge";
+  Sparkles,
+} from 'lucide-react';
+import { Link } from 'wouter';
+import { useState } from 'react';
+import { CompactDropzone } from '@/components/compact-dropzone';
+import PhotoDetailModal from '@/components/photo-detail-modal';
+import {
+  ProcessingStateBadge,
+  getProcessingState,
+} from '@/components/ui/processing-state-badge';
 
 interface Stats {
   totalPhotos: number;
@@ -62,15 +65,15 @@ export default function Dashboard() {
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
 
   const { data: stats, isLoading: statsLoading } = useQuery<Stats>({
-    queryKey: ["/api/stats"],
+    queryKey: ['/api/stats'],
   });
 
   const { data: activity, isLoading: activityLoading } = useQuery<Activity[]>({
-    queryKey: ["/api/activity"],
+    queryKey: ['/api/activity'],
   });
 
   const { data: recentPhotos, isLoading: photosLoading } = useQuery<Photo[]>({
-    queryKey: ["/api/photos/recent"],
+    queryKey: ['/api/photos/recent'],
   });
 
   const getActivityIcon = (action: string) => {
@@ -114,8 +117,12 @@ export default function Dashboard() {
       <header className="bg-card border-b border-border px-6 py-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-3xl font-bold text-card-foreground">Your Photo Collection</h2>
-            <p className="text-muted-foreground mt-1">Organize, process, and discover your memories</p>
+            <h2 className="text-3xl font-bold text-card-foreground">
+              Your Photo Collection
+            </h2>
+            <p className="text-muted-foreground mt-1">
+              Organize, process, and discover your memories
+            </p>
           </div>
           <div className="flex items-center space-x-3">
             <Button asChild className="bg-blue-600 hover:bg-blue-700">
@@ -136,9 +143,11 @@ export default function Dashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Photos</p>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Total Photos
+                  </p>
                   <p className="text-3xl font-bold text-card-foreground mt-1">
-                    {statsLoading ? "..." : stats?.totalPhotos || 0}
+                    {statsLoading ? '...' : stats?.totalPhotos || 0}
                   </p>
                   <p className="text-sm text-green-600 dark:text-green-400 mt-1">
                     <TrendingUp className="inline w-4 h-4" /> Unique assets
@@ -155,9 +164,11 @@ export default function Dashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Silver Tier</p>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Silver Tier
+                  </p>
                   <p className="text-3xl font-bold text-card-foreground mt-1">
-                    {statsLoading ? "..." : stats?.silverCount || 0}
+                    {statsLoading ? '...' : stats?.silverCount || 0}
                   </p>
                   <p className="text-sm text-green-600 dark:text-green-400 mt-1">
                     <Sparkles className="inline w-4 h-4" /> AI processed
@@ -170,15 +181,13 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-
-
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Gold Tier</p>
                   <p className="text-3xl font-bold text-card-foreground mt-1">
-                    {statsLoading ? "..." : stats?.goldCount || 0}
+                    {statsLoading ? '...' : stats?.goldCount || 0}
                   </p>
                   <p className="text-sm text-green-600 dark:text-green-400 mt-1">
                     <CheckCircle className="inline w-4 h-4" /> Curated
@@ -198,7 +207,9 @@ export default function Dashboard() {
           <div className="lg:col-span-2">
             <Card className="h-full">
               <CardContent className="p-6">
-                <h3 className="text-lg font-semibold text-card-foreground mb-4">Processing Pipeline</h3>
+                <h3 className="text-lg font-semibold text-card-foreground mb-4">
+                  Processing Pipeline
+                </h3>
                 <div className="flex items-center justify-between">
                   {/* Upload Staging */}
                   <div className="flex-1 text-center">
@@ -209,7 +220,9 @@ export default function Dashboard() {
                     <p className="text-2xl font-bold text-orange-600 dark:text-orange-400 mt-1">
                       Temporary
                     </p>
-                    <p className="text-sm text-muted-foreground">Processing to Silver</p>
+                    <p className="text-sm text-muted-foreground">
+                      Processing to Silver
+                    </p>
                   </div>
 
                   {/* Arrow */}
@@ -224,7 +237,7 @@ export default function Dashboard() {
                     </div>
                     <h4 className="font-medium text-card-foreground">Silver Tier</h4>
                     <p className="text-2xl font-bold text-muted-foreground dark:text-gray-300 mt-1">
-                      {statsLoading ? "..." : stats?.silverCount || 0}
+                      {statsLoading ? '...' : stats?.silverCount || 0}
                     </p>
                     <p className="text-sm text-muted-foreground">AI processed</p>
                   </div>
@@ -241,7 +254,7 @@ export default function Dashboard() {
                     </div>
                     <h4 className="font-medium text-card-foreground">Gold Tier</h4>
                     <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400 mt-1">
-                      {statsLoading ? "..." : stats?.goldCount || 0}
+                      {statsLoading ? '...' : stats?.goldCount || 0}
                     </p>
                     <p className="text-sm text-muted-foreground">Curated</p>
                   </div>
@@ -262,7 +275,9 @@ export default function Dashboard() {
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-card-foreground">Recent Activity</h3>
+                <h3 className="text-lg font-semibold text-card-foreground">
+                  Recent Activity
+                </h3>
                 <Button variant="ghost" size="sm">
                   View all
                 </Button>
@@ -278,12 +293,16 @@ export default function Dashboard() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm text-card-foreground">{item.details}</p>
-                        <p className="text-xs text-muted-foreground">{formatTimeAgo(item.timestamp)}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatTimeAgo(item.timestamp)}
+                        </p>
                       </div>
                     </div>
                   ))
                 ) : (
-                  <div className="text-center text-muted-foreground">No recent activity</div>
+                  <div className="text-center text-muted-foreground">
+                    No recent activity
+                  </div>
                 )}
               </div>
             </CardContent>
@@ -292,7 +311,9 @@ export default function Dashboard() {
           {/* Quick Actions */}
           <Card>
             <CardContent className="p-6">
-              <h3 className="text-lg font-semibold text-card-foreground mb-4">Quick Actions</h3>
+              <h3 className="text-lg font-semibold text-card-foreground mb-4">
+                Quick Actions
+              </h3>
               <div className="grid grid-cols-1 gap-3">
                 {(stats?.silverCount ?? 0) > 0 && (
                   <Button
@@ -304,16 +325,18 @@ export default function Dashboard() {
                       <div className="flex items-center">
                         <WandSparkles className="h-5 w-5 mr-3 text-green-600" />
                         <div className="text-left">
-                          <div className="font-medium">Review {(stats?.silverCount ?? 0)} Silver photos</div>
-                          <div className="text-sm text-muted-foreground">Add AI tags and descriptions</div>
+                          <div className="font-medium">
+                            Review {stats?.silverCount ?? 0} Silver photos
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            Add AI tags and descriptions
+                          </div>
                         </div>
                       </div>
                       <ArrowRight className="h-4 w-4 text-muted-foreground" />
                     </Link>
                   </Button>
                 )}
-
-
 
                 <Button
                   variant="outline"
@@ -325,7 +348,9 @@ export default function Dashboard() {
                       <Images className="h-5 w-5 mr-3 text-blue-600" />
                       <div className="text-left">
                         <div className="font-medium">Browse all photos</div>
-                        <div className="text-sm text-muted-foreground">View your complete collection</div>
+                        <div className="text-sm text-muted-foreground">
+                          View your complete collection
+                        </div>
                       </div>
                     </div>
                     <ArrowRight className="h-4 w-4 text-muted-foreground" />
@@ -340,7 +365,9 @@ export default function Dashboard() {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-card-foreground">Recent Photos</h3>
+              <h3 className="text-lg font-semibold text-card-foreground">
+                Recent Photos
+              </h3>
               <div className="flex items-center space-x-2">
                 <select className="text-sm border border-border bg-background text-foreground rounded-lg px-3 py-1 focus:outline-none focus:ring-2 focus:ring-primary">
                   <option value="all">All Tiers</option>
@@ -356,23 +383,28 @@ export default function Dashboard() {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
               {photosLoading ? (
                 Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="w-full h-32 bg-muted rounded-lg animate-pulse" />
+                  <div
+                    key={i}
+                    className="w-full h-32 bg-muted rounded-lg animate-pulse"
+                  />
                 ))
               ) : recentPhotos && recentPhotos.length > 0 ? (
                 recentPhotos.map((photo) => (
-                  <div 
-                    key={photo.id} 
+                  <div
+                    key={photo.id}
                     className="relative group cursor-pointer"
                     onClick={() => setSelectedPhoto(photo)}
                   >
-                    <img 
-                      src={`/api/files/${photo.filePath}`} 
+                    <img
+                      src={`/api/files/${photo.filePath}`}
                       alt={photo.mediaAsset.originalFilename}
                       className="w-full h-32 object-cover rounded-lg"
                     />
                     <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity rounded-lg"></div>
                     <div className="absolute top-2 left-2">
-                      <span className={`text-white text-xs px-2 py-1 rounded-full capitalize ${getTierBadgeClass(photo.tier)}`}>
+                      <span
+                        className={`text-white text-xs px-2 py-1 rounded-full capitalize ${getTierBadgeClass(photo.tier)}`}
+                      >
                         {photo.tier}
                       </span>
                     </div>
@@ -389,7 +421,10 @@ export default function Dashboard() {
                 ))
               ) : (
                 <div className="col-span-full text-center text-muted-foreground py-8">
-                  No photos uploaded yet. <Button variant="link" asChild><Link href="/upload">Upload your first photos</Link></Button>
+                  No photos uploaded yet.{' '}
+                  <Button variant="link" asChild>
+                    <Link href="/upload">Upload your first photos</Link>
+                  </Button>
                 </div>
               )}
             </div>
@@ -398,7 +433,7 @@ export default function Dashboard() {
       </div>
 
       {selectedPhoto && (
-        <PhotoDetailModal 
+        <PhotoDetailModal
           photo={selectedPhoto}
           open={!!selectedPhoto}
           onOpenChange={(open) => !open && setSelectedPhoto(null)}

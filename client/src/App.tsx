@@ -1,26 +1,26 @@
-import { Switch, Route } from "wouter";
-import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "./components/ui/toaster";
-import { TooltipProvider } from "./components/ui/tooltip";
-import { ThemeProvider } from "./contexts/theme-context";
-import Dashboard from "./pages/dashboard";
-import Gallery from "@/pages/gallery";
-import Upload from "@/pages/upload";
-import Search from "@/pages/search";
-import Collections from "./pages/collections";
-import SilverReview from "./pages/silver-review";
-import { IgnoredFaces } from "./pages/ignored-faces";
-import People from "@/pages/people";
+import { Switch, Route } from 'wouter';
+import { queryClient } from './lib/queryClient';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { Toaster } from './components/ui/toaster';
+import { TooltipProvider } from './components/ui/tooltip';
+import { ThemeProvider } from './contexts/theme-context';
+import Dashboard from './pages/dashboard';
+import Gallery from '@/pages/gallery';
+import Upload from '@/pages/upload';
+import Search from '@/pages/search';
+import Collections from './pages/collections';
+import SilverReview from './pages/silver-review';
+import { IgnoredFaces } from './pages/ignored-faces';
+import People from '@/pages/people';
 import { SmartCollections } from './components/smart-collections';
 
-import Events from "@/pages/events";
-import Locations from "@/pages/locations";
-import Settings from "@/pages/settings";
-import NotFound from "@/pages/not-found";
-import Sidebar from "@/components/sidebar";
-import BurstSelectionPage from "./pages/burst-selection";
-import { GlobalUploadProgress } from "@/components/global-upload-progress";
+import Events from '@/pages/events';
+import Locations from '@/pages/locations';
+import Settings from '@/pages/settings';
+import NotFound from '@/pages/not-found';
+import Sidebar from '@/components/sidebar';
+import BurstSelectionPage from './pages/burst-selection';
+import { GlobalUploadProgress } from '@/components/global-upload-progress';
 
 function Router() {
   return (

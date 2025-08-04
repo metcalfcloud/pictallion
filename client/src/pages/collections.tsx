@@ -1,28 +1,35 @@
-import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
-import { 
-  Plus, 
-  FolderPlus, 
-  Star, 
-  Calendar, 
-  Image, 
-  Edit, 
-  Trash2, 
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Plus,
+  FolderPlus,
+  Star,
+  Calendar,
+  Image,
+  Edit,
+  Trash2,
   Eye,
   Share,
-  Download
-} from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
-import PhotoGrid from "@/components/photo-grid";
-import type { Photo } from "@shared/types";
+  Download,
+} from 'lucide-react';
+import { apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
+import PhotoGrid from '@/components/photo-grid';
+import type { Photo } from '@shared/types';
 
 interface Collection {
   id: string;
@@ -41,19 +48,19 @@ export default function Collections() {
   const [newCollection, setNewCollection] = useState({
     name: '',
     description: '',
-    isPublic: false
+    isPublic: false,
   });
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   // Fetch collections
   const { data: collections, isLoading } = useQuery<Collection[]>({
-    queryKey: ["/api/collections"],
+    queryKey: ['/api/collections'],
   });
 
   // Fetch photos in selected collection
   const { data: collectionPhotos, isLoading: photosLoading } = useQuery<Photo[]>({
-    queryKey: ["/api/collections", selectedCollection?.id, "photos"],
+    queryKey: ['/api/collections', selectedCollection?.id, 'photos'],
     enabled: !!selectedCollection,
   });
 
@@ -64,19 +71,19 @@ export default function Collections() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/collections"] });
+      queryClient.invalidateQueries({ queryKey: ['/api/collections'] });
       setShowCreateDialog(false);
       setNewCollection({ name: '', description: '', isPublic: false });
       toast({
-        title: "Collection Created",
-        description: "Your new collection has been created successfully.",
+        title: 'Collection Created',
+        description: 'Your new collection has been created successfully.',
       });
     },
     onError: (error) => {
       toast({
-        title: "Creation Failed",
+        title: 'Creation Failed',
         description: error.message,
-        variant: "destructive"
+        variant: 'destructive',
       });
     },
   });
@@ -88,26 +95,36 @@ export default function Collections() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/collections"] });
+      queryClient.invalidateQueries({ queryKey: ['/api/collections'] });
       setSelectedCollection(null);
       toast({
-        title: "Collection Deleted",
-        description: "Collection has been deleted successfully.",
+        title: 'Collection Deleted',
+        description: 'Collection has been deleted successfully.',
       });
     },
   });
 
   // Add photos to collection mutation
   const addPhotosToCollectionMutation = useMutation({
-    mutationFn: async ({ collectionId, photoIds }: { collectionId: string; photoIds: string[] }) => {
-      const response = await apiRequest('POST', `/api/collections/${collectionId}/photos`, { photoIds });
+    mutationFn: async ({
+      collectionId,
+      photoIds,
+    }: {
+      collectionId: string;
+      photoIds: string[];
+    }) => {
+      const response = await apiRequest(
+        'POST',
+        `/api/collections/${collectionId}/photos`,
+        { photoIds },
+      );
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/collections"] });
+      queryClient.invalidateQueries({ queryKey: ['/api/collections'] });
       toast({
-        title: "Photos Added",
-        description: "Photos have been added to the collection.",
+        title: 'Photos Added',
+        description: 'Photos have been added to the collection.',
       });
     },
   });
@@ -115,9 +132,9 @@ export default function Collections() {
   const handleCreateCollection = () => {
     if (!newCollection.name.trim()) {
       toast({
-        title: "Name Required",
-        description: "Please enter a collection name.",
-        variant: "destructive"
+        title: 'Name Required',
+        description: 'Please enter a collection name.',
+        variant: 'destructive',
       });
       return;
     }
@@ -125,7 +142,11 @@ export default function Collections() {
   };
 
   const handleDeleteCollection = (collection: Collection) => {
-    if (confirm(`Are you sure you want to delete "${collection.name}"? This action cannot be undone.`)) {
+    if (
+      confirm(
+        `Are you sure you want to delete "${collection.name}"? This action cannot be undone.`,
+      )
+    ) {
       deleteCollectionMutation.mutate(collection.id);
     }
   };
@@ -151,8 +172,8 @@ export default function Collections() {
       <div className="flex-1 overflow-auto bg-background dark:bg-gray-900">
         <div className="p-6">
           <div className="flex items-center space-x-4 mb-6">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => setSelectedCollection(null)}
               className="flex items-center"
             >
@@ -169,10 +190,11 @@ export default function Collections() {
               )}
             </div>
           </div>
-          
+
           <div className="mb-4 flex items-center justify-between">
             <span className="text-sm text-muted-foreground">
-              {selectedCollection.photoCount} photo{selectedCollection.photoCount !== 1 ? 's' : ''} in this collection
+              {selectedCollection.photoCount} photo
+              {selectedCollection.photoCount !== 1 ? 's' : ''} in this collection
             </span>
             <div className="flex space-x-2">
               <Button size="sm" variant="outline">
@@ -191,24 +213,30 @@ export default function Collections() {
           {photosLoading ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
               {[...Array(8)].map((_, i) => (
-                <div key={i} className="aspect-square bg-muted rounded animate-pulse"></div>
+                <div
+                  key={i}
+                  className="aspect-square bg-muted rounded animate-pulse"
+                ></div>
               ))}
             </div>
           ) : collectionPhotos && collectionPhotos.length > 0 ? (
-            <PhotoGrid 
-              photos={collectionPhotos} 
-              viewMode="grid" 
+            <PhotoGrid
+              photos={collectionPhotos}
+              viewMode="grid"
               onPhotoClick={(photo) => {
                 // Photo detail modal can be added here
                 console.log('View photo:', photo.id);
-              }} 
+              }}
             />
           ) : (
             <div className="flex flex-col items-center justify-center py-12">
               <Image className="h-16 w-16 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium text-muted-foreground mb-2">No Photos in Collection</h3>
+              <h3 className="text-lg font-medium text-muted-foreground mb-2">
+                No Photos in Collection
+              </h3>
               <p className="text-sm text-muted-foreground mb-4 text-center max-w-md">
-                This collection is empty. Add photos from your gallery to start organizing them.
+                This collection is empty. Add photos from your gallery to start
+                organizing them.
               </p>
               <Button variant="outline" onClick={() => setSelectedCollection(null)}>
                 Back to Collections
@@ -223,8 +251,12 @@ export default function Collections() {
   return (
     <div className="flex-1 overflow-auto bg-background dark:bg-gray-900">
       <div className="p-6">
-        <h1 className="text-2xl font-bold text-card-foreground dark:text-white mb-6">Collections</h1>
-        <p className="text-sm text-muted-foreground dark:text-gray-400">Organize your photos into custom collections</p>
+        <h1 className="text-2xl font-bold text-card-foreground dark:text-white mb-6">
+          Collections
+        </h1>
+        <p className="text-sm text-muted-foreground dark:text-gray-400">
+          Organize your photos into custom collections
+        </p>
       </div>
 
       {/* Collections Grid */}
@@ -232,8 +264,8 @@ export default function Collections() {
         {collections && collections.length > 0 ? (
           <>
             {collections.map((collection) => (
-              <Card 
-                key={collection.id} 
+              <Card
+                key={collection.id}
                 className="bg-card dark:bg-gray-800 shadow-md rounded-lg overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
                 onClick={() => setSelectedCollection(collection)}
               >
@@ -274,7 +306,7 @@ export default function Collections() {
                   )}
                   {collection.coverPhoto && (
                     <div className="mb-3 aspect-video rounded overflow-hidden">
-                      <img 
+                      <img
                         src={`/api/files/${collection.coverPhoto}`}
                         alt={collection.name}
                         className="w-full h-full object-cover"
@@ -283,7 +315,8 @@ export default function Collections() {
                   )}
                   <div className="flex justify-between items-center">
                     <span className="text-xs text-muted-foreground dark:text-gray-400">
-                      {collection.photoCount} Photo{collection.photoCount !== 1 ? 's' : ''}
+                      {collection.photoCount} Photo
+                      {collection.photoCount !== 1 ? 's' : ''}
                     </span>
                     <div className="flex space-x-1">
                       <Button size="sm" variant="outline">
@@ -300,7 +333,7 @@ export default function Collections() {
                 </CardContent>
               </Card>
             ))}
-            
+
             {/* Add Collection Button */}
             <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
               <DialogTrigger asChild>
@@ -315,7 +348,8 @@ export default function Collections() {
                 <DialogHeader>
                   <DialogTitle>Create New Collection</DialogTitle>
                   <DialogDescription>
-                    Create a new collection to organize your photos by theme, event, or any way you prefer.
+                    Create a new collection to organize your photos by theme, event, or
+                    any way you prefer.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
@@ -324,7 +358,9 @@ export default function Collections() {
                     <Input
                       id="name"
                       value={newCollection.name}
-                      onChange={(e) => setNewCollection(prev => ({ ...prev, name: e.target.value }))}
+                      onChange={(e) =>
+                        setNewCollection((prev) => ({ ...prev, name: e.target.value }))
+                      }
                       placeholder="e.g., Summer Vacation 2024"
                     />
                   </div>
@@ -333,7 +369,12 @@ export default function Collections() {
                     <Textarea
                       id="description"
                       value={newCollection.description}
-                      onChange={(e) => setNewCollection(prev => ({ ...prev, description: e.target.value }))}
+                      onChange={(e) =>
+                        setNewCollection((prev) => ({
+                          ...prev,
+                          description: e.target.value,
+                        }))
+                      }
                       placeholder="Describe this collection..."
                     />
                   </div>
@@ -342,20 +383,30 @@ export default function Collections() {
                       type="checkbox"
                       id="isPublic"
                       checked={newCollection.isPublic}
-                      onChange={(e) => setNewCollection(prev => ({ ...prev, isPublic: e.target.checked }))}
+                      onChange={(e) =>
+                        setNewCollection((prev) => ({
+                          ...prev,
+                          isPublic: e.target.checked,
+                        }))
+                      }
                       className="rounded"
                     />
                     <Label htmlFor="isPublic">Make this collection public</Label>
                   </div>
                   <div className="flex justify-end space-x-2">
-                    <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowCreateDialog(false)}
+                    >
                       Cancel
                     </Button>
-                    <Button 
+                    <Button
                       onClick={handleCreateCollection}
                       disabled={createCollectionMutation.isPending}
                     >
-                      {createCollectionMutation.isPending ? "Creating..." : "Create Collection"}
+                      {createCollectionMutation.isPending
+                        ? 'Creating...'
+                        : 'Create Collection'}
                     </Button>
                   </div>
                 </div>
@@ -365,9 +416,12 @@ export default function Collections() {
         ) : (
           <div className="col-span-full flex flex-col items-center justify-center py-12">
             <FolderPlus className="h-16 w-16 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium text-muted-foreground mb-2">No Collections Yet</h3>
+            <h3 className="text-lg font-medium text-muted-foreground mb-2">
+              No Collections Yet
+            </h3>
             <p className="text-sm text-muted-foreground mb-4 text-center max-w-md">
-              Create your first collection to organize and group your photos by themes, events, or any way you like.
+              Create your first collection to organize and group your photos by themes,
+              events, or any way you like.
             </p>
             <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
               <DialogTrigger asChild>
@@ -380,7 +434,8 @@ export default function Collections() {
                 <DialogHeader>
                   <DialogTitle>Create New Collection</DialogTitle>
                   <DialogDescription>
-                    Create a new collection to organize your photos by theme, event, or any way you prefer.
+                    Create a new collection to organize your photos by theme, event, or
+                    any way you prefer.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
@@ -389,7 +444,9 @@ export default function Collections() {
                     <Input
                       id="name"
                       value={newCollection.name}
-                      onChange={(e) => setNewCollection(prev => ({ ...prev, name: e.target.value }))}
+                      onChange={(e) =>
+                        setNewCollection((prev) => ({ ...prev, name: e.target.value }))
+                      }
                       placeholder="e.g., Summer Vacation 2024"
                     />
                   </div>
@@ -398,7 +455,12 @@ export default function Collections() {
                     <Textarea
                       id="description"
                       value={newCollection.description}
-                      onChange={(e) => setNewCollection(prev => ({ ...prev, description: e.target.value }))}
+                      onChange={(e) =>
+                        setNewCollection((prev) => ({
+                          ...prev,
+                          description: e.target.value,
+                        }))
+                      }
                       placeholder="Describe this collection..."
                     />
                   </div>
@@ -407,20 +469,30 @@ export default function Collections() {
                       type="checkbox"
                       id="isPublic"
                       checked={newCollection.isPublic}
-                      onChange={(e) => setNewCollection(prev => ({ ...prev, isPublic: e.target.checked }))}
+                      onChange={(e) =>
+                        setNewCollection((prev) => ({
+                          ...prev,
+                          isPublic: e.target.checked,
+                        }))
+                      }
                       className="rounded"
                     />
                     <Label htmlFor="isPublic">Make this collection public</Label>
                   </div>
                   <div className="flex justify-end space-x-2">
-                    <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowCreateDialog(false)}
+                    >
                       Cancel
                     </Button>
-                    <Button 
+                    <Button
                       onClick={handleCreateCollection}
                       disabled={createCollectionMutation.isPending}
                     >
-                      {createCollectionMutation.isPending ? "Creating..." : "Create Collection"}
+                      {createCollectionMutation.isPending
+                        ? 'Creating...'
+                        : 'Create Collection'}
                     </Button>
                   </div>
                 </div>

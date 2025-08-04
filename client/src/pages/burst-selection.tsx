@@ -1,14 +1,23 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
 import { Clock, Camera, CheckCircle, AlertCircle, ArrowRight, Zap } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
-import { ProcessingStateBadge, getProcessingState } from '@/components/ui/processing-state-badge';
+import {
+  ProcessingStateBadge,
+  getProcessingState,
+} from '@/components/ui/processing-state-badge';
 
 interface BurstGroup {
   id: string;
@@ -37,7 +46,9 @@ export default function BurstSelectionPage() {
   const [analysis, setAnalysis] = useState<BurstAnalysis | null>(null);
   const [loading, setLoading] = useState(false);
   const [processing, setProcessing] = useState(false);
-  const [selectedPhotos, setSelectedPhotos] = useState<Map<string, string[]>>(new Map()); // groupId -> photoIds[]
+  const [selectedPhotos, setSelectedPhotos] = useState<Map<string, string[]>>(
+    new Map(),
+  ); // groupId -> photoIds[]
   const [scanProgress, setScanProgress] = useState(0);
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -52,7 +63,7 @@ export default function BurstSelectionPage() {
 
     try {
       const progressInterval = setInterval(() => {
-        setScanProgress(prev => Math.min(prev + 10, 90));
+        setScanProgress((prev) => Math.min(prev + 10, 90));
       }, 200);
 
       const response = await fetch('/api/burst/analyze');
@@ -73,14 +84,13 @@ export default function BurstSelectionPage() {
 
         setLoading(false);
       }, 500);
-
     } catch (error) {
       console.error('Failed to analyze burst photos:', error);
       setLoading(false);
       toast({
-        title: "Analysis Failed",
-        description: "Failed to analyze photos for burst sequences.",
-        variant: "destructive"
+        title: 'Analysis Failed',
+        description: 'Failed to analyze photos for burst sequences.',
+        variant: 'destructive',
       });
     }
   };
@@ -91,38 +101,39 @@ export default function BurstSelectionPage() {
     setProcessing(true);
 
     try {
-      const selections = Array.from(selectedPhotos.entries()).map(([groupId, photoIds]) => ({
-        groupId,
-        selectedPhotoIds: photoIds
-      }));
+      const selections = Array.from(selectedPhotos.entries()).map(
+        ([groupId, photoIds]) => ({
+          groupId,
+          selectedPhotoIds: photoIds,
+        }),
+      );
 
       const response = await apiRequest('POST', '/api/burst/process', {
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           selections,
-          ungroupedPhotos: analysis.ungroupedPhotos.map(p => p.id)
+          ungroupedPhotos: analysis.ungroupedPhotos.map((p) => p.id),
         }),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const result = await response.json();
 
-      queryClient.invalidateQueries({ queryKey: ["/api/photos"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+      queryClient.invalidateQueries({ queryKey: ['/api/photos'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
 
       toast({
-        title: "Processing Complete",
+        title: 'Processing Complete',
         description: `Successfully processed ${result.processed} photos. ${result.promoted} promoted to Silver tier.`,
       });
 
       // Refresh analysis
       await scanForBurstPhotos();
-
     } catch (error) {
       console.error('Failed to process selections:', error);
       toast({
-        title: "Processing Failed",
-        description: "Failed to process photo selections.",
-        variant: "destructive"
+        title: 'Processing Failed',
+        description: 'Failed to process photo selections.',
+        variant: 'destructive',
       });
     } finally {
       setProcessing(false);
@@ -134,7 +145,7 @@ export default function BurstSelectionPage() {
     let updated: string[];
 
     if (current.includes(photoId)) {
-      updated = current.filter(id => id !== photoId);
+      updated = current.filter((id) => id !== photoId);
     } else {
       updated = [...current, photoId];
     }
@@ -145,16 +156,19 @@ export default function BurstSelectionPage() {
   };
 
   const selectAllInGroup = (groupId: string) => {
-    const group = analysis?.groups.find(g => g.id === groupId);
+    const group = analysis?.groups.find((g) => g.id === groupId);
     if (!group) return;
 
     const newSelections = new Map(selectedPhotos);
-    newSelections.set(groupId, group.photos.map(p => p.id));
+    newSelections.set(
+      groupId,
+      group.photos.map((p) => p.id),
+    );
     setSelectedPhotos(newSelections);
   };
 
   const selectSuggestedOnly = (groupId: string) => {
-    const group = analysis?.groups.find(g => g.id === groupId);
+    const group = analysis?.groups.find((g) => g.id === groupId);
     if (!group) return;
 
     const newSelections = new Map(selectedPhotos);
@@ -186,15 +200,20 @@ export default function BurstSelectionPage() {
         <Card>
           <CardHeader>
             <CardTitle>Analyzing Photos for Burst Sequences...</CardTitle>
-            <CardDescription>Looking for similar photos taken within short time periods</CardDescription>
+            <CardDescription>
+              Looking for similar photos taken within short time periods
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <Progress value={scanProgress} className="w-full" />
             <p className="text-sm text-muted-foreground mt-2">
-              {scanProgress < 30 ? 'Reading photo metadata...' : 
-               scanProgress < 60 ? 'Comparing timestamps and similarity...' : 
-               scanProgress < 90 ? 'Grouping burst sequences...' :
-               'Finalizing analysis...'}
+              {scanProgress < 30
+                ? 'Reading photo metadata...'
+                : scanProgress < 60
+                  ? 'Comparing timestamps and similarity...'
+                  : scanProgress < 90
+                    ? 'Grouping burst sequences...'
+                    : 'Finalizing analysis...'}
             </p>
           </CardContent>
         </Card>
@@ -208,8 +227,12 @@ export default function BurstSelectionPage() {
         <Card>
           <CardContent className="p-12 text-center">
             <AlertCircle className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-            <h3 className="text-lg font-semibold text-card-foreground mb-2">No Analysis Available</h3>
-            <p className="text-muted-foreground mb-4">Unable to analyze photos for burst sequences.</p>
+            <h3 className="text-lg font-semibold text-card-foreground mb-2">
+              No Analysis Available
+            </h3>
+            <p className="text-muted-foreground mb-4">
+              Unable to analyze photos for burst sequences.
+            </p>
             <Button onClick={() => scanForBurstPhotos()}>Try Again</Button>
           </CardContent>
         </Card>
@@ -217,14 +240,20 @@ export default function BurstSelectionPage() {
     );
   }
 
-  const totalSelectedCount = Array.from(selectedPhotos.values())
-    .reduce((sum, photos) => sum + photos.length, 0);
+  const totalSelectedCount = Array.from(selectedPhotos.values()).reduce(
+    (sum, photos) => sum + photos.length,
+    0,
+  );
 
   return (
     <div className="flex-1 overflow-auto bg-background dark:bg-gray-900">
       <div className="p-6">
-        <h1 className="text-2xl font-bold text-card-foreground dark:text-white mb-6">Burst Selection</h1>
-        <p className="text-sm text-muted-foreground dark:text-gray-400">Select which photos to promote from burst sequences</p>
+        <h1 className="text-2xl font-bold text-card-foreground dark:text-white mb-6">
+          Burst Selection
+        </h1>
+        <p className="text-sm text-muted-foreground dark:text-gray-400">
+          Select which photos to promote from burst sequences
+        </p>
 
         {/* Summary */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
@@ -233,8 +262,12 @@ export default function BurstSelectionPage() {
               <div className="flex items-center space-x-2">
                 <Camera className="w-5 h-5 text-blue-500" />
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground dark:text-gray-400">Burst Groups</p>
-                  <p className="text-2xl font-bold text-card-foreground dark:text-white">{analysis.groups.length}</p>
+                  <p className="text-sm font-medium text-muted-foreground dark:text-gray-400">
+                    Burst Groups
+                  </p>
+                  <p className="text-2xl font-bold text-card-foreground dark:text-white">
+                    {analysis.groups.length}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -245,8 +278,12 @@ export default function BurstSelectionPage() {
               <div className="flex items-center space-x-2">
                 <CheckCircle className="w-5 h-5 text-green-500" />
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground dark:text-gray-400">Selected for Processing</p>
-                  <p className="text-2xl font-bold text-card-foreground dark:text-white">{totalSelectedCount}</p>
+                  <p className="text-sm font-medium text-muted-foreground dark:text-gray-400">
+                    Selected for Processing
+                  </p>
+                  <p className="text-2xl font-bold text-card-foreground dark:text-white">
+                    {totalSelectedCount}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -257,8 +294,12 @@ export default function BurstSelectionPage() {
               <div className="flex items-center space-x-2">
                 <Clock className="w-5 h-5 text-muted-foreground" />
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground dark:text-gray-400">Total Photos</p>
-                  <p className="text-2xl font-bold text-card-foreground dark:text-white">{analysis.totalPhotos}</p>
+                  <p className="text-sm font-medium text-muted-foreground dark:text-gray-400">
+                    Total Photos
+                  </p>
+                  <p className="text-2xl font-bold text-card-foreground dark:text-white">
+                    {analysis.totalPhotos}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -329,12 +370,12 @@ export default function BurstSelectionPage() {
                               Best
                             </Badge>
                           )}
-                          
+
                           <div className="absolute top-2 right-2 z-10">
-                            <ProcessingStateBadge 
-                              state={getProcessingState(photo)} 
-                              tier={(photo as any).tier || "bronze"} 
-                              size="sm" 
+                            <ProcessingStateBadge
+                              state={getProcessingState(photo)}
+                              tier={(photo as any).tier || 'bronze'}
+                              size="sm"
                             />
                           </div>
 
@@ -351,7 +392,9 @@ export default function BurstSelectionPage() {
                             <div className="flex items-center justify-between">
                               <Checkbox
                                 checked={isSelected}
-                                onChange={() => togglePhotoSelection(group.id, photo.id)}
+                                onChange={() =>
+                                  togglePhotoSelection(group.id, photo.id)
+                                }
                               />
                             </div>
                             <div className="mt-1">
@@ -368,20 +411,27 @@ export default function BurstSelectionPage() {
                                   const hour = timeStr.substring(0, 2);
                                   const minute = timeStr.substring(2, 4);
                                   const second = timeStr.substring(4, 6);
-                                  
-                                  const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute), parseInt(second));
+
+                                  const date = new Date(
+                                    parseInt(year),
+                                    parseInt(month) - 1,
+                                    parseInt(day),
+                                    parseInt(hour),
+                                    parseInt(minute),
+                                    parseInt(second),
+                                  );
                                   const dateStr2 = date.toLocaleDateString('en-US', {
                                     month: 'short',
                                     day: 'numeric',
-                                    year: 'numeric'
+                                    year: 'numeric',
                                   });
                                   const timeStr2 = date.toLocaleTimeString('en-US', {
                                     hour: 'numeric',
                                     minute: '2-digit',
                                     second: '2-digit',
-                                    hour12: true
+                                    hour12: true,
                                   });
-                                  
+
                                   return (
                                     <>
                                       <p className="text-sm font-medium text-card-foreground dark:text-white truncate">
@@ -393,10 +443,13 @@ export default function BurstSelectionPage() {
                                     </>
                                   );
                                 }
-                                return <p className="text-sm text-muted-foreground truncate">{filename}</p>;
+                                return (
+                                  <p className="text-sm text-muted-foreground truncate">
+                                    {filename}
+                                  </p>
+                                );
                               })()}
                             </div>
-
                           </div>
                         </div>
                       );
@@ -412,9 +465,12 @@ export default function BurstSelectionPage() {
         {analysis.ungroupedPhotos.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle className="text-card-foreground dark:text-white">Individual Photos</CardTitle>
+              <CardTitle className="text-card-foreground dark:text-white">
+                Individual Photos
+              </CardTitle>
               <CardDescription className="text-muted-foreground dark:text-gray-400">
-                {analysis.ungroupedPhotos.length} photos that don't appear to be part of burst sequences
+                {analysis.ungroupedPhotos.length} photos that don't appear to be part of
+                burst sequences
               </CardDescription>
             </CardHeader>
             <CardContent>

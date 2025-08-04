@@ -12,7 +12,10 @@ interface UseLazyImageReturn {
   imageSrc: string | undefined;
 }
 
-export function useLazyImage({ src, threshold = 0.1 }: UseLazyImageProps): UseLazyImageReturn {
+export function useLazyImage({
+  src,
+  threshold = 0.1,
+}: UseLazyImageProps): UseLazyImageReturn {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isInView, setIsInView] = useState(false);
   const [imageSrc, setImageSrc] = useState<string | undefined>();
@@ -30,7 +33,7 @@ export function useLazyImage({ src, threshold = 0.1 }: UseLazyImageProps): UseLa
           observer.unobserve(current);
         }
       },
-      { threshold }
+      { threshold },
     );
 
     observer.observe(current);
@@ -55,6 +58,6 @@ export function useLazyImage({ src, threshold = 0.1 }: UseLazyImageProps): UseLa
     ref,
     isLoaded,
     isInView,
-    imageSrc: isInView ? imageSrc : undefined
+    imageSrc: isInView ? imageSrc : undefined,
   };
 }

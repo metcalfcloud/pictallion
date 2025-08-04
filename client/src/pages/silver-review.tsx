@@ -1,25 +1,63 @@
-import { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useLocation, Link } from "wouter";
-import { ChevronLeft, ChevronRight, Star, Tag, MapPin, Calendar, Camera, Eye, ThumbsUp, ThumbsDown, Upload, Search, Filter, RotateCcw, Sparkles, Users, User, AlertCircle, Zap, FileText, Globe, Clock, History, ImageIcon, Settings } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { RatingSystem, QuickRating } from "@/components/rating-system";
-import { AdvancedSearch } from "@/components/advanced-search";
-import type { SearchFilters } from "@/components/advanced-search";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
+import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useLocation, Link } from 'wouter';
+import {
+  ChevronLeft,
+  ChevronRight,
+  Star,
+  Tag,
+  MapPin,
+  Calendar,
+  Camera,
+  Eye,
+  ThumbsUp,
+  ThumbsDown,
+  Upload,
+  Search,
+  Filter,
+  RotateCcw,
+  Sparkles,
+  Users,
+  User,
+  AlertCircle,
+  Zap,
+  FileText,
+  Globe,
+  Clock,
+  History,
+  ImageIcon,
+  Settings,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { RatingSystem, QuickRating } from '@/components/rating-system';
+import { AdvancedSearch } from '@/components/advanced-search';
+import type { SearchFilters } from '@/components/advanced-search';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
 
 interface Photo {
   id: string;
@@ -55,19 +93,23 @@ export default function SilverReview() {
   const [showOnlyUnreviewed, setShowOnlyUnreviewed] = useState(true);
 
   // Fetch photos with advanced search first
-  const { data: searchResults, isLoading, refetch } = useQuery({
+  const {
+    data: searchResults,
+    isLoading,
+    refetch,
+  } = useQuery({
     queryKey: ['/api/photos/search', searchFilters, showOnlyUnreviewed],
     queryFn: async () => {
       const filters = {
         ...searchFilters,
         tier: 'silver' as const,
-        isReviewed: showOnlyUnreviewed ? false : undefined
+        isReviewed: showOnlyUnreviewed ? false : undefined,
       };
 
       const response = await fetch('/api/photos/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filters, limit: 100 })
+        body: JSON.stringify({ filters, limit: 100 }),
       });
 
       if (!response.ok) {
@@ -75,7 +117,7 @@ export default function SilverReview() {
       }
 
       return response.json();
-    }
+    },
   });
 
   const photos = (searchResults?.photos as Photo[]) || [];
@@ -88,7 +130,7 @@ export default function SilverReview() {
       const response = await fetch('/api/tags/library');
       if (!response.ok) throw new Error('Failed to fetch tag library');
       return response.json();
-    }
+    },
   });
 
   // Fetch faces for current photo
@@ -99,7 +141,7 @@ export default function SilverReview() {
       const response = await fetch(`/api/faces/photo/${selectedPhoto.id}`);
       if (!response.ok) throw new Error('Failed to fetch faces');
       return response.json();
-    }
+    },
   });
 
   // Fetch burst analysis
@@ -109,7 +151,7 @@ export default function SilverReview() {
       const response = await fetch('/api/photos/burst-analysis');
       if (!response.ok) throw new Error('Failed to fetch burst analysis');
       return response.json();
-    }
+    },
   });
 
   // Fetch photo history
@@ -120,7 +162,7 @@ export default function SilverReview() {
       const response = await fetch(`/api/photos/${selectedPhoto.id}/history`);
       if (!response.ok) throw new Error('Failed to fetch photo history');
       return response.json();
-    }
+    },
   });
 
   // Fetch filename preview
@@ -131,22 +173,26 @@ export default function SilverReview() {
       const response = await fetch(`/api/photos/${selectedPhoto.id}/filename-preview`);
       if (!response.ok) throw new Error('Failed to fetch filename preview');
       return response.json();
-    }
+    },
   });
 
   // Navigation handlers
   const goToPrevious = () => {
-    setSelectedPhotoIndex(prev => prev > 0 ? prev - 1 : photos.length - 1);
+    setSelectedPhotoIndex((prev) => (prev > 0 ? prev - 1 : photos.length - 1));
   };
 
   const goToNext = () => {
-    setSelectedPhotoIndex(prev => prev < photos.length - 1 ? prev + 1 : 0);
+    setSelectedPhotoIndex((prev) => (prev < photos.length - 1 ? prev + 1 : 0));
   };
 
   // Keyboard navigation
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      )
+        return;
 
       switch (e.key) {
         case 'ArrowLeft':
@@ -195,8 +241,8 @@ export default function SilverReview() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/photos/search'] });
-      toast({ title: "Rating updated successfully" });
-    }
+      toast({ title: 'Rating updated successfully' });
+    },
   });
 
   // Update metadata mutation
@@ -206,22 +252,24 @@ export default function SilverReview() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/photos/search'] });
-      toast({ title: "Metadata updated successfully" });
-    }
+      toast({ title: 'Metadata updated successfully' });
+    },
   });
 
   // Mark as reviewed mutation
   const markReviewedMutation = useMutation({
     mutationFn: async (photoId: string) => {
-      return await apiRequest('PATCH', `/api/photos/${photoId}/metadata`, { isReviewed: true });
+      return await apiRequest('PATCH', `/api/photos/${photoId}/metadata`, {
+        isReviewed: true,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/photos/search'] });
       if (showOnlyUnreviewed && selectedPhotoIndex >= photos.length - 1) {
         setSelectedPhotoIndex(0);
       }
-      toast({ title: "Photo marked as reviewed" });
-    }
+      toast({ title: 'Photo marked as reviewed' });
+    },
   });
 
   // AI processing mutation
@@ -231,16 +279,18 @@ export default function SilverReview() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/photos/search'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/faces/photo', selectedPhoto?.id] });
-      toast({ title: "AI processing completed successfully!" });
+      queryClient.invalidateQueries({
+        queryKey: ['/api/faces/photo', selectedPhoto?.id],
+      });
+      toast({ title: 'AI processing completed successfully!' });
     },
     onError: (error: any) => {
-      toast({ 
-        title: "AI processing failed", 
-        description: error.message || "Please try again",
-        variant: "destructive" 
+      toast({
+        title: 'AI processing failed',
+        description: error.message || 'Please try again',
+        variant: 'destructive',
       });
-    }
+    },
   });
 
   // Batch AI processing mutation
@@ -252,12 +302,12 @@ export default function SilverReview() {
       queryClient.invalidateQueries({ queryKey: ['/api/photos/search'] });
       toast({ title: `AI processing completed for ${data.processed} photos!` });
       if (data.errors.length > 0) {
-        toast({ 
-          title: `${data.errors.length} photos had errors`, 
-          variant: "destructive" 
+        toast({
+          title: `${data.errors.length} photos had errors`,
+          variant: 'destructive',
         });
       }
-    }
+    },
   });
 
   // Promote to gold mutation
@@ -267,9 +317,9 @@ export default function SilverReview() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/photos/search'] });
-      toast({ title: "Photo promoted to Gold tier with embedded metadata!" });
+      toast({ title: 'Photo promoted to Gold tier with embedded metadata!' });
       goToNext();
-    }
+    },
   });
 
   // Helper functions
@@ -300,13 +350,13 @@ export default function SilverReview() {
 
   const batchProcessAI = async () => {
     if (selectedPhotos.size === 0) return;
-    const photoIds = Array.from(selectedPhotos).filter(photoId => {
-      const photo = photos.find(p => p.id === photoId);
+    const photoIds = Array.from(selectedPhotos).filter((photoId) => {
+      const photo = photos.find((p) => p.id === photoId);
       return photo && !photo.metadata?.ai?.shortDescription;
     });
 
     if (photoIds.length === 0) {
-      toast({ title: "No photos need AI processing" });
+      toast({ title: 'No photos need AI processing' });
       return;
     }
 
@@ -315,7 +365,7 @@ export default function SilverReview() {
   };
 
   const hasAiProcessing = (photo: Photo) => {
-    return !!(photo.metadata?.ai?.shortDescription);
+    return !!photo.metadata?.ai?.shortDescription;
   };
 
   const togglePhotoSelection = (photoId: string) => {
@@ -338,7 +388,7 @@ export default function SilverReview() {
       setSelectedPhotos(new Set());
       toast({ title: `${selectedPhotos.size} photos promoted to Gold tier!` });
     } catch (error) {
-      toast({ title: "Error promoting photos", variant: "destructive" });
+      toast({ title: 'Error promoting photos', variant: 'destructive' });
     }
   };
 
@@ -358,7 +408,10 @@ export default function SilverReview() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold">Silver Tier Review</h1>
-          <Button onClick={() => setLocation("/upload")} className="flex items-center gap-2">
+          <Button
+            onClick={() => setLocation('/upload')}
+            className="flex items-center gap-2"
+          >
             <Upload className="h-4 w-4" />
             Upload Photos
           </Button>
@@ -370,14 +423,16 @@ export default function SilverReview() {
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground mb-4">
-              {showOnlyUnreviewed 
-                ? "All Silver tier photos have been reviewed. Great job!" 
-                : "No Silver tier photos available for review."
-              }
+              {showOnlyUnreviewed
+                ? 'All Silver tier photos have been reviewed. Great job!'
+                : 'No Silver tier photos available for review.'}
             </p>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setShowOnlyUnreviewed(!showOnlyUnreviewed)}>
-                {showOnlyUnreviewed ? "Show All Photos" : "Show Only Unreviewed"}
+              <Button
+                variant="outline"
+                onClick={() => setShowOnlyUnreviewed(!showOnlyUnreviewed)}
+              >
+                {showOnlyUnreviewed ? 'Show All Photos' : 'Show Only Unreviewed'}
               </Button>
               <Button asChild>
                 <Link href="/upload">Upload New Photos</Link>
@@ -400,7 +455,7 @@ export default function SilverReview() {
           <h1 className="text-3xl font-bold">Silver Tier Review</h1>
           <p className="text-muted-foreground">
             Reviewing {selectedPhotoIndex + 1} of {photos.length} photos
-            {showOnlyUnreviewed && " (unreviewed only)"}
+            {showOnlyUnreviewed && ' (unreviewed only)'}
           </p>
         </div>
 
@@ -439,7 +494,11 @@ export default function SilverReview() {
 
           {selectedPhotos.size > 0 && (
             <div className="flex gap-2">
-              <Button onClick={batchProcessAI} variant="outline" className="flex items-center gap-2">
+              <Button
+                onClick={batchProcessAI}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
                 <Sparkles className="h-4 w-4" />
                 Process {selectedPhotos.size} with AI
               </Button>
@@ -450,7 +509,7 @@ export default function SilverReview() {
             </div>
           )}
 
-          <Button onClick={() => setLocation("/upload")} variant="outline">
+          <Button onClick={() => setLocation('/upload')} variant="outline">
             <Upload className="h-4 w-4 mr-2" />
             Upload More
           </Button>
@@ -476,7 +535,9 @@ export default function SilverReview() {
                 <div className="absolute top-4 left-4">
                   <Checkbox
                     checked={selectedPhotos.has(selectedPhoto?.id || '')}
-                    onCheckedChange={() => selectedPhoto && togglePhotoSelection(selectedPhoto.id)}
+                    onCheckedChange={() =>
+                      selectedPhoto && togglePhotoSelection(selectedPhoto.id)
+                    }
                     className="bg-card border-white"
                   />
                 </div>
@@ -509,16 +570,22 @@ export default function SilverReview() {
 
                 {/* Review status and AI processing status */}
                 <div className="absolute bottom-4 left-4 flex gap-2">
-                  <Badge variant={selectedPhoto?.isReviewed ? "default" : "secondary"}>
-                    {selectedPhoto?.isReviewed ? "Reviewed" : "Unreviewed"}
+                  <Badge variant={selectedPhoto?.isReviewed ? 'default' : 'secondary'}>
+                    {selectedPhoto?.isReviewed ? 'Reviewed' : 'Unreviewed'}
                   </Badge>
                   {selectedPhoto && !hasAiProcessing(selectedPhoto) && (
-                    <Badge variant="outline" className="bg-amber-500/20 text-amber-700 border-amber-500">
+                    <Badge
+                      variant="outline"
+                      className="bg-amber-500/20 text-amber-700 border-amber-500"
+                    >
                       Needs AI Processing
                     </Badge>
                   )}
                   {selectedPhoto && hasAiProcessing(selectedPhoto) && (
-                    <Badge variant="outline" className="bg-green-500/20 text-green-700 border-green-500">
+                    <Badge
+                      variant="outline"
+                      className="bg-green-500/20 text-green-700 border-green-500"
+                    >
                       AI Processed
                     </Badge>
                   )}
@@ -537,7 +604,7 @@ export default function SilverReview() {
                 disabled={aiProcessMutation.isPending}
               >
                 <Sparkles className="h-4 w-4" />
-                {aiProcessMutation.isPending ? "Processing..." : "Process with AI"}
+                {aiProcessMutation.isPending ? 'Processing...' : 'Process with AI'}
               </Button>
             )}
 
@@ -554,7 +621,11 @@ export default function SilverReview() {
             <Button
               onClick={promoteToGold}
               className="flex items-center gap-2"
-              disabled={!selectedPhoto?.isReviewed || (selectedPhoto?.rating || 0) < 3 || !hasAiProcessing(selectedPhoto)}
+              disabled={
+                !selectedPhoto?.isReviewed ||
+                (selectedPhoto?.rating || 0) < 3 ||
+                !hasAiProcessing(selectedPhoto)
+              }
             >
               <ThumbsUp className="h-4 w-4" />
               Promote to Gold (P)
@@ -590,11 +661,13 @@ export default function SilverReview() {
           <TabsContent value="overview" className="space-y-4">
             {/* Alerts and notifications */}
             {(() => {
-              const photoInBurst = burstAnalysis?.groups?.find(group => 
-                group.photos.some(p => p.id === selectedPhoto?.id)
+              const photoInBurst = burstAnalysis?.groups?.find((group) =>
+                group.photos.some((p) => p.id === selectedPhoto?.id),
               );
-              const unassignedFaces = facesData?.filter(face => !face.personId)?.length || 0;
-              const faceDetectionErrors = selectedPhoto?.metadata?.faceDetectionErrors || [];
+              const unassignedFaces =
+                facesData?.filter((face) => !face.personId)?.length || 0;
+              const faceDetectionErrors =
+                selectedPhoto?.metadata?.faceDetectionErrors || [];
 
               return (
                 <>
@@ -619,8 +692,12 @@ export default function SilverReview() {
                     <Alert>
                       <Zap className="h-4 w-4" />
                       <AlertDescription>
-                        This photo is part of a burst sequence with {photoInBurst.photos.length} photos.
-                        <Link href="/burst-photos" className="ml-2 text-primary underline">
+                        This photo is part of a burst sequence with{' '}
+                        {photoInBurst.photos.length} photos.
+                        <Link
+                          href="/burst-photos"
+                          className="ml-2 text-primary underline"
+                        >
                           Review burst
                         </Link>
                       </AlertDescription>
@@ -631,7 +708,8 @@ export default function SilverReview() {
                     <Alert>
                       <Users className="h-4 w-4" />
                       <AlertDescription>
-                        {unassignedFaces} unassigned {unassignedFaces === 1 ? 'face' : 'faces'} detected.
+                        {unassignedFaces} unassigned{' '}
+                        {unassignedFaces === 1 ? 'face' : 'faces'} detected.
                         <Link href="/people" className="ml-2 text-primary underline">
                           Assign faces
                         </Link>
@@ -652,18 +730,28 @@ export default function SilverReview() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <div>
-                  <Label className="text-xs text-muted-foreground">Original Filename</Label>
-                  <p className="text-sm font-mono break-all">{selectedPhoto?.mediaAsset?.originalFilename || 'Unknown'}</p>
+                  <Label className="text-xs text-muted-foreground">
+                    Original Filename
+                  </Label>
+                  <p className="text-sm font-mono break-all">
+                    {selectedPhoto?.mediaAsset?.originalFilename || 'Unknown'}
+                  </p>
                 </div>
 
                 <div>
                   <Label className="text-xs text-muted-foreground">Size</Label>
-                  <p className="text-sm">{Math.round((selectedPhoto?.fileSize || 0) / 1024 / 1024 * 100) / 100} MB</p>
+                  <p className="text-sm">
+                    {Math.round(((selectedPhoto?.fileSize || 0) / 1024 / 1024) * 100) /
+                      100}{' '}
+                    MB
+                  </p>
                 </div>
 
                 {filenamePreview && (
                   <div>
-                    <Label className="text-xs text-muted-foreground">Filename After Promotion</Label>
+                    <Label className="text-xs text-muted-foreground">
+                      Filename After Promotion
+                    </Label>
                     <p className="text-sm font-mono break-all text-green-600 dark:text-green-400">
                       {filenamePreview.filename}
                     </p>
@@ -671,8 +759,16 @@ export default function SilverReview() {
                 )}
 
                 <div>
-                  <Label className="text-xs text-muted-foreground">Processing State</Label>
-                  <Badge variant={selectedPhoto?.processingState === 'promoted' ? 'default' : 'secondary'}>
+                  <Label className="text-xs text-muted-foreground">
+                    Processing State
+                  </Label>
+                  <Badge
+                    variant={
+                      selectedPhoto?.processingState === 'promoted'
+                        ? 'default'
+                        : 'secondary'
+                    }
+                  >
                     {selectedPhoto?.processingState || 'processed'}
                   </Badge>
                 </div>
@@ -680,10 +776,11 @@ export default function SilverReview() {
                 <div>
                   <Label className="text-xs text-muted-foreground">Date Taken</Label>
                   <p className="text-sm">
-                    {selectedPhoto?.metadata?.exif?.dateTimeOriginal 
-                      ? new Date(selectedPhoto.metadata.exif.dateTimeOriginal).toLocaleString()
-                      : new Date(selectedPhoto?.createdAt || '').toLocaleDateString()
-                    }
+                    {selectedPhoto?.metadata?.exif?.dateTimeOriginal
+                      ? new Date(
+                          selectedPhoto.metadata.exif.dateTimeOriginal,
+                        ).toLocaleString()
+                      : new Date(selectedPhoto?.createdAt || '').toLocaleDateString()}
                   </p>
                 </div>
               </CardContent>
@@ -700,13 +797,17 @@ export default function SilverReview() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div>
-                    <Label className="text-xs text-muted-foreground">AI Description</Label>
+                    <Label className="text-xs text-muted-foreground">
+                      AI Description
+                    </Label>
                     <p className="text-sm font-semibold">{aiData.shortDescription}</p>
                   </div>
 
                   {aiData.longDescription && (
                     <div>
-                      <Label className="text-xs text-muted-foreground">Detailed Description</Label>
+                      <Label className="text-xs text-muted-foreground">
+                        Detailed Description
+                      </Label>
                       <p className="text-sm">{aiData.longDescription}</p>
                     </div>
                   )}
@@ -749,13 +850,16 @@ export default function SilverReview() {
                         </div>
                         <div className="flex flex-col">
                           <span className="text-sm">
-                            {face.personId ? face.person?.name || 'Unknown Person' : 'Unassigned'}
+                            {face.personId
+                              ? face.person?.name || 'Unknown Person'
+                              : 'Unassigned'}
                           </span>
-                          {face.ageInPhoto !== null && face.ageInPhoto !== undefined && (
-                            <span className="text-xs text-muted-foreground">
-                              Age: {face.ageInPhoto}
-                            </span>
-                          )}
+                          {face.ageInPhoto !== null &&
+                            face.ageInPhoto !== undefined && (
+                              <span className="text-xs text-muted-foreground">
+                                Age: {face.ageInPhoto}
+                              </span>
+                            )}
                         </div>
                       </div>
                       <Badge variant="outline" className="text-xs">
@@ -783,17 +887,19 @@ export default function SilverReview() {
                       <p className="text-sm">{aiData.placeName}</p>
                     </div>
                   )}
-                  {(aiData.gpsCoordinates || (exifData.gpsLatitude && exifData.gpsLongitude)) && (
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Coordinates</Label>
-                    <p className="text-sm font-mono">
-                      {aiData.gpsCoordinates
-                        ? `${aiData.gpsCoordinates.latitude.toFixed(6)}, ${aiData.gpsCoordinates.longitude.toFixed(6)}`
-                        : `${exifData.gpsLatitude?.toFixed(6) || '0'}, ${exifData.gpsLongitude?.toFixed(6) || '0'}`
-                      }
-                    </p>
-                  </div>
-                )}
+                  {(aiData.gpsCoordinates ||
+                    (exifData.gpsLatitude && exifData.gpsLongitude)) && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground">
+                        Coordinates
+                      </Label>
+                      <p className="text-sm font-mono">
+                        {aiData.gpsCoordinates
+                          ? `${aiData.gpsCoordinates.latitude.toFixed(6)}, ${aiData.gpsCoordinates.longitude.toFixed(6)}`
+                          : `${exifData.gpsLatitude?.toFixed(6) || '0'}, ${exifData.gpsLongitude?.toFixed(6) || '0'}`}
+                      </p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )}
@@ -818,7 +924,9 @@ export default function SilverReview() {
                   )}
                   {aiData.detectedEvents?.map((event: any, index: number) => (
                     <div key={index} className="flex justify-between text-sm">
-                      <span>{event.eventName} ({event.eventType})</span>
+                      <span>
+                        {event.eventName} ({event.eventType})
+                      </span>
                       <span className="text-muted-foreground">{event.confidence}%</span>
                     </div>
                   ))}
@@ -864,7 +972,9 @@ export default function SilverReview() {
                             </span>
                           </div>
                           {event.details && (
-                            <p className="text-xs text-muted-foreground mt-1">{event.details}</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {event.details}
+                            </p>
                           )}
                         </div>
                       ))}
@@ -915,24 +1025,34 @@ export default function SilverReview() {
                 <CardContent>
                   <ScrollArea className="h-96">
                     <div className="space-y-3 text-sm">
-                      {aiData.shortDescription &&(
+                      {aiData.shortDescription && (
                         <div>
-                          <Label className="text-xs text-muted-foreground">Short Description</Label>
+                          <Label className="text-xs text-muted-foreground">
+                            Short Description
+                          </Label>
                           <p className="font-semibold">{aiData.shortDescription}</p>
                         </div>
                       )}
                       {aiData.longDescription && (
                         <div>
-                          <Label className="text-xs text-muted-foreground">Long Description</Label>
+                          <Label className="text-xs text-muted-foreground">
+                            Long Description
+                          </Label>
                           <p>{aiData.longDescription}</p>
                         </div>
                       )}
                       {aiData.aiTags && aiData.aiTags.length > 0 && (
                         <div>
-                          <Label className="text-xs text-muted-foreground">AI Tags</Label>
+                          <Label className="text-xs text-muted-foreground">
+                            AI Tags
+                          </Label>
                           <div className="flex flex-wrap gap-1 mt-1">
                             {aiData.aiTags.map((tag: string, index: number) => (
-                              <Badge key={index} variant="secondary" className="text-xs">
+                              <Badge
+                                key={index}
+                                variant="secondary"
+                                className="text-xs"
+                              >
                                 {tag}
                               </Badge>
                             ))}
@@ -941,12 +1061,16 @@ export default function SilverReview() {
                       )}
                       {aiData.detectedObjects && aiData.detectedObjects.length > 0 && (
                         <div>
-                          <Label className="text-xs text-muted-foreground">Detected Objects</Label>
+                          <Label className="text-xs text-muted-foreground">
+                            Detected Objects
+                          </Label>
                           <div className="space-y-1 mt-1">
                             {aiData.detectedObjects.map((obj: any, index: number) => (
                               <div key={index} className="flex justify-between">
                                 <span>{obj.name}</span>
-                                <span className="text-muted-foreground">{Math.round(obj.confidence * 100)}%</span>
+                                <span className="text-muted-foreground">
+                                  {Math.round(obj.confidence * 100)}%
+                                </span>
                               </div>
                             ))}
                           </div>
@@ -954,14 +1078,18 @@ export default function SilverReview() {
                       )}
                       {aiData.aiConfidenceScores && (
                         <div>
-                          <Label className="text-xs text-muted-foreground">AI Confidence Scores</Label>
+                          <Label className="text-xs text-muted-foreground">
+                            AI Confidence Scores
+                          </Label>
                           <div className="space-y-1 mt-1">
-                            {Object.entries(aiData.aiConfidenceScores).map(([key, value]: [string, any]) => (
-                              <div key={key} className="flex justify-between">
-                                <span className="capitalize">{key}:</span>
-                                <span>{Math.round(value * 100)}%</span>
-                              </div>
-                            ))}
+                            {Object.entries(aiData.aiConfidenceScores).map(
+                              ([key, value]: [string, any]) => (
+                                <div key={key} className="flex justify-between">
+                                  <span className="capitalize">{key}:</span>
+                                  <span>{Math.round(value * 100)}%</span>
+                                </div>
+                              ),
+                            )}
                           </div>
                         </div>
                       )}
@@ -975,145 +1103,160 @@ export default function SilverReview() {
           <TabsContent value="analysis" className="space-y-4">
             {/* Manual metadata */}
             <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Tag className="h-4 w-4" />
-                Manual Tags & Info
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div>
-                <Label htmlFor="keywords" className="text-xs">Keywords (comma-separated)</Label>
-                <Input
-                  id="keywords"
-                  value={(selectedPhoto?.keywords || []).join(', ')}
-                  onChange={(e) => {
-                    const keywords = e.target.value.split(',').map(k => k.trim()).filter(k => k);
-                    updateMetadata({ keywords });
-                  }}
-                  placeholder="Add keywords..."
-                  className="mt-1"
-                />
-                {tagLibrary.length > 0 && (
-                  <div className="mt-2">
-                    <Label className="text-xs text-muted-foreground">Popular tags from Gold tier:</Label>
-                    <div className="flex flex-wrap gap-1 mt-1 max-h-20 overflow-y-auto">
-                      {tagLibrary.slice(0, 20).map((tagInfo: any) => (
-                        <Badge
-                          key={tagInfo.tag}
-                          variant="outline"
-                          className="text-xs cursor-pointer hover:bg-blue-100"
-                          onClick={() => {
-                            const currentKeywords = selectedPhoto?.keywords || [];
-                            if (!currentKeywords.includes(tagInfo.tag)) {
-                              const newKeywords = [...currentKeywords, tagInfo.tag];
-                              updateMetadata({ keywords: newKeywords });
-                            }
-                          }}
-                        >
-                          {tagInfo.tag} ({tagInfo.usage_count})
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <Label htmlFor="location" className="text-xs">Location</Label>
-                <Input
-                  id="location"
-                  value={selectedPhoto?.location || ''}
-                  onChange={(e) => updateMetadata({ location: e.target.value })}
-                  placeholder="Location..."
-                  className="mt-1"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="eventType" className="text-xs">Event Type</Label>
-                <Select
-                  value={selectedPhoto?.eventType || 'none'}
-                  onValueChange={(value) => updateMetadata({ eventType: value === 'none' ? '' : value })}
-                >
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Select event type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">None</SelectItem>
-                    <SelectItem value="holiday">Holiday</SelectItem>
-                    <SelectItem value="birthday">Birthday</SelectItem>
-                    <SelectItem value="wedding">Wedding</SelectItem>
-                    <SelectItem value="vacation">Vacation</SelectItem>
-                    <SelectItem value="party">Party</SelectItem>
-                    <SelectItem value="sports">Sports</SelectItem>
-                    <SelectItem value="concert">Concert</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="eventName" className="text-xs">Event Name</Label>
-                <Input
-                  id="eventName"
-                  value={selectedPhoto?.eventName || ''}
-                  onChange={(e) => updateMetadata({ eventName: e.target.value })}
-                  placeholder="Event name..."
-                  className="mt-1"
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* EXIF data */}
-          {exifData && Object.keys(exifData).length > 0 && (
-            <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Camera className="h-4 w-4" />
-                  Camera Info
+                  <Tag className="h-4 w-4" />
+                  Manual Tags & Info
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2 text-xs">
-                {exifData.camera && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Camera:</span>
-                    <span>{exifData.camera}</span>
-                  </div>
-                )}
-                {exifData.lens && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Lens:</span>
-                    <span>{exifData.lens}</span>
-                  </div>
-                )}
-                {exifData.focalLength && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Focal Length:</span>
-                    <span>{exifData.focalLength}mm</span>
-                  </div>
-                )}
-                {exifData.aperture && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Aperture:</span>
-                    <span>f/{exifData.aperture}</span>
-                  </div>
-                )}
-                {exifData.shutterSpeed && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Shutter:</span>
-                    <span>{exifData.shutterSpeed}s</span>
-                  </div>
-                )}
-                {exifData.iso && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">ISO:</span>
-                    <span>{exifData.iso}</span>
-                  </div>
-                )}
+              <CardContent className="space-y-3">
+                <div>
+                  <Label htmlFor="keywords" className="text-xs">
+                    Keywords (comma-separated)
+                  </Label>
+                  <Input
+                    id="keywords"
+                    value={(selectedPhoto?.keywords || []).join(', ')}
+                    onChange={(e) => {
+                      const keywords = e.target.value
+                        .split(',')
+                        .map((k) => k.trim())
+                        .filter((k) => k);
+                      updateMetadata({ keywords });
+                    }}
+                    placeholder="Add keywords..."
+                    className="mt-1"
+                  />
+                  {tagLibrary.length > 0 && (
+                    <div className="mt-2">
+                      <Label className="text-xs text-muted-foreground">
+                        Popular tags from Gold tier:
+                      </Label>
+                      <div className="flex flex-wrap gap-1 mt-1 max-h-20 overflow-y-auto">
+                        {tagLibrary.slice(0, 20).map((tagInfo: any) => (
+                          <Badge
+                            key={tagInfo.tag}
+                            variant="outline"
+                            className="text-xs cursor-pointer hover:bg-blue-100"
+                            onClick={() => {
+                              const currentKeywords = selectedPhoto?.keywords || [];
+                              if (!currentKeywords.includes(tagInfo.tag)) {
+                                const newKeywords = [...currentKeywords, tagInfo.tag];
+                                updateMetadata({ keywords: newKeywords });
+                              }
+                            }}
+                          >
+                            {tagInfo.tag} ({tagInfo.usage_count})
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <Label htmlFor="location" className="text-xs">
+                    Location
+                  </Label>
+                  <Input
+                    id="location"
+                    value={selectedPhoto?.location || ''}
+                    onChange={(e) => updateMetadata({ location: e.target.value })}
+                    placeholder="Location..."
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="eventType" className="text-xs">
+                    Event Type
+                  </Label>
+                  <Select
+                    value={selectedPhoto?.eventType || 'none'}
+                    onValueChange={(value) =>
+                      updateMetadata({ eventType: value === 'none' ? '' : value })
+                    }
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Select event type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      <SelectItem value="holiday">Holiday</SelectItem>
+                      <SelectItem value="birthday">Birthday</SelectItem>
+                      <SelectItem value="wedding">Wedding</SelectItem>
+                      <SelectItem value="vacation">Vacation</SelectItem>
+                      <SelectItem value="party">Party</SelectItem>
+                      <SelectItem value="sports">Sports</SelectItem>
+                      <SelectItem value="concert">Concert</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="eventName" className="text-xs">
+                    Event Name
+                  </Label>
+                  <Input
+                    id="eventName"
+                    value={selectedPhoto?.eventName || ''}
+                    onChange={(e) => updateMetadata({ eventName: e.target.value })}
+                    placeholder="Event name..."
+                    className="mt-1"
+                  />
+                </div>
               </CardContent>
             </Card>
-          )}
+
+            {/* EXIF data */}
+            {exifData && Object.keys(exifData).length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Camera className="h-4 w-4" />
+                    Camera Info
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2 text-xs">
+                  {exifData.camera && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Camera:</span>
+                      <span>{exifData.camera}</span>
+                    </div>
+                  )}
+                  {exifData.lens && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Lens:</span>
+                      <span>{exifData.lens}</span>
+                    </div>
+                  )}
+                  {exifData.focalLength && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Focal Length:</span>
+                      <span>{exifData.focalLength}mm</span>
+                    </div>
+                  )}
+                  {exifData.aperture && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Aperture:</span>
+                      <span>f/{exifData.aperture}</span>
+                    </div>
+                  )}
+                  {exifData.shutterSpeed && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Shutter:</span>
+                      <span>{exifData.shutterSpeed}s</span>
+                    </div>
+                  )}
+                  {exifData.iso && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">ISO:</span>
+                      <span>{exifData.iso}</span>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
             {/* Photo thumbnails */}
             <Card>
@@ -1122,35 +1265,39 @@ export default function SilverReview() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-3 gap-2 max-h-40 overflow-y-auto">
-                  {photos.slice(Math.max(0, selectedPhotoIndex - 6), selectedPhotoIndex + 6).map((photo, index) => {
-                    const actualIndex = Math.max(0, selectedPhotoIndex - 6) + index;
-                    return (
-                      <div
-                        key={photo.id}
-                        className={`relative cursor-pointer border-2 rounded ${
-                          actualIndex === selectedPhotoIndex ? 'border-blue-500' : 'border-transparent'
-                        }`}
-                        onClick={() => setSelectedPhotoIndex(actualIndex)}
-                      >
-                        <img
-                          src={`/api/files/${photo.filePath}`}
-                          alt={photo.mediaAsset?.originalFilename || 'Photo'}
-                          className="w-full h-16 object-cover rounded"
-                          onError={(e) => {
-                            e.currentTarget.src = '/placeholder-image.svg';
-                          }}
-                        />
-                        {!photo.isReviewed && (
-                          <div className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></div>
-                        )}
-                        {selectedPhotos.has(photo.id) && (
-                          <div className="absolute top-1 left-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
-                            <span className="text-white text-xs">✓</span>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                  {photos
+                    .slice(Math.max(0, selectedPhotoIndex - 6), selectedPhotoIndex + 6)
+                    .map((photo, index) => {
+                      const actualIndex = Math.max(0, selectedPhotoIndex - 6) + index;
+                      return (
+                        <div
+                          key={photo.id}
+                          className={`relative cursor-pointer border-2 rounded ${
+                            actualIndex === selectedPhotoIndex
+                              ? 'border-blue-500'
+                              : 'border-transparent'
+                          }`}
+                          onClick={() => setSelectedPhotoIndex(actualIndex)}
+                        >
+                          <img
+                            src={`/api/files/${photo.filePath}`}
+                            alt={photo.mediaAsset?.originalFilename || 'Photo'}
+                            className="w-full h-16 object-cover rounded"
+                            onError={(e) => {
+                              e.currentTarget.src = '/placeholder-image.svg';
+                            }}
+                          />
+                          {!photo.isReviewed && (
+                            <div className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></div>
+                          )}
+                          {selectedPhotos.has(photo.id) && (
+                            <div className="absolute top-1 left-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
+                              <span className="text-white text-xs">✓</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                 </div>
               </CardContent>
             </Card>

@@ -1,30 +1,41 @@
-import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { 
-  CheckSquare, 
-  Square, 
-  Trash2, 
-  Tag, 
-  Star, 
-  Download, 
+import { useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import {
+  CheckSquare,
+  Square,
+  Trash2,
+  Tag,
+  Star,
+  Download,
   FolderPlus,
   Bot,
   Move,
   Copy,
-  X
-} from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
+  X,
+} from 'lucide-react';
+import { apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
 
-import type { Photo } from "@shared/types";
+import type { Photo } from '@shared/types';
 
 interface BatchOperationsProps {
   photos: Photo[];
@@ -37,7 +48,7 @@ export default function BatchOperations({
   photos,
   selectedPhotos,
   onSelectionChange,
-  onClose
+  onClose,
 }: BatchOperationsProps) {
   const [currentOperation, setCurrentOperation] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
@@ -45,32 +56,38 @@ export default function BatchOperations({
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const selectedPhotosData = photos.filter(photo => selectedPhotos.includes(photo.id));
+  const selectedPhotosData = photos.filter((photo) =>
+    selectedPhotos.includes(photo.id),
+  );
 
   // Batch operations mutation
   const batchOperationMutation = useMutation({
-    mutationFn: async ({ operation, photoIds, params }: { 
-      operation: string; 
-      photoIds: string[]; 
-      params?: any 
+    mutationFn: async ({
+      operation,
+      photoIds,
+      params,
+    }: {
+      operation: string;
+      photoIds: string[];
+      params?: any;
     }) => {
       const response = await apiRequest('POST', '/api/photos/batch', {
         operation,
         photoIds,
-        params
+        params,
       });
       return response.json();
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/photos"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+      queryClient.invalidateQueries({ queryKey: ['/api/photos'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
 
       setCurrentOperation(null);
       setProgress(0);
       onSelectionChange([]);
 
       toast({
-        title: "Operation Complete",
+        title: 'Operation Complete',
         description: `Successfully processed ${selectedPhotos.length} photos.`,
       });
     },
@@ -79,15 +96,15 @@ export default function BatchOperations({
       setProgress(0);
 
       toast({
-        title: "Operation Failed",
+        title: 'Operation Failed',
         description: error.message,
-        variant: "destructive"
+        variant: 'destructive',
       });
     },
   });
 
   const selectAll = () => {
-    onSelectionChange(photos.map(photo => photo.id));
+    onSelectionChange(photos.map((photo) => photo.id));
   };
 
   const deselectAll = () => {
@@ -96,7 +113,7 @@ export default function BatchOperations({
 
   const togglePhoto = (photoId: string) => {
     if (selectedPhotos.includes(photoId)) {
-      onSelectionChange(selectedPhotos.filter(id => id !== photoId));
+      onSelectionChange(selectedPhotos.filter((id) => id !== photoId));
     } else {
       onSelectionChange([...selectedPhotos, photoId]);
     }
@@ -105,9 +122,9 @@ export default function BatchOperations({
   const startOperation = (operation: string, params?: any) => {
     if (selectedPhotos.length === 0) {
       toast({
-        title: "No Photos Selected",
-        description: "Please select photos to perform batch operations.",
-        variant: "destructive"
+        title: 'No Photos Selected',
+        description: 'Please select photos to perform batch operations.',
+        variant: 'destructive',
       });
       return;
     }
@@ -117,7 +134,7 @@ export default function BatchOperations({
 
     // Simulate progress for user feedback
     const progressInterval = setInterval(() => {
-      setProgress(prev => {
+      setProgress((prev) => {
         if (prev >= 90) {
           clearInterval(progressInterval);
           return prev;
@@ -126,26 +143,33 @@ export default function BatchOperations({
       });
     }, 200);
 
-    batchOperationMutation.mutate({ 
-      operation, 
-      photoIds: selectedPhotos, 
-      params 
+    batchOperationMutation.mutate({
+      operation,
+      photoIds: selectedPhotos,
+      params,
     });
   };
 
   const handleDelete = () => {
-    if (confirm(`Are you sure you want to delete ${selectedPhotos.length} photos? This action cannot be undone.`)) {
+    if (
+      confirm(
+        `Are you sure you want to delete ${selectedPhotos.length} photos? This action cannot be undone.`,
+      )
+    ) {
       startOperation('delete');
     }
   };
 
   const handleAddTags = () => {
-    const tags = operationDetails.tags?.split(',').map((tag: string) => tag.trim()).filter(Boolean);
+    const tags = operationDetails.tags
+      ?.split(',')
+      .map((tag: string) => tag.trim())
+      .filter(Boolean);
     if (!tags || tags.length === 0) {
       toast({
-        title: "No Tags Entered",
-        description: "Please enter tags to add.",
-        variant: "destructive"
+        title: 'No Tags Entered',
+        description: 'Please enter tags to add.',
+        variant: 'destructive',
       });
       return;
     }
@@ -153,11 +177,14 @@ export default function BatchOperations({
   };
 
   const handlePromoteToTier = (tier: string) => {
-    if (tier && selectedPhotosData.some(photo => photo.tier !== 'bronze' && tier === 'silver')) {
+    if (
+      tier &&
+      selectedPhotosData.some((photo) => photo.tier !== 'bronze' && tier === 'silver')
+    ) {
       toast({
-        title: "Invalid Operation",
-        description: "Can only promote Bronze photos to Silver tier.",
-        variant: "destructive"
+        title: 'Invalid Operation',
+        description: 'Can only promote Bronze photos to Silver tier.',
+        variant: 'destructive',
       });
       return;
     }
@@ -169,7 +196,7 @@ export default function BatchOperations({
       const response = await fetch('/api/photos/batch-ai-process', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ photoIds: selectedPhotos })
+        body: JSON.stringify({ photoIds: selectedPhotos }),
       });
 
       if (!response.ok) {
@@ -179,17 +206,17 @@ export default function BatchOperations({
       const result = await response.json();
 
       toast({
-        title: "Operation Complete",
+        title: 'Operation Complete',
         description: `Added AI analysis to ${result.processed} photos.`,
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/photos"] });
+      queryClient.invalidateQueries({ queryKey: ['/api/photos'] });
       onClose();
     } catch (error) {
       console.error('Batch AI processing error:', error);
       toast({
-        title: "Operation Failed",
+        title: 'Operation Failed',
         description: 'Failed to add AI analysis to photos',
-        variant: "destructive"
+        variant: 'destructive',
       });
     }
   };
@@ -198,9 +225,9 @@ export default function BatchOperations({
     const collectionId = operationDetails.collectionId;
     if (!collectionId) {
       toast({
-        title: "No Collection Selected",
-        description: "Please select a collection.",
-        variant: "destructive"
+        title: 'No Collection Selected',
+        description: 'Please select a collection.',
+        variant: 'destructive',
       });
       return;
     }
@@ -219,10 +246,12 @@ export default function BatchOperations({
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
-              onClick={selectedPhotos.length === photos.length ? deselectAll : selectAll}
+              onClick={
+                selectedPhotos.length === photos.length ? deselectAll : selectAll
+              }
             >
               {selectedPhotos.length === photos.length ? (
                 <CheckSquare className="h-4 w-4" />
@@ -238,9 +267,9 @@ export default function BatchOperations({
 
           {selectedPhotos.length > 0 && (
             <div className="flex flex-wrap gap-2">
-              {selectedPhotosData.slice(0, 5).map(photo => (
+              {selectedPhotosData.slice(0, 5).map((photo) => (
                 <div key={photo.id} className="relative">
-                  <img 
+                  <img
                     src={`/api/files/${photo.filePath}`}
                     alt={photo.mediaAsset.originalFilename}
                     className="w-8 h-8 rounded object-cover"
@@ -265,7 +294,9 @@ export default function BatchOperations({
       {currentOperation && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Processing {currentOperation}...</span>
+            <span className="text-sm font-medium">
+              Processing {currentOperation}...
+            </span>
             <span className="text-sm text-muted-foreground">{progress}%</span>
           </div>
           <Progress value={progress} className="w-full" />
@@ -274,7 +305,6 @@ export default function BatchOperations({
 
       {/* Batch Operations */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-
         {/* Delete */}
         <div className="p-4 border rounded-lg">
           <div className="flex items-center space-x-2 mb-2">
@@ -284,9 +314,9 @@ export default function BatchOperations({
           <p className="text-sm text-muted-foreground mb-3">
             Permanently delete selected photos
           </p>
-          <Button 
-            variant="destructive" 
-            size="sm" 
+          <Button
+            variant="destructive"
+            size="sm"
             onClick={handleDelete}
             disabled={selectedPhotos.length === 0 || batchOperationMutation.isPending}
           >
@@ -303,12 +333,14 @@ export default function BatchOperations({
           <Input
             placeholder="Enter tags (comma separated)"
             value={operationDetails.tags || ''}
-            onChange={(e) => setOperationDetails({ ...operationDetails, tags: e.target.value })}
+            onChange={(e) =>
+              setOperationDetails({ ...operationDetails, tags: e.target.value })
+            }
             className="mb-3"
           />
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={handleAddTags}
             disabled={selectedPhotos.length === 0 || batchOperationMutation.isPending}
           >
@@ -325,9 +357,9 @@ export default function BatchOperations({
           <p className="text-sm text-muted-foreground mb-3">
             Process Bronze photos with AI analysis
           </p>
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={handleProcessWithAI}
             disabled={selectedPhotos.length === 0 || batchOperationMutation.isPending}
           >
@@ -341,9 +373,11 @@ export default function BatchOperations({
             <Star className="h-4 w-4 text-yellow-500" />
             <span className="font-medium">Promote Tier</span>
           </div>
-          <Select 
-            value={operationDetails.promoteTier || ''} 
-            onValueChange={(value) => setOperationDetails({ ...operationDetails, promoteTier: value })}
+          <Select
+            value={operationDetails.promoteTier || ''}
+            onValueChange={(value) =>
+              setOperationDetails({ ...operationDetails, promoteTier: value })
+            }
           >
             <SelectTrigger className="mb-3">
               <SelectValue placeholder="Select tier" />
@@ -353,9 +387,9 @@ export default function BatchOperations({
               <SelectItem value="gold">Promote to Gold</SelectItem>
             </SelectContent>
           </Select>
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => handlePromoteToTier(operationDetails.promoteTier)}
             disabled={selectedPhotos.length === 0 || batchOperationMutation.isPending}
           >
@@ -369,9 +403,11 @@ export default function BatchOperations({
             <FolderPlus className="h-4 w-4 text-green-500" />
             <span className="font-medium">Add to Collection</span>
           </div>
-          <Select 
-            value={operationDetails.collectionId || ''} 
-            onValueChange={(value) => setOperationDetails({ ...operationDetails, collectionId: value })}
+          <Select
+            value={operationDetails.collectionId || ''}
+            onValueChange={(value) =>
+              setOperationDetails({ ...operationDetails, collectionId: value })
+            }
           >
             <SelectTrigger className="mb-3">
               <SelectValue placeholder="Select collection" />
@@ -382,9 +418,9 @@ export default function BatchOperations({
               <SelectItem value="collection3">Best Shots</SelectItem>
             </SelectContent>
           </Select>
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={handleAddToCollection}
             disabled={selectedPhotos.length === 0 || batchOperationMutation.isPending}
           >
@@ -399,9 +435,11 @@ export default function BatchOperations({
             <span className="font-medium">Export Photos</span>
           </div>
           <div className="space-y-2 mb-3">
-            <Select 
-              value={operationDetails.exportFormat || 'zip'} 
-              onValueChange={(value) => setOperationDetails({ ...operationDetails, exportFormat: value })}
+            <Select
+              value={operationDetails.exportFormat || 'zip'}
+              onValueChange={(value) =>
+                setOperationDetails({ ...operationDetails, exportFormat: value })
+              }
             >
               <SelectTrigger>
                 <SelectValue placeholder="Export format" />
@@ -411,9 +449,11 @@ export default function BatchOperations({
                 <SelectItem value="tar">TAR Archive</SelectItem>
               </SelectContent>
             </Select>
-            <Select 
-              value={operationDetails.quality || 'original'} 
-              onValueChange={(value) => setOperationDetails({ ...operationDetails, quality: value })}
+            <Select
+              value={operationDetails.quality || 'original'}
+              onValueChange={(value) =>
+                setOperationDetails({ ...operationDetails, quality: value })
+              }
             >
               <SelectTrigger>
                 <SelectValue placeholder="Quality" />
@@ -425,9 +465,9 @@ export default function BatchOperations({
               </SelectContent>
             </Select>
           </div>
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={handleExport}
             disabled={selectedPhotos.length === 0 || batchOperationMutation.isPending}
           >
@@ -440,17 +480,17 @@ export default function BatchOperations({
       <div className="border-t pt-4">
         <h4 className="font-medium mb-3">Select Photos</h4>
         <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-2 max-h-64 overflow-y-auto">
-          {photos.map(photo => (
-            <div 
+          {photos.map((photo) => (
+            <div
               key={photo.id}
               className={`relative cursor-pointer rounded border-2 transition-all ${
-                selectedPhotos.includes(photo.id) 
-                  ? 'border-blue-500 ring-2 ring-blue-200' 
+                selectedPhotos.includes(photo.id)
+                  ? 'border-blue-500 ring-2 ring-blue-200'
                   : 'border-transparent hover:border-border'
               }`}
               onClick={() => togglePhoto(photo.id)}
             >
-              <img 
+              <img
                 src={`/api/files/${photo.filePath}`}
                 alt={photo.mediaAsset.originalFilename}
                 className="w-full aspect-square object-cover rounded"
@@ -460,7 +500,7 @@ export default function BatchOperations({
                   <CheckSquare className="h-4 w-4 text-blue-500 bg-card rounded" />
                 </div>
               )}
-              <Badge 
+              <Badge
                 variant={photo.tier === 'gold' ? 'default' : 'secondary'}
                 className="absolute bottom-1 left-1 text-xs"
               >

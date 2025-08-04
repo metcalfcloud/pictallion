@@ -13,8 +13,8 @@ services:
       - DATABASE_URL=postgresql://${DB_USER}:${DB_PASS}@db:${DB_PORT}/${DB_NAME}
       - DB_HOST=${DB_HOST}
       - DB_PORT=${DB_PORT}
-      - DB_USER=${DB_USER}
-      - DB_PASS=${DB_PASS}
+      - DB_USER_FILE=/run/secrets/db_user
+      - DB_PASS_FILE=/run/secrets/db_pass
       - DB_NAME=${DB_NAME}
     volumes:
       - ../data/media:/app/data/media
@@ -24,17 +24,28 @@ services:
   db:
     image: postgres:16
     environment:
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASS}
+      POSTGRES_USER_FILE: /run/secrets/db_user
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_pass
       POSTGRES_DB: ${DB_NAME}
     ports:
       - "5432:5432"
+    secrets:
+      - db_user
+      - db_pass
     # Uncomment below for MySQL alternative
     # image: mysql:8
     # environment:
-    #   MYSQL_ROOT_PASSWORD: ${DB_PASS}
+    #   MYSQL_ROOT_PASSWORD_FILE: /run/secrets/db_pass
     #   MYSQL_DATABASE: ${DB_NAME}
-    #   MYSQL_USER: ${DB_USER}
-    #   MYSQL_PASSWORD: ${DB_PASS}
+    #   MYSQL_USER_FILE: /run/secrets/db_user
+    #   MYSQL_PASSWORD_FILE: /run/secrets/db_pass
     # ports:
     #   - "3306:3306"
+    # secrets:
+    #   - db_user
+    #   - db_pass
+secrets:
+  db_user:
+    file: ./secrets/db_user.txt
+  db_pass:
+    file: ./secrets/db_pass.txt

@@ -38,17 +38,17 @@ const extractPhotoDate = (photo: Photo): Date => {
   try {
     if (photo.metadata?.exif) {
       const exif = photo.metadata.exif as any;
-      
+
       if (exif.dateTimeOriginal) {
         const date = new Date(exif.dateTimeOriginal);
         if (!isNaN(date.getTime())) return date;
       }
-      
+
       if (exif.createDate) {
         const date = new Date(exif.createDate);
         if (!isNaN(date.getTime())) return date;
       }
-      
+
       if (exif.dateTime) {
         const date = new Date(exif.dateTime);
         if (!isNaN(date.getTime())) return date;
@@ -79,9 +79,17 @@ const extractPhotoDate = (photo: Photo): Date => {
 };
 
 const PhotoCell = ({ columnIndex, rowIndex, style, data }: PhotoCellProps) => {
-  const { photos, columnsPerRow, onPhotoClick, onProcessPhoto, isProcessing, selectedPhotos, onPhotoSelect } = data;
+  const {
+    photos,
+    columnsPerRow,
+    onPhotoClick,
+    onProcessPhoto,
+    isProcessing,
+    selectedPhotos,
+    onPhotoSelect,
+  } = data;
   const photoIndex = rowIndex * columnsPerRow + columnIndex;
-  
+
   // Return empty cell if no photo at this index
   if (photoIndex >= photos.length) {
     return <div style={style} />;
@@ -112,18 +120,21 @@ const PhotoCell = ({ columnIndex, rowIndex, style, data }: PhotoCellProps) => {
     <div style={style} className="p-3">
       <div className="relative group h-full">
         {/* Polaroid Card */}
-        <div className="bg-white dark:bg-gray-100 p-3 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 rotate-0 hover:rotate-1 cursor-pointer h-full flex flex-col"
-             onClick={() => onPhotoClick(photo)}>
-          
+        <div
+          className="bg-white dark:bg-gray-100 p-3 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 rotate-0 hover:rotate-1 cursor-pointer h-full flex flex-col"
+          onClick={() => onPhotoClick(photo)}
+        >
           {/* Photo Section with Tier-Colored Frame */}
-          <div className={cn(
-            "relative rounded-sm overflow-hidden aspect-square mb-4 p-1 flex-shrink-0",
-            photo.tier === 'bronze' && "bg-orange-500",
-            photo.tier === 'silver' && "bg-slate-500", 
-            photo.tier === 'gold' && "bg-yellow-500"
-          )}>
+          <div
+            className={cn(
+              'relative rounded-sm overflow-hidden aspect-square mb-4 p-1 flex-shrink-0',
+              photo.tier === 'bronze' && 'bg-orange-500',
+              photo.tier === 'silver' && 'bg-slate-500',
+              photo.tier === 'gold' && 'bg-yellow-500',
+            )}
+          >
             <div className="bg-gray-200 rounded-sm overflow-hidden w-full h-full relative">
-              <OptimizedImage 
+              <OptimizedImage
                 src={`/api/files/${photo.filePath}`}
                 alt={photo.mediaAsset.originalFilename}
                 className="w-full h-full object-cover"
@@ -132,33 +143,40 @@ const PhotoCell = ({ columnIndex, rowIndex, style, data }: PhotoCellProps) => {
               />
               <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-200" />
             </div>
-            
+
             {/* Tier-colored Push Pin */}
-            <div className={cn(
-              "absolute -top-2 -right-2 w-4 h-4 rounded-full shadow-lg transform rotate-12",
-              photo.tier === 'bronze' && "bg-orange-500",
-              photo.tier === 'silver' && "bg-slate-500",
-              photo.tier === 'gold' && "bg-yellow-500"
-            )}>
+            <div
+              className={cn(
+                'absolute -top-2 -right-2 w-4 h-4 rounded-full shadow-lg transform rotate-12',
+                photo.tier === 'bronze' && 'bg-orange-500',
+                photo.tier === 'silver' && 'bg-slate-500',
+                photo.tier === 'gold' && 'bg-yellow-500',
+              )}
+            >
               <div className="absolute inset-0.5 bg-white rounded-full">
-                <div className={cn(
-                  "absolute inset-1 rounded-full",
-                  photo.tier === 'bronze' && "bg-orange-400",
-                  photo.tier === 'silver' && "bg-slate-400",
-                  photo.tier === 'gold' && "bg-yellow-400"
-                )} />
+                <div
+                  className={cn(
+                    'absolute inset-1 rounded-full',
+                    photo.tier === 'bronze' && 'bg-orange-400',
+                    photo.tier === 'silver' && 'bg-slate-400',
+                    photo.tier === 'gold' && 'bg-yellow-400',
+                  )}
+                />
               </div>
             </div>
-            
+
             {/* Review Badge */}
             {needsReview(photo) && (
               <div className="absolute top-2 right-2">
-                <Badge variant="outline" className="text-yellow-600 border-yellow-600 bg-white/90">
+                <Badge
+                  variant="outline"
+                  className="text-yellow-600 border-yellow-600 bg-white/90"
+                >
                   <Eye className="w-3 h-3" />
                 </Badge>
               </div>
             )}
-            
+
             {/* Selection Checkbox */}
             {onPhotoSelect && (
               <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -174,7 +192,7 @@ const PhotoCell = ({ columnIndex, rowIndex, style, data }: PhotoCellProps) => {
               </div>
             )}
           </div>
-          
+
           {/* Polaroid White Bottom Section */}
           <div className="text-gray-800 dark:text-gray-900 flex-grow flex flex-col">
             {/* Date - Handwritten Style */}
@@ -183,31 +201,38 @@ const PhotoCell = ({ columnIndex, rowIndex, style, data }: PhotoCellProps) => {
                 {extractPhotoDate(photo).toLocaleDateString('en-US', {
                   month: 'short',
                   day: 'numeric',
-                  year: 'numeric'
+                  year: 'numeric',
                 })}
               </h3>
             </div>
-            
+
             {/* Tier Label with Elegant Design */}
             <div className="flex items-center justify-between mb-2 mt-auto">
-              <div className={cn(
-                "flex items-center gap-2 px-2 py-1 rounded-full text-xs font-medium border-2",
-                photo.tier === 'bronze' && "bg-orange-50 border-orange-200 text-orange-700",
-                photo.tier === 'silver' && "bg-slate-50 border-slate-200 text-slate-700",
-                photo.tier === 'gold' && "bg-yellow-50 border-yellow-200 text-yellow-700"
-              )}>
-                <div className={cn(
-                  "w-2 h-2 rounded-full",
-                  photo.tier === 'bronze' && "bg-orange-400",
-                  photo.tier === 'silver' && "bg-slate-400", 
-                  photo.tier === 'gold' && "bg-yellow-400"
-                )} />
+              <div
+                className={cn(
+                  'flex items-center gap-2 px-2 py-1 rounded-full text-xs font-medium border-2',
+                  photo.tier === 'bronze' &&
+                    'bg-orange-50 border-orange-200 text-orange-700',
+                  photo.tier === 'silver' &&
+                    'bg-slate-50 border-slate-200 text-slate-700',
+                  photo.tier === 'gold' &&
+                    'bg-yellow-50 border-yellow-200 text-yellow-700',
+                )}
+              >
+                <div
+                  className={cn(
+                    'w-2 h-2 rounded-full',
+                    photo.tier === 'bronze' && 'bg-orange-400',
+                    photo.tier === 'silver' && 'bg-slate-400',
+                    photo.tier === 'gold' && 'bg-yellow-400',
+                  )}
+                />
                 <span className="capitalize">{photo.tier}</span>
                 {photo.tier === 'silver' && !photo.isReviewed && (
                   <Eye className="w-3 h-3 text-yellow-600" />
                 )}
               </div>
-              
+
               {/* Quick Actions */}
               <div className="flex items-center space-x-1">
                 <Button
@@ -262,7 +287,7 @@ export default function VirtualPhotoGrid({
   selectedPhotos = [],
   onPhotoSelect,
   containerHeight,
-  containerWidth
+  containerWidth,
 }: VirtualPhotoGridProps) {
   const gridRef = useRef<Grid>(null);
 
@@ -271,19 +296,33 @@ export default function VirtualPhotoGrid({
   const ITEM_HEIGHT = 400; // Height of each photo card including padding
   const GAP = 24; // Gap between items
 
-  const columnsPerRow = Math.max(1, Math.floor((containerWidth + GAP) / (ITEM_WIDTH + GAP)));
+  const columnsPerRow = Math.max(
+    1,
+    Math.floor((containerWidth + GAP) / (ITEM_WIDTH + GAP)),
+  );
   const rowCount = Math.ceil(photos.length / columnsPerRow);
 
   // Memoize grid data to prevent unnecessary re-renders
-  const gridData = useMemo(() => ({
-    photos,
-    columnsPerRow,
-    onPhotoClick,
-    onProcessPhoto,
-    isProcessing,
-    selectedPhotos,
-    onPhotoSelect
-  }), [photos, columnsPerRow, onPhotoClick, onProcessPhoto, isProcessing, selectedPhotos, onPhotoSelect]);
+  const gridData = useMemo(
+    () => ({
+      photos,
+      columnsPerRow,
+      onPhotoClick,
+      onProcessPhoto,
+      isProcessing,
+      selectedPhotos,
+      onPhotoSelect,
+    }),
+    [
+      photos,
+      columnsPerRow,
+      onPhotoClick,
+      onProcessPhoto,
+      isProcessing,
+      selectedPhotos,
+      onPhotoSelect,
+    ],
+  );
 
   // Reset scroll position when photos change
   useEffect(() => {

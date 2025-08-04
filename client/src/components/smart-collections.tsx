@@ -8,16 +8,22 @@ import { Switch } from './ui/switch';
 import { Label } from './ui/label';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { 
-  Plus, 
-  Wand2, 
-  Users, 
-  Calendar, 
-  MapPin, 
-  Camera, 
-  Heart, 
-  Baby, 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from './ui/select';
+import {
+  Plus,
+  Wand2,
+  Users,
+  Calendar,
+  MapPin,
+  Camera,
+  Heart,
+  Baby,
   GraduationCap,
   Home,
   Car,
@@ -27,10 +33,17 @@ import {
   Settings,
   RefreshCw,
   Eye,
-  Trash2
+  Trash2,
 } from 'lucide-react';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
-import { toast } from '@/hooks/use-toast';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from './ui/dialog';
+import { toast } from '../hooks/use-toast';
 
 interface SmartCollection {
   id: string;
@@ -53,10 +66,10 @@ interface CollectionRule {
   weight: number;
 }
 
-interface Photo {
+export interface Photo {
   id: string;
   filePath: string;
-  metadata: any;
+  metadata: Record<string, unknown>;
   aiTags: string[];
   eventType?: string;
   location?: string;
@@ -75,82 +88,87 @@ const COLLECTION_ICONS = {
   Car: Car,
   TreePine: TreePine,
   Sunset: Sunset,
-  PartyPopper: PartyPopper
+  PartyPopper: PartyPopper,
 };
 
 const PREDEFINED_COLLECTIONS = [
   {
-    name: "Family Portraits",
-    description: "Photos featuring family members and group shots",
-    icon: "Users",
-    color: "blue",
+    name: 'Family Portraits',
+    description: 'Photos featuring family members and group shots',
+    icon: 'Users',
+    color: 'blue',
     rules: [
-      { field: "aiTags", operator: "contains", value: "family", weight: 3 },
-      { field: "aiTags", operator: "contains", value: "people", weight: 2 },
-      { field: "aiTags", operator: "contains", value: "portrait", weight: 2 },
-      { field: "faceCount", operator: ">=", value: "2", weight: 2 }
-    ]
+      { field: 'aiTags', operator: 'contains', value: 'family', weight: 3 },
+      { field: 'aiTags', operator: 'contains', value: 'people', weight: 2 },
+      { field: 'aiTags', operator: 'contains', value: 'portrait', weight: 2 },
+      { field: 'faceCount', operator: '>=', value: '2', weight: 2 },
+    ],
   },
   {
-    name: "Children & Kids",
-    description: "Photos featuring children and childhood moments",
-    icon: "Baby",
-    color: "pink",
+    name: 'Children & Kids',
+    description: 'Photos featuring children and childhood moments',
+    icon: 'Baby',
+    color: 'pink',
     rules: [
-      { field: "aiTags", operator: "contains", value: "children", weight: 3 },
-      { field: "aiTags", operator: "contains", value: "kids", weight: 3 },
-      { field: "aiTags", operator: "contains", value: "baby", weight: 3 },
-      { field: "personAge", operator: "<=", value: "12", weight: 2 }
-    ]
+      { field: 'aiTags', operator: 'contains', value: 'children', weight: 3 },
+      { field: 'aiTags', operator: 'contains', value: 'kids', weight: 3 },
+      { field: 'aiTags', operator: 'contains', value: 'baby', weight: 3 },
+      { field: 'personAge', operator: '<=', value: '12', weight: 2 },
+    ],
   },
   {
-    name: "Outdoor Adventures",
-    description: "Nature, landscapes, and outdoor activities",
-    icon: "TreePine",
-    color: "green",
+    name: 'Outdoor Adventures',
+    description: 'Nature, landscapes, and outdoor activities',
+    icon: 'TreePine',
+    color: 'green',
     rules: [
-      { field: "aiTags", operator: "contains", value: "outdoor", weight: 3 },
-      { field: "aiTags", operator: "contains", value: "nature", weight: 2 },
-      { field: "aiTags", operator: "contains", value: "landscape", weight: 2 },
-      { field: "aiTags", operator: "contains", value: "hiking", weight: 2 }
-    ]
+      { field: 'aiTags', operator: 'contains', value: 'outdoor', weight: 3 },
+      { field: 'aiTags', operator: 'contains', value: 'nature', weight: 2 },
+      { field: 'aiTags', operator: 'contains', value: 'landscape', weight: 2 },
+      { field: 'aiTags', operator: 'contains', value: 'hiking', weight: 2 },
+    ],
   },
   {
-    name: "Special Events",
-    description: "Birthdays, holidays, and celebrations",
-    icon: "PartyPopper",
-    color: "purple",
+    name: 'Special Events',
+    description: 'Birthdays, holidays, and celebrations',
+    icon: 'PartyPopper',
+    color: 'purple',
     rules: [
-      { field: "eventType", operator: "equals", value: "birthday", weight: 3 },
-      { field: "eventType", operator: "equals", value: "holiday", weight: 3 },
-      { field: "aiTags", operator: "contains", value: "celebration", weight: 2 },
-      { field: "aiTags", operator: "contains", value: "party", weight: 2 }
-    ]
+      { field: 'eventType', operator: 'equals', value: 'birthday', weight: 3 },
+      { field: 'eventType', operator: 'equals', value: 'holiday', weight: 3 },
+      { field: 'aiTags', operator: 'contains', value: 'celebration', weight: 2 },
+      { field: 'aiTags', operator: 'contains', value: 'party', weight: 2 },
+    ],
   },
   {
-    name: "Home Life",
-    description: "Daily life, home moments, and candid shots",
-    icon: "Home",
-    color: "orange",
+    name: 'Home Life',
+    description: 'Daily life, home moments, and candid shots',
+    icon: 'Home',
+    color: 'orange',
     rules: [
-      { field: "aiTags", operator: "contains", value: "home", weight: 2 },
-      { field: "aiTags", operator: "contains", value: "indoor", weight: 1 },
-      { field: "aiTags", operator: "contains", value: "family-time", weight: 2 },
-      { field: "location", operator: "contains", value: "home", weight: 1 }
-    ]
+      { field: 'aiTags', operator: 'contains', value: 'home', weight: 2 },
+      { field: 'aiTags', operator: 'contains', value: 'indoor', weight: 1 },
+      { field: 'aiTags', operator: 'contains', value: 'family-time', weight: 2 },
+      { field: 'location', operator: 'contains', value: 'home', weight: 1 },
+    ],
   },
   {
-    name: "Golden Hour",
-    description: "Beautiful lighting and sunset/sunrise photos",
-    icon: "Sunset",
-    color: "yellow",
+    name: 'Golden Hour',
+    description: 'Beautiful lighting and sunset/sunrise photos',
+    icon: 'Sunset',
+    color: 'yellow',
     rules: [
-      { field: "aiTags", operator: "contains", value: "sunset", weight: 3 },
-      { field: "aiTags", operator: "contains", value: "sunrise", weight: 3 },
-      { field: "aiTags", operator: "contains", value: "golden", weight: 2 },
-      { field: "metadata.time", operator: "time_range", value: "17:00-19:00,06:00-08:00", weight: 1 }
-    ]
-  }
+      { field: 'aiTags', operator: 'contains', value: 'sunset', weight: 3 },
+      { field: 'aiTags', operator: 'contains', value: 'sunrise', weight: 3 },
+      { field: 'aiTags', operator: 'contains', value: 'golden', weight: 2 },
+      {
+        field: 'metadata.time',
+        operator: 'time_range',
+        value: '17:00-19:00,06:00-08:00',
+        weight: 1,
+      },
+    ],
+  },
 ];
 
 export function SmartCollections() {
@@ -162,20 +180,24 @@ export function SmartCollections() {
     description: '',
     icon: 'Camera',
     color: 'blue',
-    rules: [] as CollectionRule[]
+    rules: [] as CollectionRule[],
   });
   const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
-    loadCollections();
+    void loadCollections();
   }, []);
 
   const loadCollections = async () => {
     try {
       const response = await fetch('/api/smart-collections');
       if (response.ok) {
-        const data = await response.json();
-        setCollections(data);
+        const data = await response.json() as unknown;
+        if (Array.isArray(data)) {
+          setCollections(data as SmartCollection[]);
+        } else {
+          setCollections([]);
+        }
       }
     } catch (error) {
       console.error('Failed to load collections:', error);
@@ -197,23 +219,23 @@ export function SmartCollections() {
             color: template.color,
             rules: template.rules.map((rule, index) => ({
               id: `rule_${index}`,
-              ...rule
-            }))
-          })
+              ...rule,
+            })),
+          }),
         });
       }
 
       await loadCollections();
       toast({
-        title: "Collections Created",
-        description: "Smart collections have been set up successfully!"
+        title: 'Collections Created',
+        description: 'Smart collections have been set up successfully!',
       });
     } catch (error) {
       console.error('Failed to create collections:', error);
       toast({
-        title: "Error",
-        description: "Failed to create smart collections.",
-        variant: "destructive"
+        title: 'Error',
+        description: 'Failed to create smart collections.',
+        variant: 'destructive',
       });
     } finally {
       setIsProcessing(false);
@@ -224,23 +246,39 @@ export function SmartCollections() {
     setIsProcessing(true);
     try {
       const response = await fetch('/api/smart-collections/organize', {
-        method: 'POST'
+        method: 'POST',
       });
 
       if (response.ok) {
-        const result = await response.json();
-        await loadCollections();
-        toast({
-          title: "Photos Organized",
-          description: `${result.organized} photos have been organized into smart collections!`
-        });
+        const result = await response.json() as unknown;
+        function isOrganizedResult(obj: unknown): obj is { organized: number } {
+          return (
+            typeof obj === 'object' &&
+            obj !== null &&
+            'organized' in obj &&
+            typeof (obj as { organized: number }).organized === 'number'
+          );
+        }
+        if (isOrganizedResult(result)) {
+          await loadCollections();
+          toast({
+            title: 'Photos Organized',
+            description: `${result.organized} photos have been organized into smart collections!`,
+          });
+        } else {
+          toast({
+            title: 'Error',
+            description: 'Unexpected response format.',
+            variant: 'destructive',
+          });
+        }
       }
     } catch (error) {
       console.error('Failed to organize photos:', error);
       toast({
-        title: "Error",
-        description: "Failed to organize photos.",
-        variant: "destructive"
+        title: 'Error',
+        description: 'Failed to organize photos.',
+        variant: 'destructive',
       });
     } finally {
       setIsProcessing(false);
@@ -252,12 +290,12 @@ export function SmartCollections() {
       await fetch(`/api/smart-collections/${collectionId}/toggle`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isActive })
+        body: JSON.stringify({ isActive }),
       });
 
-      setCollections(prev => prev.map(col => 
-        col.id === collectionId ? { ...col, isActive } : col
-      ));
+      setCollections((prev) =>
+        prev.map((col) => (col.id === collectionId ? { ...col, isActive } : col)),
+      );
     } catch (error) {
       console.error('Failed to toggle collection:', error);
     }
@@ -269,36 +307,36 @@ export function SmartCollections() {
       field: 'aiTags',
       operator: 'contains',
       value: '',
-      weight: 1
+      weight: 1,
     };
-    setNewCollection(prev => ({
+    setNewCollection((prev) => ({
       ...prev,
-      rules: [...prev.rules, newRule]
+      rules: [...prev.rules, newRule],
     }));
   };
 
-  const updateRule = (ruleId: string, field: string, value: any) => {
-    setNewCollection(prev => ({
+  const updateRule = (ruleId: string, field: string, value: string | number) => {
+    setNewCollection((prev) => ({
       ...prev,
-      rules: prev.rules.map(rule =>
-        rule.id === ruleId ? { ...rule, [field]: value } : rule
-      )
+      rules: prev.rules.map((rule) =>
+        rule.id === ruleId ? { ...rule, [field]: value } : rule,
+      ),
     }));
   };
 
   const removeRule = (ruleId: string) => {
-    setNewCollection(prev => ({
+    setNewCollection((prev) => ({
       ...prev,
-      rules: prev.rules.filter(rule => rule.id !== ruleId)
+      rules: prev.rules.filter((rule) => rule.id !== ruleId),
     }));
   };
 
   const createCollection = async () => {
     if (!newCollection.name.trim()) {
       toast({
-        title: "Error",
-        description: "Collection name is required.",
-        variant: "destructive"
+        title: 'Error',
+        description: 'Collection name is required.',
+        variant: 'destructive',
       });
       return;
     }
@@ -309,8 +347,8 @@ export function SmartCollections() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...newCollection,
-          type: 'auto'
-        })
+          type: 'auto',
+        }),
       });
 
       if (response.ok) {
@@ -321,25 +359,25 @@ export function SmartCollections() {
           description: '',
           icon: 'Camera',
           color: 'blue',
-          rules: []
+          rules: [],
         });
         toast({
-          title: "Collection Created",
-          description: "Smart collection has been created successfully!"
+          title: 'Collection Created',
+          description: 'Smart collection has been created successfully!',
         });
       }
     } catch (error) {
       console.error('Failed to create collection:', error);
       toast({
-        title: "Error",
-        description: "Failed to create collection.",
-        variant: "destructive"
+        title: 'Error',
+        description: 'Failed to create collection.',
+        variant: 'destructive',
       });
     }
   };
 
   const IconComponent = ({ iconName }: { iconName: string }) => {
-    const Icon = COLLECTION_ICONS[iconName as keyof typeof COLLECTION_ICONS] || Camera;
+    const Icon = COLLECTION_ICONS[iconName as keyof typeof COLLECTION_ICONS] ?? Camera;
     return <Icon className="h-4 w-4" />;
   };
 
@@ -348,15 +386,15 @@ export function SmartCollections() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Smart Collections</h1>
-          <p className="text-muted-foreground">Automatically organize your photos with AI-powered collections</p>
+          <p className="text-muted-foreground">
+            Automatically organize your photos with AI-powered collections
+          </p>
         </div>
         <div className="flex gap-2">
-          <Button 
-            onClick={organizePhotos} 
-            disabled={isProcessing}
-            variant="outline"
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${isProcessing ? 'animate-spin' : ''}`} />
+          <Button onClick={() => void organizePhotos()} disabled={isProcessing} variant="outline">
+            <RefreshCw
+              className={`h-4 w-4 mr-2 ${isProcessing ? 'animate-spin' : ''}`}
+            />
             Reorganize Photos
           </Button>
           <Dialog open={isCreating} onOpenChange={setIsCreating}>
@@ -381,18 +419,25 @@ export function SmartCollections() {
                     <Input
                       id="name"
                       value={newCollection.name}
-                      onChange={(e) => setNewCollection(prev => ({ ...prev, name: e.target.value }))}
+                      onChange={(e) =>
+                        setNewCollection((prev) => ({ ...prev, name: e.target.value }))
+                      }
                       placeholder="Enter collection name"
                     />
                   </div>
                   <div>
                     <Label htmlFor="icon">Icon</Label>
-                    <Select value={newCollection.icon} onValueChange={(value) => setNewCollection(prev => ({ ...prev, icon: value }))}>
+                    <Select
+                      value={newCollection.icon}
+                      onValueChange={(value) =>
+                        setNewCollection((prev) => ({ ...prev, icon: value }))
+                      }
+                    >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {Object.keys(COLLECTION_ICONS).map(iconName => (
+                        {Object.keys(COLLECTION_ICONS).map((iconName) => (
                           <SelectItem key={iconName} value={iconName}>
                             <div className="flex items-center gap-2">
                               <IconComponent iconName={iconName} />
@@ -410,7 +455,12 @@ export function SmartCollections() {
                   <Textarea
                     id="description"
                     value={newCollection.description}
-                    onChange={(e) => setNewCollection(prev => ({ ...prev, description: e.target.value }))}
+                    onChange={(e) =>
+                      setNewCollection((prev) => ({
+                        ...prev,
+                        description: e.target.value,
+                      }))
+                    }
                     placeholder="Describe what photos should be included"
                   />
                 </div>
@@ -419,8 +469,14 @@ export function SmartCollections() {
                   <Label>Collection Rules</Label>
                   <div className="space-y-2 mt-2">
                     {newCollection.rules.map((rule) => (
-                      <div key={rule.id} className="flex items-center gap-2 p-2 border rounded">
-                        <Select value={rule.field} onValueChange={(value) => updateRule(rule.id, 'field', value)}>
+                      <div
+                        key={rule.id}
+                        className="flex items-center gap-2 p-2 border rounded"
+                      >
+                        <Select
+                          value={rule.field}
+                          onValueChange={(value) => updateRule(rule.id, 'field', value)}
+                        >
                           <SelectTrigger className="w-32">
                             <SelectValue />
                           </SelectTrigger>
@@ -433,7 +489,12 @@ export function SmartCollections() {
                           </SelectContent>
                         </Select>
 
-                        <Select value={rule.operator} onValueChange={(value) => updateRule(rule.id, 'operator', value)}>
+                        <Select
+                          value={rule.operator}
+                          onValueChange={(value) =>
+                            updateRule(rule.id, 'operator', value)
+                          }
+                        >
                           <SelectTrigger className="w-32">
                             <SelectValue />
                           </SelectTrigger>
@@ -458,7 +519,9 @@ export function SmartCollections() {
                           min="1"
                           max="5"
                           value={rule.weight}
-                          onChange={(e) => updateRule(rule.id, 'weight', parseInt(e.target.value))}
+                          onChange={(e) =>
+                            updateRule(rule.id, 'weight', parseInt(e.target.value))
+                          }
                           className="w-16"
                           title="Weight (1-5)"
                         />
@@ -484,9 +547,7 @@ export function SmartCollections() {
                   <Button variant="outline" onClick={() => setIsCreating(false)}>
                     Cancel
                   </Button>
-                  <Button onClick={createCollection}>
-                    Create Collection
-                  </Button>
+                  <Button onClick={() => void createCollection()}>Create Collection</Button>
                 </div>
               </div>
             </DialogContent>
@@ -508,11 +569,10 @@ export function SmartCollections() {
                 <Wand2 className="h-12 w-12 text-muted-foreground mb-4" />
                 <h3 className="text-lg font-semibold mb-2">No Smart Collections Yet</h3>
                 <p className="text-muted-foreground text-center mb-4">
-                  Create smart collections to automatically organize your photos based on AI analysis
+                  Create smart collections to automatically organize your photos based
+                  on AI analysis
                 </p>
-                <Button onClick={() => setActiveTab('setup')}>
-                  Get Started
-                </Button>
+                <Button onClick={() => setActiveTab('setup')}>Get Started</Button>
               </CardContent>
             </Card>
           ) : (
@@ -522,7 +582,9 @@ export function SmartCollections() {
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <div className={`p-2 rounded-lg bg-${collection.color}-100 text-${collection.color}-600`}>
+                        <div
+                          className={`p-2 rounded-lg bg-${collection.color}-100 text-${collection.color}-600`}
+                        >
                           <IconComponent iconName={collection.icon} />
                         </div>
                         <div>
@@ -534,7 +596,9 @@ export function SmartCollections() {
                       </div>
                       <Switch
                         checked={collection.isActive}
-                        onCheckedChange={(checked) => toggleCollection(collection.id, checked)}
+                        onCheckedChange={(checked) =>
+                          void toggleCollection(collection.id, checked)
+                        }
                       />
                     </div>
                   </CardHeader>
@@ -543,7 +607,9 @@ export function SmartCollections() {
                       {collection.description}
                     </p>
                     <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span>Updated {new Date(collection.lastUpdated).toLocaleDateString()}</span>
+                      <span>
+                        Updated {new Date(collection.lastUpdated).toLocaleDateString()}
+                      </span>
                       <Button variant="ghost" size="sm">
                         <Eye className="h-3 w-3 mr-1" />
                         View
@@ -561,31 +627,43 @@ export function SmartCollections() {
             <CardHeader>
               <CardTitle>Quick Setup</CardTitle>
               <CardDescription>
-                Start with our predefined smart collections, perfect for family photo organization
+                Start with our predefined smart collections, perfect for family photo
+                organization
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 {PREDEFINED_COLLECTIONS.map((template, index) => (
-                  <div key={index} className="flex items-center gap-3 p-3 border rounded-lg">
-                    <div className={`p-2 rounded-lg bg-${template.color}-100 text-${template.color}-600`}>
+                  <div
+                    key={index}
+                    className="flex items-center gap-3 p-3 border rounded-lg"
+                  >
+                    <div
+                      className={`p-2 rounded-lg bg-${template.color}-100 text-${template.color}-600`}
+                    >
                       <IconComponent iconName={template.icon} />
                     </div>
                     <div>
                       <h4 className="font-medium">{template.name}</h4>
-                      <p className="text-sm text-muted-foreground">{template.description}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {template.description}
+                      </p>
                     </div>
                   </div>
                 ))}
               </div>
 
-              <Button 
-                onClick={createPredefinedCollections}
+              <Button
+                onClick={() => void createPredefinedCollections()}
                 disabled={isProcessing}
                 className="w-full"
               >
-                <Wand2 className={`h-4 w-4 mr-2 ${isProcessing ? 'animate-spin' : ''}`} />
-                {isProcessing ? 'Creating Collections...' : 'Create All Smart Collections'}
+                <Wand2
+                  className={`h-4 w-4 mr-2 ${isProcessing ? 'animate-spin' : ''}`}
+                />
+                {isProcessing
+                  ? 'Creating Collections...'
+                  : 'Create All Smart Collections'}
               </Button>
             </CardContent>
           </Card>
@@ -611,7 +689,9 @@ export function SmartCollections() {
               </div>
 
               <div className="flex items-center justify-between">
-                <Label htmlFor="confidence-threshold">Minimum Confidence Threshold</Label>
+                <Label htmlFor="confidence-threshold">
+                  Minimum Confidence Threshold
+                </Label>
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-muted-foreground">70%</span>
                   <Progress value={70} className="w-24" />

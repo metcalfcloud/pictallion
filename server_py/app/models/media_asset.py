@@ -35,8 +35,8 @@ class MediaAsset(UUIDMixin, TimestampMixin, SQLModel, table=True):
     original_filename: str = Field(alias="originalFilename")
 
     # Relationships
-    file_versions: List["FileVersion"] = Relationship(back_populates="media_asset")  # type: ignore
-    history: List["AssetHistory"] = Relationship(back_populates="media_asset")  # type: ignore
+    file_versions: List["FileVersion"] = Relationship(back_populates="media_asset")
+    history: List["AssetHistory"] = Relationship(back_populates="media_asset")
 
 
 class FileVersion(UUIDMixin, TimestampMixin, SQLModel, table=True):
@@ -68,9 +68,9 @@ class FileVersion(UUIDMixin, TimestampMixin, SQLModel, table=True):
     )  # processed, promoted, rejected
 
     # Relationships
-    media_asset: Optional["MediaAsset"] = Relationship(back_populates="file_versions")  # type: ignore
-    faces: List["Face"] = Relationship(back_populates="photo")  # type: ignore
-    collection_photos: List["CollectionPhoto"] = Relationship(back_populates="photo")  # type: ignore
+    media_asset: Optional["MediaAsset"] = Relationship(back_populates="file_versions")
+    faces: List["Face"] = Relationship(back_populates="photo")
+    collection_photos: List["CollectionPhoto"] = Relationship(back_populates="photo")
 
 
 class AssetHistory(UUIDMixin, SQLModel, table=True):
@@ -84,7 +84,7 @@ class AssetHistory(UUIDMixin, SQLModel, table=True):
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
     # Relationships
-    media_asset: Optional["MediaAsset"] = Relationship(back_populates="history")  # type: ignore
+    media_asset: Optional["MediaAsset"] = Relationship(back_populates="history")
 
 
 class Collection(UUIDMixin, TimestampMixin, SQLModel, table=True):
@@ -102,7 +102,7 @@ class Collection(UUIDMixin, TimestampMixin, SQLModel, table=True):
     )
 
     # Relationships
-    photos: List["CollectionPhoto"] = Relationship(back_populates="collection")  # type: ignore
+    photos: List["CollectionPhoto"] = Relationship(back_populates="collection")
 
 
 class CollectionPhoto(UUIDMixin, SQLModel, table=True):
@@ -115,8 +115,8 @@ class CollectionPhoto(UUIDMixin, SQLModel, table=True):
     added_at: datetime = Field(default_factory=datetime.utcnow, alias="addedAt")
 
     # Relationships
-    collection: Optional["Collection"] = Relationship(back_populates="photos")  # type: ignore
-    photo: Optional["FileVersion"] = Relationship(back_populates="collection_photos")  # type: ignore
+    collection: Optional["Collection"] = Relationship(back_populates="photos")
+    photo: Optional["FileVersion"] = Relationship(back_populates="collection_photos")
 
 
 class Person(UUIDMixin, TimestampMixin, SQLModel, table=True):
@@ -134,8 +134,8 @@ class Person(UUIDMixin, TimestampMixin, SQLModel, table=True):
     )
 
     # Relationships
-    faces: List["Face"] = Relationship(back_populates="person")  # type: ignore
-    events: List["Event"] = Relationship(back_populates="person")  # type: ignore
+    faces: List["Face"] = Relationship(back_populates="person")
+    events: List["Event"] = Relationship(back_populates="person")
     relationships_as_person1: Any = Relationship(
         back_populates="person1",
         sa_relationship_kwargs={"foreign_keys": "Relationship.person1_id"},
@@ -161,8 +161,8 @@ class Face(UUIDMixin, TimestampMixin, SQLModel, table=True):
     ignored: bool = Field(default=False)
 
     # Relationships
-    photo: Optional["FileVersion"] = Relationship(back_populates="faces")  # type: ignore
-    person: Optional["Person"] = Relationship(back_populates="faces")  # type: ignore
+    photo: Optional["FileVersion"] = Relationship(back_populates="faces")
+    person: Optional["Person"] = Relationship(back_populates="faces")
 
 
 class Setting(UUIDMixin, TimestampMixin, SQLModel, table=True):
@@ -215,7 +215,7 @@ class Event(UUIDMixin, TimestampMixin, SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
     # Relationships
-    person: Optional["Person"] = Relationship(back_populates="events")  # type: ignore
+    person: Optional["Person"] = Relationship(back_populates="events")
 
 
 class GlobalTagLibrary(UUIDMixin, SQLModel, table=True):
@@ -245,11 +245,11 @@ class Relationship(UUIDMixin, SQLModel, table=True):
     person1: Optional["Person"] = Relationship(
         back_populates="relationships_as_person1",
         sa_relationship_kwargs={"foreign_keys": "Relationship.person1_id"},
-    )  # type: ignore
+    )
     person2: Optional["Person"] = Relationship(
         back_populates="relationships_as_person2",
         sa_relationship_kwargs={"foreign_keys": "Relationship.person2_id"},
-    )  # type: ignore
+    )
 
 
 class Location(UUIDMixin, TimestampMixin, SQLModel, table=True):

@@ -19,6 +19,14 @@ This guide covers operational procedures for running, monitoring, and maintainin
 - Use automated scripts or scheduled Docker jobs
 - Restore from backup using standard PostgreSQL tools
 
+## Rollback Procedures
+
+- To rollback a deployment, restore the previous Docker image and database/media backups
+- Use versioned backups for `/data/media` and PostgreSQL
+- For database: use `pg_restore` or `psql` with backup files
+- For media: restore from backup directory
+- Always test rollback in staging before production
+
 ## Performance Tuning
 
 - Enable connection pooling for database
@@ -40,9 +48,10 @@ This guide covers operational procedures for running, monitoring, and maintainin
 - Check logs for errors
 - Validate environment variables
 - Use healthcheck endpoints
+- For CI/CD failures, review workflow logs and secret configuration
 
 ## References
 
-- [Deployment Guide](DEPLOYMENT.md)
-- [Architecture](ARCHITECTURE.md)
-- [API Documentation](API_DOCUMENTATION.md)
+- [Deployment Guide](DEPLOYMENT.md:1) (includes rollback and troubleshooting)
+- [Architecture](ARCHITECTURE.md:1)
+- [API Documentation](API_DOCUMENTATION.md:1)

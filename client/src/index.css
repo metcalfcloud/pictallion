@@ -298,3 +298,13 @@
     to { box-shadow: 0 0 10px var(--primary), 0 0 20px var(--primary), 0 0 30px var(--primary); }
   }
 }
+@layer utilities {
+  .text-foreground {
+    color: var(--foreground);
+  }
+@layer utilities {
+  .bg-accent {
+    background-color: var(--accent);
+  }
+}
+}

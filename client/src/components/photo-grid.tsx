@@ -1,11 +1,11 @@
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { Heart, Bot, Eye, Star, MoreVertical } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { OptimizedImage } from "@/components/optimized-image";
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
+import { Heart, Bot, Eye, Star, MoreVertical } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { OptimizedImage } from '@/components/optimized-image';
 
-import type { Photo } from "@shared/types";
+import type { Photo } from '@shared/types';
 
 // Helper function to extract photo date from EXIF or filename
 const extractPhotoDate = (photo: Photo): Date => {
@@ -13,19 +13,19 @@ const extractPhotoDate = (photo: Photo): Date => {
     // First try EXIF metadata
     if (photo.metadata?.exif) {
       const exif = photo.metadata.exif as any;
-      
+
       // Try DateTimeOriginal first (most accurate)
       if (exif.dateTimeOriginal) {
         const date = new Date(exif.dateTimeOriginal);
         if (!isNaN(date.getTime())) return date;
       }
-      
+
       // Try CreateDate
       if (exif.createDate) {
         const date = new Date(exif.createDate);
         if (!isNaN(date.getTime())) return date;
       }
-      
+
       // Try DateTime
       if (exif.dateTime) {
         const date = new Date(exif.dateTime);
@@ -68,14 +68,14 @@ interface PhotoGridProps {
   onPhotoSelect?: (photoId: string, selected: boolean) => void;
 }
 
-export default function PhotoGrid({ 
-  photos, 
-  viewMode, 
-  onPhotoClick, 
+export default function PhotoGrid({
+  photos,
+  viewMode,
+  onPhotoClick,
   onProcessPhoto,
   isProcessing = false,
   selectedPhotos = [],
-  onPhotoSelect
+  onPhotoSelect,
 }: PhotoGridProps) {
   const getTierBadgeClass = (tier: string) => {
     switch (tier) {
@@ -118,11 +118,11 @@ export default function PhotoGrid({
           <Card key={photo.id} className="overflow-hidden">
             <CardContent className="p-0">
               <div className="flex">
-                <div 
+                <div
                   className="w-32 h-32 cursor-pointer"
                   onClick={() => onPhotoClick(photo)}
                 >
-                  <OptimizedImage 
+                  <OptimizedImage
                     src={`/api/files/${photo.filePath}`}
                     alt={photo.mediaAsset.originalFilename}
                     className="w-full h-full object-cover"
@@ -136,7 +136,7 @@ export default function PhotoGrid({
                       <h3 className="font-medium text-card-foreground mb-1">
                         {photo.mediaAsset.originalFilename}
                       </h3>
-                      
+
                       {/* Photo Date */}
                       <p className="text-xs text-muted-foreground mb-2">
                         {extractPhotoDate(photo).toLocaleDateString('en-US', {
@@ -145,18 +145,21 @@ export default function PhotoGrid({
                           day: 'numeric',
                           year: 'numeric',
                           hour: '2-digit',
-                          minute: '2-digit'
+                          minute: '2-digit',
                         })}
                       </p>
 
                       <div className="flex items-center space-x-2 mb-2">
-                        <Badge className={cn("text-xs", getTierBadgeClass(photo.tier))}>
+                        <Badge className={cn('text-xs', getTierBadgeClass(photo.tier))}>
                           {getTierIcon(photo.tier)}
                           <span className="ml-1 capitalize">{photo.tier}</span>
                         </Badge>
 
                         {needsReview(photo) && (
-                          <Badge variant="outline" className="text-yellow-600 border-yellow-600">
+                          <Badge
+                            variant="outline"
+                            className="text-yellow-600 border-yellow-600"
+                          >
                             <Eye className="w-3 h-3 mr-1" />
                             Needs Review
                           </Badge>
@@ -171,11 +174,16 @@ export default function PhotoGrid({
 
                       {photo.metadata?.ai?.aiTags && (
                         <div className="flex flex-wrap gap-1 mb-2">
-                          {photo.metadata.ai.aiTags.slice(0, 4).map((tag: string, index: number) => (
-                            <span key={index} className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs">
-                              {tag}
-                            </span>
-                          ))}
+                          {photo.metadata.ai.aiTags
+                            .slice(0, 4)
+                            .map((tag: string, index: number) => (
+                              <span
+                                key={index}
+                                className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs"
+                              >
+                                {tag}
+                              </span>
+                            ))}
                           {photo.metadata.ai.aiTags.length > 4 && (
                             <span className="text-xs text-muted-foreground">
                               +{photo.metadata.ai.aiTags.length - 4} more
@@ -184,21 +192,27 @@ export default function PhotoGrid({
                         </div>
                       )}
 
-                      {photo.metadata?.ai?.detectedPeople && photo.metadata.ai.detectedPeople.length > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                          {photo.metadata.ai.detectedPeople.slice(0, 3).map((person: any, index: number) => (
-                            <span key={index} className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs flex items-center gap-1">
-                              <span className="w-2 h-2 bg-green-600 rounded-full"></span>
-                              {person.name || 'Unknown'}
-                            </span>
-                          ))}
-                          {photo.metadata.ai.detectedPeople.length > 3 && (
-                            <span className="text-xs text-muted-foreground">
-                              +{photo.metadata.ai.detectedPeople.length - 3} more
-                            </span>
-                          )}
-                        </div>
-                      )}
+                      {photo.metadata?.ai?.detectedPeople &&
+                        photo.metadata.ai.detectedPeople.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {photo.metadata.ai.detectedPeople
+                              .slice(0, 3)
+                              .map((person: any, index: number) => (
+                                <span
+                                  key={index}
+                                  className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs flex items-center gap-1"
+                                >
+                                  <span className="w-2 h-2 bg-green-600 rounded-full"></span>
+                                  {person.name || 'Unknown'}
+                                </span>
+                              ))}
+                            {photo.metadata.ai.detectedPeople.length > 3 && (
+                              <span className="text-xs text-muted-foreground">
+                                +{photo.metadata.ai.detectedPeople.length - 3} more
+                              </span>
+                            )}
+                          </div>
+                        )}
                     </div>
 
                     <div className="flex items-center space-x-2">
@@ -232,18 +246,21 @@ export default function PhotoGrid({
       {photos.map((photo) => (
         <div key={photo.id} className="relative group">
           {/* Polaroid Card */}
-          <div className="bg-white dark:bg-gray-100 p-3 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 rotate-0 hover:rotate-1 cursor-pointer"
-               onClick={() => onPhotoClick(photo)}>
-            
+          <div
+            className="bg-white dark:bg-gray-100 p-3 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 rotate-0 hover:rotate-1 cursor-pointer"
+            onClick={() => onPhotoClick(photo)}
+          >
             {/* Photo Section with Tier-Colored Frame */}
-            <div className={cn(
-              "relative rounded-sm overflow-hidden aspect-square mb-4 p-1",
-              photo.tier === 'bronze' && "bg-orange-500",
-              photo.tier === 'silver' && "bg-slate-500", 
-              photo.tier === 'gold' && "bg-yellow-500"
-            )}>
+            <div
+              className={cn(
+                'relative rounded-sm overflow-hidden aspect-square mb-4 p-1',
+                photo.tier === 'bronze' && 'bg-orange-500',
+                photo.tier === 'silver' && 'bg-slate-500',
+                photo.tier === 'gold' && 'bg-yellow-500',
+              )}
+            >
               <div className="bg-gray-200 rounded-sm overflow-hidden w-full h-full relative">
-                <OptimizedImage 
+                <OptimizedImage
                   src={`/api/files/${photo.filePath}`}
                   alt={photo.mediaAsset.originalFilename}
                   className="w-full h-full object-cover"
@@ -252,33 +269,40 @@ export default function PhotoGrid({
                 />
                 <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-200" />
               </div>
-              
+
               {/* Tier-colored Push Pin */}
-              <div className={cn(
-                "absolute -top-2 -right-2 w-4 h-4 rounded-full shadow-lg transform rotate-12",
-                photo.tier === 'bronze' && "bg-orange-500",
-                photo.tier === 'silver' && "bg-slate-500",
-                photo.tier === 'gold' && "bg-yellow-500"
-              )}>
+              <div
+                className={cn(
+                  'absolute -top-2 -right-2 w-4 h-4 rounded-full shadow-lg transform rotate-12',
+                  photo.tier === 'bronze' && 'bg-orange-500',
+                  photo.tier === 'silver' && 'bg-slate-500',
+                  photo.tier === 'gold' && 'bg-yellow-500',
+                )}
+              >
                 <div className="absolute inset-0.5 bg-white rounded-full">
-                  <div className={cn(
-                    "absolute inset-1 rounded-full",
-                    photo.tier === 'bronze' && "bg-orange-400",
-                    photo.tier === 'silver' && "bg-slate-400",
-                    photo.tier === 'gold' && "bg-yellow-400"
-                  )} />
+                  <div
+                    className={cn(
+                      'absolute inset-1 rounded-full',
+                      photo.tier === 'bronze' && 'bg-orange-400',
+                      photo.tier === 'silver' && 'bg-slate-400',
+                      photo.tier === 'gold' && 'bg-yellow-400',
+                    )}
+                  />
                 </div>
               </div>
-              
+
               {/* Review Badge */}
               {needsReview(photo) && (
                 <div className="absolute top-2 right-2">
-                  <Badge variant="outline" className="text-yellow-600 border-yellow-600 bg-white/90">
+                  <Badge
+                    variant="outline"
+                    className="text-yellow-600 border-yellow-600 bg-white/90"
+                  >
                     <Eye className="w-3 h-3" />
                   </Badge>
                 </div>
               )}
-              
+
               {/* Selection Checkbox */}
               {onPhotoSelect && (
                 <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -294,7 +318,7 @@ export default function PhotoGrid({
                 </div>
               )}
             </div>
-            
+
             {/* Polaroid White Bottom Section */}
             <div className="text-gray-800 dark:text-gray-900">
               {/* Date - Handwritten Style */}
@@ -303,31 +327,38 @@ export default function PhotoGrid({
                   {extractPhotoDate(photo).toLocaleDateString('en-US', {
                     month: 'short',
                     day: 'numeric',
-                    year: 'numeric'
+                    year: 'numeric',
                   })}
                 </h3>
               </div>
-              
+
               {/* Tier Label with Elegant Design */}
               <div className="flex items-center justify-between mb-2">
-                <div className={cn(
-                  "flex items-center gap-2 px-2 py-1 rounded-full text-xs font-medium border-2",
-                  photo.tier === 'bronze' && "bg-orange-50 border-orange-200 text-orange-700",
-                  photo.tier === 'silver' && "bg-slate-50 border-slate-200 text-slate-700",
-                  photo.tier === 'gold' && "bg-yellow-50 border-yellow-200 text-yellow-700"
-                )}>
-                  <div className={cn(
-                    "w-2 h-2 rounded-full",
-                    photo.tier === 'bronze' && "bg-orange-400",
-                    photo.tier === 'silver' && "bg-slate-400", 
-                    photo.tier === 'gold' && "bg-yellow-400"
-                  )} />
+                <div
+                  className={cn(
+                    'flex items-center gap-2 px-2 py-1 rounded-full text-xs font-medium border-2',
+                    photo.tier === 'bronze' &&
+                      'bg-orange-50 border-orange-200 text-orange-700',
+                    photo.tier === 'silver' &&
+                      'bg-slate-50 border-slate-200 text-slate-700',
+                    photo.tier === 'gold' &&
+                      'bg-yellow-50 border-yellow-200 text-yellow-700',
+                  )}
+                >
+                  <div
+                    className={cn(
+                      'w-2 h-2 rounded-full',
+                      photo.tier === 'bronze' && 'bg-orange-400',
+                      photo.tier === 'silver' && 'bg-slate-400',
+                      photo.tier === 'gold' && 'bg-yellow-400',
+                    )}
+                  />
                   <span className="capitalize">{photo.tier}</span>
                   {photo.tier === 'silver' && !photo.isReviewed && (
                     <Eye className="w-3 h-3 text-yellow-600" />
                   )}
                 </div>
-                
+
                 {/* Quick Actions */}
                 <div className="flex items-center space-x-1">
                   <Button

@@ -221,9 +221,6 @@ async def create_event(
             date=event_date,
             type=event_data.type,
             isEnabled=event_data.isEnabled,
-            isEnabled=event_data.isEnabled,
-            isEnabled=event_data.isEnabled,
-            isEnabled=event_data.isEnabled,
         )
 
         event = await crud.create_event(insert_data)

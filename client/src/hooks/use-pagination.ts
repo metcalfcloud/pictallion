@@ -19,12 +19,12 @@ interface UsePaginationReturn<T> {
 
 export function usePagination<T>({
   data,
-  itemsPerPage = 50
+  itemsPerPage = 50,
 }: UsePaginationProps<T>): UsePaginationReturn<T> {
   const [currentPage, setCurrentPage] = useState(1);
 
   const totalPages = Math.max(1, Math.ceil(data.length / itemsPerPage));
-  
+
   const currentItems = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
@@ -35,11 +35,11 @@ export function usePagination<T>({
   const endIndex = Math.min(currentPage * itemsPerPage, data.length);
 
   const nextPage = () => {
-    setCurrentPage(prev => Math.min(prev + 1, totalPages));
+    setCurrentPage((prev) => Math.min(prev + 1, totalPages));
   };
 
   const prevPage = () => {
-    setCurrentPage(prev => Math.max(prev - 1, 1));
+    setCurrentPage((prev) => Math.max(prev - 1, 1));
   };
 
   const goToPage = (page: number) => {
@@ -61,6 +61,6 @@ export function usePagination<T>({
     goToPage,
     startIndex,
     endIndex,
-    totalItems: data.length
+    totalItems: data.length,
   };
 }

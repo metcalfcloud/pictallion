@@ -1,15 +1,35 @@
-import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { useLocation } from "wouter";
-import { Grid, List, Filter, Search as SearchIcon, Star, Calendar, MapPin, Tag, Camera, Users, Download, Heart, Share2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AdvancedSearch } from "@/components/advanced-search";
-import { RatingSystem } from "@/components/rating-system";
-import type { SearchFilters } from "@/components/advanced-search";
-import { apiRequest } from "@/lib/queryClient";
+import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useLocation } from 'wouter';
+import {
+  Grid,
+  List,
+  Filter,
+  Search as SearchIcon,
+  Star,
+  Calendar,
+  MapPin,
+  Tag,
+  Camera,
+  Users,
+  Download,
+  Heart,
+  Share2,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { AdvancedSearch } from '@/components/advanced-search';
+import { RatingSystem } from '@/components/rating-system';
+import type { SearchFilters } from '@/components/advanced-search';
+import { apiRequest } from '@/lib/queryClient';
 
 interface Photo {
   id: string;
@@ -40,7 +60,11 @@ export default function Search() {
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
 
   // Fetch search results
-  const { data: searchResults, isLoading, refetch } = useQuery({
+  const {
+    data: searchResults,
+    isLoading,
+    refetch,
+  } = useQuery({
     queryKey: ['/api/photos/search', searchFilters, sortBy, sortDirection],
     queryFn: async () => {
       const sort = { field: sortBy, direction: sortDirection };
@@ -48,11 +72,11 @@ export default function Search() {
       const response = await fetch('/api/photos/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          filters: searchFilters, 
+        body: JSON.stringify({
+          filters: searchFilters,
           sort,
-          limit: 200 
-        })
+          limit: 200,
+        }),
       });
 
       if (!response.ok) {
@@ -60,7 +84,7 @@ export default function Search() {
       }
 
       return response.json();
-    }
+    },
   });
 
   const photos = (searchResults?.photos as Photo[]) || [];
@@ -81,10 +105,14 @@ export default function Search() {
 
   const getTierBadgeColor = (tier: string) => {
     switch (tier) {
-      case 'bronze': return 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200';
-      case 'silver': return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
-      case 'gold': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
+      case 'bronze':
+        return 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200';
+      case 'silver':
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
+      case 'gold':
+        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
+      default:
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
     }
   };
 
@@ -93,7 +121,7 @@ export default function Search() {
     const exifData = photo.metadata?.exif || {};
 
     return (
-      <Card 
+      <Card
         className={`cursor-pointer transition-all hover:shadow-lg ${
           isSelected ? 'ring-2 ring-blue-500' : ''
         }`}
@@ -197,12 +225,18 @@ export default function Search() {
     );
   };
 
-  const PhotoListItem = ({ photo, isSelected }: { photo: Photo; isSelected: boolean }) => {
+  const PhotoListItem = ({
+    photo,
+    isSelected,
+  }: {
+    photo: Photo;
+    isSelected: boolean;
+  }) => {
     const aiData = photo.metadata?.ai || {};
     const exifData = photo.metadata?.exif || {};
 
     return (
-      <Card 
+      <Card
         className={`cursor-pointer transition-all hover:shadow-md ${
           isSelected ? 'ring-2 ring-blue-500' : ''
         }`}
@@ -219,14 +253,18 @@ export default function Search() {
                   e.currentTarget.src = '/placeholder-image.svg';
                 }}
               />
-              <Badge className={`absolute -top-1 -right-1 ${getTierBadgeColor(photo.tier)}`}>
+              <Badge
+                className={`absolute -top-1 -right-1 ${getTierBadgeColor(photo.tier)}`}
+              >
                 {photo.tier.charAt(0).toUpperCase()}
               </Badge>
             </div>
 
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between mb-2">
-                <h3 className="font-medium truncate pr-2">{photo.mediaAsset?.originalFilename || 'Unknown file'}</h3>
+                <h3 className="font-medium truncate pr-2">
+                  {photo.mediaAsset?.originalFilename || 'Unknown file'}
+                </h3>
                 {photo.rating && photo.rating > 0 && (
                   <div className="flex items-center gap-1 flex-shrink-0">
                     <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
@@ -286,9 +324,11 @@ export default function Search() {
         <div>
           <h1 className="text-3xl font-bold">Photo Search</h1>
           <p className="text-muted-foreground">
-            {totalCount === 0 ? 'No photos found' : 
-             totalCount === 1 ? '1 photo found' : 
-             `${totalCount} photos found`}
+            {totalCount === 0
+              ? 'No photos found'
+              : totalCount === 1
+                ? '1 photo found'
+                : `${totalCount} photos found`}
           </p>
         </div>
 
@@ -307,7 +347,9 @@ export default function Search() {
 
           <Button
             variant="outline"
-            onClick={() => setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')}
+            onClick={() =>
+              setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'))
+            }
           >
             {sortDirection === 'asc' ? '↑' : '↓'}
           </Button>
@@ -353,31 +395,31 @@ export default function Search() {
             <p className="text-muted-foreground mb-4">
               Try adjusting your search filters or uploading more photos.
             </p>
-            <Button onClick={() => setLocation("/upload")}>
-              Upload Photos
-            </Button>
+            <Button onClick={() => setLocation('/upload')}>Upload Photos</Button>
           </CardContent>
         </Card>
       ) : (
-        <div className={
-          viewMode === 'grid' 
-            ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"
-            : "space-y-4"
-        }>
-          {photos.map((photo: Photo) => 
+        <div
+          className={
+            viewMode === 'grid'
+              ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4'
+              : 'space-y-4'
+          }
+        >
+          {photos.map((photo: Photo) =>
             viewMode === 'grid' ? (
-              <PhotoCard 
-                key={photo.id} 
-                photo={photo} 
+              <PhotoCard
+                key={photo.id}
+                photo={photo}
                 isSelected={selectedPhoto?.id === photo.id}
               />
             ) : (
-              <PhotoListItem 
-                key={photo.id} 
-                photo={photo} 
+              <PhotoListItem
+                key={photo.id}
+                photo={photo}
                 isSelected={selectedPhoto?.id === photo.id}
               />
-            )
+            ),
           )}
         </div>
       )}
@@ -391,48 +433,56 @@ export default function Search() {
               {facets.tiers && (
                 <div>
                   <span className="text-muted-foreground">By Tier:</span>
-                  {Object.entries(facets.tiers as Record<string, number>).map(([tier, count]) => (
-                    <div key={tier} className="flex justify-between">
-                      <span className="capitalize">{tier}:</span>
-                      <span>{String(count)}</span>
-                    </div>
-                  ))}
+                  {Object.entries(facets.tiers as Record<string, number>).map(
+                    ([tier, count]) => (
+                      <div key={tier} className="flex justify-between">
+                        <span className="capitalize">{tier}:</span>
+                        <span>{String(count)}</span>
+                      </div>
+                    ),
+                  )}
                 </div>
               )}
 
               {facets.ratings && Object.keys(facets.ratings).length > 0 && (
                 <div>
                   <span className="text-muted-foreground">By Rating:</span>
-                  {Object.entries(facets.ratings as Record<string, number>).map(([rating, count]) => (
-                    <div key={rating} className="flex justify-between">
-                      <span>{rating} stars:</span>
-                      <span>{String(count)}</span>
-                    </div>
-                  ))}
+                  {Object.entries(facets.ratings as Record<string, number>).map(
+                    ([rating, count]) => (
+                      <div key={rating} className="flex justify-between">
+                        <span>{rating} stars:</span>
+                        <span>{String(count)}</span>
+                      </div>
+                    ),
+                  )}
                 </div>
               )}
 
               {facets.mimeTypes && (
                 <div>
                   <span className="text-muted-foreground">By Type:</span>
-                  {Object.entries(facets.mimeTypes as Record<string, number>).map(([type, count]) => (
-                    <div key={type} className="flex justify-between">
-                      <span>{type.split('/')[1]?.toUpperCase()}:</span>
-                      <span>{String(count)}</span>
-                    </div>
-                  ))}
+                  {Object.entries(facets.mimeTypes as Record<string, number>).map(
+                    ([type, count]) => (
+                      <div key={type} className="flex justify-between">
+                        <span>{type.split('/')[1]?.toUpperCase()}:</span>
+                        <span>{String(count)}</span>
+                      </div>
+                    ),
+                  )}
                 </div>
               )}
 
               {facets.eventTypes && Object.keys(facets.eventTypes).length > 0 && (
                 <div>
                   <span className="text-muted-foreground">By Event:</span>
-                  {Object.entries(facets.eventTypes as Record<string, number>).slice(0, 3).map(([event, count]) => (
-                    <div key={event} className="flex justify-between">
-                      <span className="capitalize">{event}:</span>
-                      <span>{String(count)}</span>
-                    </div>
-                  ))}
+                  {Object.entries(facets.eventTypes as Record<string, number>)
+                    .slice(0, 3)
+                    .map(([event, count]) => (
+                      <div key={event} className="flex justify-between">
+                        <span className="capitalize">{event}:</span>
+                        <span>{String(count)}</span>
+                      </div>
+                    ))}
                 </div>
               )}
             </div>

@@ -1,18 +1,11 @@
-
-import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { 
-  EyeOff, 
-  Eye, 
-  AlertCircle,
-  CheckCircle2,
-  Trash2
-} from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { EyeOff, Eye, AlertCircle, CheckCircle2, Trash2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
 
 interface IgnoredFace {
   id: string;
@@ -35,7 +28,7 @@ export function IgnoredFaces() {
 
   // Fetch ignored faces
   const { data: ignoredFaces = [], isLoading } = useQuery<IgnoredFace[]>({
-    queryKey: ["/api/faces/ignored"],
+    queryKey: ['/api/faces/ignored'],
     refetchInterval: false,
   });
 
@@ -45,14 +38,14 @@ export function IgnoredFaces() {
       return await apiRequest('POST', `/api/faces/${faceId}/unignore`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/faces/ignored"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/faces/unassigned"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/faces/suggestions"] });
-      toast({ title: "Face restored successfully" });
+      queryClient.invalidateQueries({ queryKey: ['/api/faces/ignored'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/faces/unassigned'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/faces/suggestions'] });
+      toast({ title: 'Face restored successfully' });
     },
     onError: () => {
-      toast({ title: "Failed to restore face", variant: "destructive" });
-    }
+      toast({ title: 'Failed to restore face', variant: 'destructive' });
+    },
   });
 
   const getFaceCropUrl = (face: IgnoredFace) => {
@@ -107,7 +100,8 @@ export function IgnoredFaces() {
             <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-4" />
             <h3 className="text-lg font-medium mb-2">No Ignored Faces</h3>
             <p className="text-muted-foreground">
-              You haven't ignored any faces yet. Use the "Ignore Face" option in face suggestions to exclude faces you don't want to tag.
+              You haven't ignored any faces yet. Use the "Ignore Face" option in face
+              suggestions to exclude faces you don't want to tag.
             </p>
           </CardContent>
         </Card>
@@ -123,11 +117,18 @@ export function IgnoredFaces() {
                   {face.photo ? (
                     <>
                       <img
-                        src={face.faceCropUrl ? `/api/files/${face.faceCropUrl}` : getFaceCropUrl(face)}
+                        src={
+                          face.faceCropUrl
+                            ? `/api/files/${face.faceCropUrl}`
+                            : getFaceCropUrl(face)
+                        }
                         alt="Ignored face"
                         className="w-full h-32 rounded-lg object-cover border-2 border-border"
                         onError={(e) => {
-                          if (face.faceCropUrl && e.currentTarget.src.includes(face.faceCropUrl)) {
+                          if (
+                            face.faceCropUrl &&
+                            e.currentTarget.src.includes(face.faceCropUrl)
+                          ) {
                             e.currentTarget.src = getFaceCropUrl(face);
                           } else {
                             e.currentTarget.src = `/api/files/${face.photo?.filePath}`;
@@ -138,7 +139,10 @@ export function IgnoredFaces() {
                         {Math.round(face.confidence)}%
                       </Badge>
                       <div className="absolute top-2 left-2">
-                        <Badge variant="secondary" className="text-xs bg-red-100 text-red-700">
+                        <Badge
+                          variant="secondary"
+                          className="text-xs bg-red-100 text-red-700"
+                        >
                           <EyeOff className="w-3 h-3 mr-1" />
                           Ignored
                         </Badge>
@@ -151,7 +155,7 @@ export function IgnoredFaces() {
                   )}
                 </div>
               </CardHeader>
-              
+
               <CardContent className="p-3 pt-0">
                 <div className="space-y-2">
                   <p className="text-sm font-medium truncate">
@@ -160,7 +164,7 @@ export function IgnoredFaces() {
                   <p className="text-xs text-muted-foreground">
                     Confidence: {Math.round(face.confidence)}%
                   </p>
-                  
+
                   <Button
                     size="sm"
                     variant="outline"

@@ -1,22 +1,28 @@
-import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
-import { 
-  RefreshCw, 
-  UserPlus, 
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
+import {
+  RefreshCw,
+  UserPlus,
   CheckCircle2,
   User,
   EyeOff,
   Loader2,
   Sparkles,
-  X
-} from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+  X,
+} from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
 
 interface FaceSuggestion {
   faceId: string;
@@ -66,25 +72,32 @@ interface FaceSuggestionsProps {
   onClose?: () => void;
 }
 
-export function FaceSuggestions({ isOpen, faceSuggestions = [], isLoading = false, onClose }: FaceSuggestionsProps) {
+export function FaceSuggestions({
+  isOpen,
+  faceSuggestions = [],
+  isLoading = false,
+  onClose,
+}: FaceSuggestionsProps) {
   const [selectedAssignments, setSelectedAssignments] = useState<Assignment[]>([]);
   const [expandedFace, setExpandedFace] = useState<string | null>(null);
   const [isCreatePersonOpen, setIsCreatePersonOpen] = useState(false);
-  const [selectedFaceForNewPerson, setSelectedFaceForNewPerson] = useState<string | null>(null);
-  const [newPersonName, setNewPersonName] = useState("");
+  const [selectedFaceForNewPerson, setSelectedFaceForNewPerson] = useState<
+    string | null
+  >(null);
+  const [newPersonName, setNewPersonName] = useState('');
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   // Load people for suggestions
   const { data: people = [], isLoading: peopleLoading } = useQuery<Person[]>({
     queryKey: ['/api/people'],
-    enabled: isOpen
+    enabled: isOpen,
   });
 
   // Load face details for the suggested faces
   const { data: faces = [], isLoading: facesLoading } = useQuery<Face[]>({
     queryKey: ['/api/faces'],
-    enabled: isOpen && faceSuggestions.length > 0
+    enabled: isOpen && faceSuggestions.length > 0,
   });
 
   // Create person mutation
@@ -93,7 +106,7 @@ export function FaceSuggestions({ isOpen, faceSuggestions = [], isLoading = fals
       const response = await fetch('/api/people', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+        body: JSON.stringify(data),
       });
       return response.json();
     },
@@ -102,14 +115,14 @@ export function FaceSuggestions({ isOpen, faceSuggestions = [], isLoading = fals
         handleSuggestionAction(selectedFaceForNewPerson, person.id, 'accept');
       }
       setIsCreatePersonOpen(false);
-      setNewPersonName("");
+      setNewPersonName('');
       setSelectedFaceForNewPerson(null);
       queryClient.invalidateQueries({ queryKey: ['/api/people'] });
       toast({
-        title: "Success",
-        description: `Created person "${person.name}"`
+        title: 'Success',
+        description: `Created person "${person.name}"`,
       });
-    }
+    },
   });
 
   // Assign face mutation
@@ -118,7 +131,7 @@ export function FaceSuggestions({ isOpen, faceSuggestions = [], isLoading = fals
       const response = await fetch('/api/face-assignments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+        body: JSON.stringify(data),
       });
       return response.json();
     },
@@ -127,17 +140,17 @@ export function FaceSuggestions({ isOpen, faceSuggestions = [], isLoading = fals
       queryClient.invalidateQueries({ queryKey: ['/api/face-suggestions'] });
       queryClient.invalidateQueries({ queryKey: ['/api/people'] });
       toast({
-        title: "Success",
-        description: "Face assigned successfully"
+        title: 'Success',
+        description: 'Face assigned successfully',
       });
-    }
+    },
   });
 
   // Ignore face mutation
   const ignoreFaceMutation = useMutation({
     mutationFn: async (faceId: string) => {
       const response = await fetch(`/api/faces/${faceId}/ignore`, {
-        method: 'POST'
+        method: 'POST',
       });
       return response.json();
     },
@@ -145,19 +158,23 @@ export function FaceSuggestions({ isOpen, faceSuggestions = [], isLoading = fals
       queryClient.invalidateQueries({ queryKey: ['/api/faces'] });
       queryClient.invalidateQueries({ queryKey: ['/api/face-suggestions'] });
       toast({
-        title: "Success",
-        description: "Face ignored successfully"
+        title: 'Success',
+        description: 'Face ignored successfully',
       });
-    }
+    },
   });
 
-  const handleSuggestionAction = (faceId: string, personId: string, action: 'accept' | 'reject') => {
+  const handleSuggestionAction = (
+    faceId: string,
+    personId: string,
+    action: 'accept' | 'reject',
+  ) => {
     if (action === 'accept') {
-      setSelectedAssignments(prev => {
-        const filtered = prev.filter(a => a.faceId !== faceId);
+      setSelectedAssignments((prev) => {
+        const filtered = prev.filter((a) => a.faceId !== faceId);
         return [...filtered, { faceId, personId }];
       });
-      
+
       assignFaceMutation.mutate({ faceId, personId });
     }
   };
@@ -198,7 +215,9 @@ export function FaceSuggestions({ isOpen, faceSuggestions = [], isLoading = fals
         <div className="text-center py-8 text-muted-foreground">
           <User className="h-12 w-12 mx-auto mb-4 opacity-50" />
           <p>No face suggestions available at the moment.</p>
-          <p className="text-sm">Upload photos with faces to get AI-powered suggestions.</p>
+          <p className="text-sm">
+            Upload photos with faces to get AI-powered suggestions.
+          </p>
         </div>
       </div>
     );
@@ -221,55 +240,58 @@ export function FaceSuggestions({ isOpen, faceSuggestions = [], isLoading = fals
         )}
       </div>
 
-      <div style={{fontSize: 0, lineHeight: 0}}>
+      <div style={{ fontSize: 0, lineHeight: 0 }}>
         {faceSuggestions.map((item) => {
-          const face = faces.find(f => f.id === item.faceId);
-          const isSelected = selectedAssignments.some(a => a.faceId === item.faceId);
-          const selectedPerson = selectedAssignments.find(a => a.faceId === item.faceId);
+          const face = faces.find((f) => f.id === item.faceId);
+          const isSelected = selectedAssignments.some((a) => a.faceId === item.faceId);
+          const selectedPerson = selectedAssignments.find(
+            (a) => a.faceId === item.faceId,
+          );
           const isExpanded = expandedFace === item.faceId;
 
           return (
-            <div 
+            <div
               key={item.faceId}
               onClick={() => handleFaceClick(item.faceId)}
               className={`inline-block relative w-20 h-20 rounded-lg overflow-hidden bg-muted cursor-pointer transition-all duration-300 hover:scale-105 m-1 ${
                 isSelected ? 'ring-2 ring-blue-500' : 'hover:ring-2 hover:ring-blue-300'
               }`}
-              style={{fontSize: '12px', lineHeight: '1.2'}}
+              style={{ fontSize: '12px', lineHeight: '1.2' }}
             >
-                  {face ? (
-                    <>
-                      <img
-                        src={`/api/files/${face.faceCrop}`}
-                        alt="Face crop"
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                          const nextElement = e.currentTarget.nextElementSibling as HTMLElement;
-                          if (nextElement) {
-                            nextElement.classList.remove('hidden');
-                          }
-                        }}
-                      />
-                      <User className="hidden w-8 h-8 text-muted-foreground absolute inset-0 m-auto" />
-                    </>
-                  ) : (
-                    <User className="w-8 h-8 text-muted-foreground absolute inset-0 m-auto" />
-                  )}
-                  
-                  {/* Selection overlay directly on face image */}
-                  {isSelected && (
-                    <div className="absolute inset-0 bg-blue-500/30 flex items-center justify-center">
-                      <CheckCircle2 className="h-5 w-5 text-white bg-blue-600 rounded-full" />
-                    </div>
-                  )}
-                  
-                  {/* Processing overlay */}
-                  {(assignFaceMutation.isPending || ignoreFaceMutation.isPending) && (
-                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                      <Loader2 className="h-4 w-4 animate-spin text-white" />
-                    </div>
-                  )}
+              {face ? (
+                <>
+                  <img
+                    src={`/api/files/${face.faceCrop}`}
+                    alt="Face crop"
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                      const nextElement = e.currentTarget
+                        .nextElementSibling as HTMLElement;
+                      if (nextElement) {
+                        nextElement.classList.remove('hidden');
+                      }
+                    }}
+                  />
+                  <User className="hidden w-8 h-8 text-muted-foreground absolute inset-0 m-auto" />
+                </>
+              ) : (
+                <User className="w-8 h-8 text-muted-foreground absolute inset-0 m-auto" />
+              )}
+
+              {/* Selection overlay directly on face image */}
+              {isSelected && (
+                <div className="absolute inset-0 bg-blue-500/30 flex items-center justify-center">
+                  <CheckCircle2 className="h-5 w-5 text-white bg-blue-600 rounded-full" />
+                </div>
+              )}
+
+              {/* Processing overlay */}
+              {(assignFaceMutation.isPending || ignoreFaceMutation.isPending) && (
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                  <Loader2 className="h-4 w-4 animate-spin text-white" />
+                </div>
+              )}
             </div>
           );
         })}

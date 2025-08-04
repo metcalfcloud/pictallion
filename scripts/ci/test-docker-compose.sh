@@ -12,7 +12,7 @@ docker compose config > /dev/null
 
 # Start database only for testing
 echo "🚀 Starting PostgreSQL..."
-docker compose up -d postgres
+docker compose -f docker/docker-compose.yml up -d postgres
 
 # Wait for postgres to be ready
 echo "⏳ Waiting for PostgreSQL..."

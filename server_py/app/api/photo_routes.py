@@ -38,18 +38,18 @@ class PhotoResponse(BaseModel):
     id: str
     originalFilename: str
     tier: str
-    originalFilename: str
-    originalFilename: str
-    originalFilename: int
-    originalFilename: str
+    file_path: str
+    file_hash: str
+    file_size: int
+    mime_type: str
     metadata: Optional[Dict[str, Any]] = None
-    originalFilename: bool = False
+    is_reviewed: bool = False
     rating: int = 0
     keywords: List[str] = []
     location: Optional[str] = None
     event_type: Optional[str] = None
     event_name: Optional[str] = None
-    originalFilename: Optional[str] = None
+    perceptual_hash: Optional[str] = None
     processing_state: str = "processed"
     created_at: datetime
     updated_at: datetime
@@ -141,7 +141,7 @@ async def list_photos(
     # model parameter removed to resolve persistent 422 error
     db: AsyncSession = Depends(get_db),
     crud: FileVersionCRUD = Depends(FileVersionCRUD),
-):
+) -> PhotoListResponse:
     """
     List photos with optional filters and pagination.
 
@@ -192,7 +192,7 @@ async def get_recent_photos(
     limit: int = Query(6, ge=1, le=50),
     db: AsyncSession = Depends(get_db),
     crud: FileVersionCRUD = Depends(FileVersionCRUD),
-):
+) -> Any:
     """Get recent photos for dashboard."""
     try:
         photos = await crud.get_recent_photos(limit=limit)
@@ -209,7 +209,7 @@ async def get_photo(
     # model parameter removed to resolve persistent 422 error
     db: AsyncSession = Depends(get_db),
     crud: FileVersionCRUD = Depends(FileVersionCRUD),
-):
+) -> PhotoResponse:
     """Get photo by ID with full details."""
     try:
         photo = await crud.get_file_version(photo_id)
@@ -695,7 +695,9 @@ async def batch_process_photos(
                     continue
 
                 if request.operation == "ai_process":
-                    if photo.tier == "silver" and photo.originalFilename.startswith("image/"):
+                    if photo.tier == "silver" and photo.originalFilename.startswith(
+                        "image/"
+                    ):
                         # Get people context and run AI analysis
                         faces = await crud.get_faces_by_photo(photo_id)
                         people_context = await ai_service.build_people_context(
@@ -714,9 +716,7 @@ async def batch_process_photos(
                             photo_id,
                             {
                                 "metadata": combined_metadata,
-                                "originalFilename": ai_metadata.get(
-                                    "shortDescription"
-                                ),
+                                "originalFilename": ai_metadata.get("shortDescription"),
                                 "originalFilename": False,
                             },
                         )

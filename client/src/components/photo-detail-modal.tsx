@@ -1,16 +1,28 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
-import { 
-  X, 
-  Star, 
-  Download, 
-  Edit, 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
+import {
+  X,
+  Star,
+  Download,
+  Edit,
   Bot,
   Camera,
   MapPin,
@@ -23,16 +35,19 @@ import {
   Minimize2,
   Archive,
   RefreshCw,
-  Users
-} from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useState, useEffect, useRef } from "react";
-import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
-import type { Photo } from "@shared/types";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FaceDetectionBadge, getFaceDetectionStatus } from "@/components/ui/processing-state-badge";
+  Users,
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { useState, useEffect, useRef } from 'react';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
+import type { Photo } from '@shared/types';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  FaceDetectionBadge,
+  getFaceDetectionStatus,
+} from '@/components/ui/processing-state-badge';
 
 // Tag Editor Component
 interface TagEditorProps {
@@ -43,8 +58,10 @@ interface TagEditorProps {
 }
 
 function TagEditor({ tags, onChange, placeholder, className }: TagEditorProps) {
-  const [inputValue, setInputValue] = useState("");
-  const [suggestions, setSuggestions] = useState<Array<{tag: string, usage_count: number}>>([]);
+  const [inputValue, setInputValue] = useState('');
+  const [suggestions, setSuggestions] = useState<
+    Array<{ tag: string; usage_count: number }>
+  >([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
   // Query for tag suggestions from global library
@@ -60,9 +77,10 @@ function TagEditor({ tags, onChange, placeholder, className }: TagEditorProps) {
   useEffect(() => {
     if (inputValue.trim()) {
       const filtered = globalTags
-        .filter((tagInfo: any) => 
-          tagInfo.tag.toLowerCase().includes(inputValue.toLowerCase()) && 
-          !tags.includes(tagInfo.tag)
+        .filter(
+          (tagInfo: any) =>
+            tagInfo.tag.toLowerCase().includes(inputValue.toLowerCase()) &&
+            !tags.includes(tagInfo.tag),
         )
         .slice(0, 10); // Limit to 10 suggestions
       setSuggestions(filtered);
@@ -76,13 +94,13 @@ function TagEditor({ tags, onChange, placeholder, className }: TagEditorProps) {
   const addTag = (tag: string) => {
     if (tag.trim() && !tags.includes(tag.trim())) {
       onChange([...tags, tag.trim()]);
-      setInputValue("");
+      setInputValue('');
       setShowSuggestions(false);
     }
   };
 
   const removeTag = (tagToRemove: string) => {
-    onChange(tags.filter(tag => tag !== tagToRemove));
+    onChange(tags.filter((tag) => tag !== tagToRemove));
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -95,7 +113,7 @@ function TagEditor({ tags, onChange, placeholder, className }: TagEditorProps) {
   };
 
   return (
-    <div className={cn("relative", className)}>
+    <div className={cn('relative', className)}>
       <div className="flex flex-wrap gap-2 p-2 border rounded-md bg-background min-h-[40px]">
         {tags.map((tag, index) => (
           <Badge
@@ -118,7 +136,7 @@ function TagEditor({ tags, onChange, placeholder, className }: TagEditorProps) {
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={tags.length === 0 ? placeholder : ""}
+          placeholder={tags.length === 0 ? placeholder : ''}
           className="flex-1 min-w-[120px] bg-transparent border-none outline-none text-sm"
         />
       </div>
@@ -140,18 +158,21 @@ function TagEditor({ tags, onChange, placeholder, className }: TagEditorProps) {
             </button>
           ))}
           {/* Option to create new tag */}
-          {inputValue.trim() && !suggestions.some(s => s.tag.toLowerCase() === inputValue.toLowerCase()) && (
-            <button
-              type="button"
-              onClick={() => addTag(inputValue)}
-              className="w-full px-3 py-2 text-left hover:bg-accent text-sm border-t flex items-center gap-2"
-            >
-              <span className="text-muted-foreground">Create:</span>
-              <Badge variant="outline" className="text-xs">
-                {inputValue}
-              </Badge>
-            </button>
-          )}
+          {inputValue.trim() &&
+            !suggestions.some(
+              (s) => s.tag.toLowerCase() === inputValue.toLowerCase(),
+            ) && (
+              <button
+                type="button"
+                onClick={() => addTag(inputValue)}
+                className="w-full px-3 py-2 text-left hover:bg-accent text-sm border-t flex items-center gap-2"
+              >
+                <span className="text-muted-foreground">Create:</span>
+                <Badge variant="outline" className="text-xs">
+                  {inputValue}
+                </Badge>
+              </button>
+            )}
         </div>
       )}
     </div>
@@ -166,12 +187,12 @@ interface PhotoDetailModalProps {
   isProcessing?: boolean;
 }
 
-export default function PhotoDetailModal({ 
-  photo, 
-  open, 
-  onOpenChange, 
+export default function PhotoDetailModal({
+  photo,
+  open,
+  onOpenChange,
   onProcessPhoto,
-  isProcessing = false 
+  isProcessing = false,
 }: PhotoDetailModalProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isImageFullscreen, setIsImageFullscreen] = useState(false);
@@ -182,9 +203,9 @@ export default function PhotoDetailModal({
     eventName: '',
     rating: 0,
     aiTags: [] as string[],
-    aiDescription: ''
+    aiDescription: '',
   });
-  const [selectedTab, setSelectedTab] = useState("details");
+  const [selectedTab, setSelectedTab] = useState('details');
   const [imageError, setImageError] = useState(false);
   const [imageWidth, setImageWidth] = useState(0);
   const [imageHeight, setImageHeight] = useState(0);
@@ -279,13 +300,13 @@ export default function PhotoDetailModal({
     enabled: !!photoDate,
   });
 
-    // Query detected faces for this photo
-    const { data: detectedFaces = [] } = useQuery({
-      queryKey: ['/api/faces/photo', photo.id],
-      queryFn: async () => {
-          const response = await apiRequest('GET', `/api/faces/photo/${photo.id}`);
-          return await response.json();
-      },
+  // Query detected faces for this photo
+  const { data: detectedFaces = [] } = useQuery({
+    queryKey: ['/api/faces/photo', photo.id],
+    queryFn: async () => {
+      const response = await apiRequest('GET', `/api/faces/photo/${photo.id}`);
+      return await response.json();
+    },
   });
 
   // Query people for face assignment
@@ -306,7 +327,7 @@ export default function PhotoDetailModal({
       eventName: photo.eventName || '',
       rating: photo.rating || 0,
       aiTags: photo.metadata?.ai?.aiTags || [],
-      aiDescription: photo.metadata?.ai?.longDescription || ''
+      aiDescription: photo.metadata?.ai?.longDescription || '',
     });
   }, [photo.id]); // Only depend on photo.id to prevent infinite loops
 
@@ -337,75 +358,75 @@ export default function PhotoDetailModal({
       const response = await fetch(`/api/photos/${photo.id}/metadata`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(metadata)
+        body: JSON.stringify(metadata),
       });
       if (!response.ok) throw new Error('Failed to update metadata');
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/photos'] });
-      toast({ title: "Metadata updated successfully!" });
+      toast({ title: 'Metadata updated successfully!' });
       setIsEditing(false);
     },
     onError: (error: Error) => {
-      toast({ 
-        title: "Failed to update metadata", 
+      toast({
+        title: 'Failed to update metadata',
         description: error.message,
-        variant: "destructive" 
+        variant: 'destructive',
       });
-    }
+    },
   });
 
   // Promote to gold mutation
   const promoteToGoldMutation = useMutation({
     mutationFn: async () => {
       const response = await fetch(`/api/photos/${photo.id}/embed-metadata`, {
-        method: 'POST'
+        method: 'POST',
       });
       if (!response.ok) throw new Error('Failed to promote to gold');
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/photos'] });
-      toast({ title: "Photo promoted to Gold tier!" });
+      toast({ title: 'Photo promoted to Gold tier!' });
     },
     onError: (error: Error) => {
-      toast({ 
-        title: "Failed to promote photo", 
+      toast({
+        title: 'Failed to promote photo',
         description: error.message,
-        variant: "destructive" 
+        variant: 'destructive',
       });
-    }
+    },
   });
 
   // Archive photo mutation
   const archivePhotoMutation = useMutation({
     mutationFn: async () => {
       const response = await fetch(`/api/photos/${photo.id}/archive`, {
-        method: 'POST'
+        method: 'POST',
       });
       if (!response.ok) throw new Error('Failed to archive photo');
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/photos'] });
-      toast({ title: "Photo archived successfully!" });
+      toast({ title: 'Photo archived successfully!' });
       onOpenChange(false);
     },
     onError: (error: Error) => {
-      toast({ 
-        title: "Failed to archive photo", 
+      toast({
+        title: 'Failed to archive photo',
         description: error.message,
-        variant: "destructive" 
+        variant: 'destructive',
       });
-    }
+    },
   });
 
   // AI Reprocess mutation
   const aiReprocessMutation = useMutation({
     mutationFn: async () => {
       const response = await fetch(`/api/photos/${photo.id}/reprocess`, {
-        method: 'POST'
+        method: 'POST',
       });
       if (!response.ok) throw new Error('Failed to reprocess photo');
       return response.json();
@@ -413,15 +434,15 @@ export default function PhotoDetailModal({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/photos'] });
       queryClient.invalidateQueries({ queryKey: ['/api/faces/photo', photo.id] });
-      toast({ title: "Photo reprocessed successfully!" });
+      toast({ title: 'Photo reprocessed successfully!' });
     },
     onError: (error: Error) => {
-      toast({ 
-        title: "Failed to reprocess photo", 
+      toast({
+        title: 'Failed to reprocess photo',
         description: error.message,
-        variant: "destructive" 
+        variant: 'destructive',
       });
-    }
+    },
   });
 
   // Face assignment mutation
@@ -429,23 +450,23 @@ export default function PhotoDetailModal({
     mutationFn: async ({ faceId, personId }: { faceId: string; personId: string }) => {
       const response = await apiRequest('POST', '/api/faces/assign', {
         faceIds: [faceId],
-        personId
+        personId,
       });
       return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/faces/photo', photo.id] });
       queryClient.invalidateQueries({ queryKey: ['/api/people'] });
-      toast({ title: "Face assigned successfully!" });
+      toast({ title: 'Face assigned successfully!' });
       setAssignFace(null);
     },
     onError: (error: Error) => {
-      toast({ 
-        title: "Failed to assign face", 
+      toast({
+        title: 'Failed to assign face',
         description: error.message,
-        variant: "destructive" 
+        variant: 'destructive',
       });
-    }
+    },
   });
 
   // Create person mutation
@@ -462,12 +483,12 @@ export default function PhotoDetailModal({
       setNewPersonName('');
     },
     onError: (error: Error) => {
-      toast({ 
-        title: "Failed to create person", 
+      toast({
+        title: 'Failed to create person',
         description: error.message,
-        variant: "destructive" 
+        variant: 'destructive',
       });
-    }
+    },
   });
 
   const canPromoteToSilver = photo.tier === 'bronze' && onProcessPhoto;
@@ -495,16 +516,16 @@ export default function PhotoDetailModal({
       eventName: photo.eventName || '',
       rating: photo.rating || 0,
       aiTags: photo.metadata?.ai?.aiTags || [],
-      aiDescription: photo.metadata?.ai?.longDescription || ''
+      aiDescription: photo.metadata?.ai?.longDescription || '',
     });
   };
 
   // Face Overlay Component - moved inside the main component to fix scope issues
-  const FaceOverlay = ({ 
-    face, 
-    imageElement, 
-    originalImageWidth, 
-    originalImageHeight 
+  const FaceOverlay = ({
+    face,
+    imageElement,
+    originalImageWidth,
+    originalImageHeight,
   }: {
     face: any;
     imageElement: HTMLImageElement;
@@ -520,7 +541,13 @@ export default function PhotoDetailModal({
     const displayedHeight = imageElement.offsetHeight;
 
     // Safety check: ensure we have valid dimensions to prevent division by zero
-    if (!originalImageWidth || !originalImageHeight || !displayedWidth || !displayedHeight) return null;
+    if (
+      !originalImageWidth ||
+      !originalImageHeight ||
+      !displayedWidth ||
+      !displayedHeight
+    )
+      return null;
 
     // Calculate scaling factors
     const scaleX = displayedWidth / originalImageWidth;
@@ -558,20 +585,25 @@ export default function PhotoDetailModal({
     );
   };
 
-    const facesData = detectedFaces || [];
+  const facesData = detectedFaces || [];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl max-h-[90vh] w-[95vw] p-0 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
         <DialogHeader className="sr-only">
           <DialogTitle>Photo Details</DialogTitle>
-          <DialogDescription>View and edit photo metadata, EXIF data, and AI-generated information</DialogDescription>
+          <DialogDescription>
+            View and edit photo metadata, EXIF data, and AI-generated information
+          </DialogDescription>
         </DialogHeader>
 
         {/* Fullscreen Image Overlay */}
         {isImageFullscreen && (
-          <div className="fixed inset-0 z-50 bg-black flex items-center justify-center" onClick={() => setIsImageFullscreen(false)}>
-            <img 
+          <div
+            className="fixed inset-0 z-50 bg-black flex items-center justify-center"
+            onClick={() => setIsImageFullscreen(false)}
+          >
+            <img
               src={`/api/files/${photo.filePath}`}
               alt={photo.mediaAsset?.originalFilename || 'Photo'}
               className="max-w-full max-h-full object-contain"
@@ -599,11 +631,16 @@ export default function PhotoDetailModal({
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                <Badge className={cn("text-sm px-3 py-1", getTierBadgeClass(photo.tier))}>
+                <Badge
+                  className={cn('text-sm px-3 py-1', getTierBadgeClass(photo.tier))}
+                >
                   <span className="capitalize">{photo.tier}</span>
                 </Badge>
                 {photo.tier === 'silver' && !photo.isReviewed && (
-                  <Badge variant="outline" className="text-sm text-amber-600 border-amber-600 bg-amber-50 dark:bg-amber-900/20">
+                  <Badge
+                    variant="outline"
+                    className="text-sm text-amber-600 border-amber-600 bg-amber-50 dark:bg-amber-900/20"
+                  >
                     <Eye className="w-4 h-4 mr-1" />
                     Needs Review
                   </Badge>
@@ -621,7 +658,7 @@ export default function PhotoDetailModal({
 
             {/* Main Image */}
             <div className="flex-shrink-0 flex items-center justify-center bg-gray-50 dark:bg-gray-800 rounded-lg overflow-hidden relative max-h-[45vh]">
-              <img 
+              <img
                 ref={imageRef}
                 src={`/api/files/${photo.filePath}`}
                 alt={photo.mediaAsset?.originalFilename || 'Photo'}
@@ -631,8 +668,14 @@ export default function PhotoDetailModal({
                   setImageWidth(e.currentTarget.offsetWidth);
                   setImageHeight(e.currentTarget.offsetHeight);
                   console.log('Image loaded:', {
-                    displayed: { width: e.currentTarget.offsetWidth, height: e.currentTarget.offsetHeight },
-                    natural: { width: e.currentTarget.naturalWidth, height: e.currentTarget.naturalHeight }
+                    displayed: {
+                      width: e.currentTarget.offsetWidth,
+                      height: e.currentTarget.offsetHeight,
+                    },
+                    natural: {
+                      width: e.currentTarget.naturalWidth,
+                      height: e.currentTarget.naturalHeight,
+                    },
                   });
                 }}
                 onError={(e) => {
@@ -642,110 +685,141 @@ export default function PhotoDetailModal({
               />
 
               {/* Face Overlays */}
-        {facesData && facesData.length > 0 && (
-          <>
-            {facesData.map((face: any) => {
-              const [x, y, width, height] = face.boundingBox || [0, 0, 0, 0];
-              
-              // Try to get original image dimensions from various EXIF fields, fallback to reasonable defaults
-              let originalImageWidth = photo.metadata?.exif?.imageWidth || 
-                                     photo.metadata?.exif?.ImageWidth || 
-                                     photo.metadata?.exif?.ExifImageWidth;
-              let originalImageHeight = photo.metadata?.exif?.imageHeight || 
-                                      photo.metadata?.exif?.ImageHeight || 
-                                      photo.metadata?.exif?.ExifImageHeight;
+              {facesData && facesData.length > 0 && (
+                <>
+                  {facesData.map((face: any) => {
+                    const [x, y, width, height] = face.boundingBox || [0, 0, 0, 0];
 
-              // If no EXIF dimensions, try to get natural dimensions from the image element or estimate
-              if (!originalImageWidth || !originalImageHeight || originalImageWidth === 1 || originalImageHeight === 1) {
-                // Try to get natural dimensions from the loaded image
-                if (imageRef.current && imageRef.current.naturalWidth && imageRef.current.naturalHeight) {
-                  originalImageWidth = imageRef.current.naturalWidth;
-                  originalImageHeight = imageRef.current.naturalHeight;
-                } else if (x > imageWidth || y > imageHeight || x > 1000 || y > 1000) {
-                  // Face coordinates suggest high resolution original
-                  originalImageWidth = 3072; // Common camera width
-                  originalImageHeight = 4080; // Common camera height
-                } else {
-                  // Face coordinates fit within displayed image
-                  originalImageWidth = imageWidth;
-                  originalImageHeight = imageHeight;
-                }
-              }
+                    // Try to get original image dimensions from various EXIF fields, fallback to reasonable defaults
+                    let originalImageWidth =
+                      photo.metadata?.exif?.imageWidth ||
+                      photo.metadata?.exif?.ImageWidth ||
+                      photo.metadata?.exif?.ExifImageWidth;
+                    let originalImageHeight =
+                      photo.metadata?.exif?.imageHeight ||
+                      photo.metadata?.exif?.ImageHeight ||
+                      photo.metadata?.exif?.ExifImageHeight;
 
-              const scaleX = imageWidth / originalImageWidth;
-              const scaleY = imageHeight / originalImageHeight;
-              const isHovered = hoveredFace === face.id;
+                    // If no EXIF dimensions, try to get natural dimensions from the image element or estimate
+                    if (
+                      !originalImageWidth ||
+                      !originalImageHeight ||
+                      originalImageWidth === 1 ||
+                      originalImageHeight === 1
+                    ) {
+                      // Try to get natural dimensions from the loaded image
+                      if (
+                        imageRef.current &&
+                        imageRef.current.naturalWidth &&
+                        imageRef.current.naturalHeight
+                      ) {
+                        originalImageWidth = imageRef.current.naturalWidth;
+                        originalImageHeight = imageRef.current.naturalHeight;
+                      } else if (
+                        x > imageWidth ||
+                        y > imageHeight ||
+                        x > 1000 ||
+                        y > 1000
+                      ) {
+                        // Face coordinates suggest high resolution original
+                        originalImageWidth = 3072; // Common camera width
+                        originalImageHeight = 4080; // Common camera height
+                      } else {
+                        // Face coordinates fit within displayed image
+                        originalImageWidth = imageWidth;
+                        originalImageHeight = imageHeight;
+                      }
+                    }
 
-              // Skip rendering if we don't have valid dimensions
-              if (!imageWidth || !imageHeight || !originalImageWidth || !originalImageHeight) {
-                return null;
-              }
+                    const scaleX = imageWidth / originalImageWidth;
+                    const scaleY = imageHeight / originalImageHeight;
+                    const isHovered = hoveredFace === face.id;
 
-              // Calculate image position within container for proper alignment
-              const imageElement = imageRef.current;
-              let imageOffsetX = 0;
-              let imageOffsetY = 0;
-              
-              if (imageElement) {
-                const containerRect = imageElement.parentElement?.getBoundingClientRect();
-                const imageRect = imageElement.getBoundingClientRect();
-                if (containerRect && imageRect) {
-                  imageOffsetX = imageRect.left - containerRect.left;
-                  imageOffsetY = imageRect.top - containerRect.top;
-                }
-              }
+                    // Skip rendering if we don't have valid dimensions
+                    if (
+                      !imageWidth ||
+                      !imageHeight ||
+                      !originalImageWidth ||
+                      !originalImageHeight
+                    ) {
+                      return null;
+                    }
 
-              // Debug logging for face overlay positioning
-              if (isHovered) {
-                console.log('Face overlay debug:', {
-                  faceId: face.id,
-                  boundingBox: [x, y, width, height],
-                  imageSize: { width: imageWidth, height: imageHeight },
-                  originalSize: { width: originalImageWidth, height: originalImageHeight },
-                  scale: { x: scaleX, y: scaleY },
-                  imageOffset: { x: imageOffsetX, y: imageOffsetY },
-                  position: {
-                    left: Math.round(imageOffsetX + (x * scaleX)),
-                    top: Math.round(imageOffsetY + (y * scaleY)),
-                    width: Math.round(width * scaleX),
-                    height: Math.round(height * scaleY)
-                  }
-                });
-              }
+                    // Calculate image position within container for proper alignment
+                    const imageElement = imageRef.current;
+                    let imageOffsetX = 0;
+                    let imageOffsetY = 0;
 
-              return (
-                <div
-                  key={face.id}
-                  className={`absolute border-4 transition-all duration-200 ${
-                    isHovered 
-                      ? 'border-cyan-400 bg-cyan-400/30 shadow-lg animate-pulse opacity-100' 
-                      : 'border-transparent bg-transparent opacity-0'
-                  }`}
-                  style={{
-                    left: `${Math.round(imageOffsetX + (x * scaleX))}px`,
-                    top: `${Math.round(imageOffsetY + (y * scaleY))}px`,
-                    width: `${Math.round(width * scaleX)}px`,
-                    height: `${Math.round(height * scaleY)}px`,
-                    zIndex: isHovered ? 10 : 1,
-                    minWidth: '20px',
-                    minHeight: '20px',
-                  }}
-                  title={face.personId ? `${face.person?.name || 'Unknown'} (${Math.round(face.confidence)}%)` : `Unassigned face (${Math.round(face.confidence)}%)`}
-                >
-                  {(face.personId || isHovered) && (
-                    <div className={`absolute -top-6 left-0 text-white text-xs px-2 py-1 rounded whitespace-nowrap ${
-                      isHovered ? 'bg-cyan-400' : 'bg-green-600'
-                    }`}>
-                      {face.person?.name || 'Unknown'}
-                      {face.ageInPhoto && ` (${face.ageInPhoto})`}
-                      {isHovered && !face.personId && ' - Unassigned'}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </>
-        )}
+                    if (imageElement) {
+                      const containerRect =
+                        imageElement.parentElement?.getBoundingClientRect();
+                      const imageRect = imageElement.getBoundingClientRect();
+                      if (containerRect && imageRect) {
+                        imageOffsetX = imageRect.left - containerRect.left;
+                        imageOffsetY = imageRect.top - containerRect.top;
+                      }
+                    }
+
+                    // Debug logging for face overlay positioning
+                    if (isHovered) {
+                      console.log('Face overlay debug:', {
+                        faceId: face.id,
+                        boundingBox: [x, y, width, height],
+                        imageSize: { width: imageWidth, height: imageHeight },
+                        originalSize: {
+                          width: originalImageWidth,
+                          height: originalImageHeight,
+                        },
+                        scale: { x: scaleX, y: scaleY },
+                        imageOffset: { x: imageOffsetX, y: imageOffsetY },
+                        position: {
+                          left: Math.round(imageOffsetX + x * scaleX),
+                          top: Math.round(imageOffsetY + y * scaleY),
+                          width: Math.round(width * scaleX),
+                          height: Math.round(height * scaleY),
+                        },
+                      });
+                    }
+
+                    return (
+                      <div
+                        key={face.id}
+                        className={`absolute border-4 transition-all duration-200 ${
+                          isHovered
+                            ? 'border-cyan-400 bg-cyan-400/30 shadow-lg animate-pulse opacity-100'
+                            : 'border-transparent bg-transparent opacity-0'
+                        }`}
+                        style={{
+                          left: `${Math.round(imageOffsetX + x * scaleX)}px`,
+                          top: `${Math.round(imageOffsetY + y * scaleY)}px`,
+                          width: `${Math.round(width * scaleX)}px`,
+                          height: `${Math.round(height * scaleY)}px`,
+                          zIndex: isHovered ? 10 : 1,
+                          minWidth: '20px',
+                          minHeight: '20px',
+                        }}
+                        title={
+                          face.personId
+                            ? `${face.person?.name || 'Unknown'} (${Math.round(face.confidence)}%)`
+                            : `Unassigned face (${Math.round(face.confidence)}%)`
+                        }
+                      >
+                        {(face.personId || isHovered) && (
+                          <div
+                            className={`absolute -top-6 left-0 text-white text-xs px-2 py-1 rounded whitespace-nowrap ${
+                              isHovered ? 'bg-cyan-400' : 'bg-green-600'
+                            }`}
+                          >
+                            {face.person?.name || 'Unknown'}
+                            {face.ageInPhoto && ` (${face.ageInPhoto})`}
+                            {isHovered && !face.personId && ' - Unassigned'}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </>
+              )}
             </div>
 
             {/* Image Info */}
@@ -754,16 +828,19 @@ export default function PhotoDetailModal({
                 {photo.mediaAsset?.originalFilename}
               </div>
               <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
-                {photo.fileSize && (
-                  <span>{Math.round(photo.fileSize / 1024)} KB</span>
-                )}
-                {photo.metadata?.exif?.imageWidth && photo.metadata?.exif?.imageHeight && (
-                  <span>{photo.metadata.exif.imageWidth} × {photo.metadata.exif.imageHeight}</span>
-                )}
+                {photo.fileSize && <span>{Math.round(photo.fileSize / 1024)} KB</span>}
+                {photo.metadata?.exif?.imageWidth &&
+                  photo.metadata?.exif?.imageHeight && (
+                    <span>
+                      {photo.metadata.exif.imageWidth} ×{' '}
+                      {photo.metadata.exif.imageHeight}
+                    </span>
+                  )}
                 {(() => {
-                  const formattedDate = formatDateSafely(photo.metadata?.exif?.dateTimeOriginal) ||
-                                       formatDateSafely(photo.metadata?.exif?.createDate) ||
-                                       formatDateSafely(photo.metadata?.exif?.dateTime);
+                  const formattedDate =
+                    formatDateSafely(photo.metadata?.exif?.dateTimeOriginal) ||
+                    formatDateSafely(photo.metadata?.exif?.createDate) ||
+                    formatDateSafely(photo.metadata?.exif?.dateTime);
                   return formattedDate ? <span>{formattedDate}</span> : null;
                 })()}
               </div>
@@ -774,8 +851,8 @@ export default function PhotoDetailModal({
               <div className="mt-4 space-y-3 flex-shrink-0">
                 <div className="flex gap-2">
                   {photo.tier !== 'bronze' && (
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       className="flex-1"
                       onClick={() => setIsEditing(!isEditing)}
                       size="sm"
@@ -784,20 +861,16 @@ export default function PhotoDetailModal({
                       Edit Metadata
                     </Button>
                   )}
-                  <Button 
-                    variant="outline" 
-                    onClick={handleDownload}
-                    size="sm"
-                  >
+                  <Button variant="outline" onClick={handleDownload} size="sm">
                     <Download className="w-4 h-4" />
                   </Button>
                 </div>
 
                 <div className="flex gap-2">
                   {canPromoteToSilver && (
-                    <Button 
+                    <Button
                       className="flex-1 bg-blue-600 hover:bg-blue-700"
-                      onClick={() => onProcessPhoto!(photo.id)}
+                      onClick={() => onProcessPhoto(photo.id)}
                       disabled={isProcessing}
                       size="sm"
                     >
@@ -806,22 +879,24 @@ export default function PhotoDetailModal({
                     </Button>
                   )}
                   {canPromoteToGold && (
-                    <Button 
+                    <Button
                       onClick={() => promoteToGoldMutation.mutate()}
                       disabled={promoteToGoldMutation.isPending}
                       size="sm"
                       className="flex-1 bg-yellow-600 hover:bg-yellow-700"
                     >
                       <Star className="w-4 h-4 mr-2" />
-                      {promoteToGoldMutation.isPending ? 'Promoting...' : 'Promote to Gold'}
+                      {promoteToGoldMutation.isPending
+                        ? 'Promoting...'
+                        : 'Promote to Gold'}
                     </Button>
                   )}
                 </div>
 
                 {isSilverTier && (
                   <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       onClick={() => archivePhotoMutation.mutate()}
                       disabled={archivePhotoMutation.isPending}
                       size="sm"
@@ -830,15 +905,17 @@ export default function PhotoDetailModal({
                       <Archive className="w-4 h-4 mr-2" />
                       {archivePhotoMutation.isPending ? 'Archiving...' : 'Archive'}
                     </Button>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       onClick={() => aiReprocessMutation.mutate()}
                       disabled={aiReprocessMutation.isPending}
                       size="sm"
                       className="flex-1"
                     >
                       <RefreshCw className="w-4 h-4 mr-2" />
-                      {aiReprocessMutation.isPending ? 'Reprocessing...' : 'AI Reprocess'}
+                      {aiReprocessMutation.isPending
+                        ? 'Reprocessing...'
+                        : 'AI Reprocess'}
                     </Button>
                   </div>
                 )}
@@ -858,14 +935,23 @@ export default function PhotoDetailModal({
                   </h3>
                   {isEditing ? (
                     <Textarea
-                      value={editedMetadata.aiDescription || photo.metadata.ai.longDescription}
-                      onChange={(e) => setEditedMetadata(prev => ({ ...prev, aiDescription: e.target.value }))}
+                      value={
+                        editedMetadata.aiDescription ||
+                        photo.metadata.ai.longDescription
+                      }
+                      onChange={(e) =>
+                        setEditedMetadata((prev) => ({
+                          ...prev,
+                          aiDescription: e.target.value,
+                        }))
+                      }
                       placeholder="Edit AI description..."
                       className="text-sm min-h-[80px] bg-white dark:bg-gray-800"
                     />
                   ) : (
                     <p className="text-sm text-blue-800 dark:text-blue-200 leading-relaxed">
-                      {editedMetadata.aiDescription || photo.metadata.ai.longDescription}
+                      {editedMetadata.aiDescription ||
+                        photo.metadata.ai.longDescription}
                     </p>
                   )}
                 </div>
@@ -881,27 +967,35 @@ export default function PhotoDetailModal({
                   {isEditing ? (
                     <TagEditor
                       tags={editedMetadata.aiTags || photo.metadata.ai.aiTags}
-                      onChange={(tags) => setEditedMetadata(prev => ({ ...prev, aiTags: tags }))}
+                      onChange={(tags) =>
+                        setEditedMetadata((prev) => ({ ...prev, aiTags: tags }))
+                      }
                       placeholder="Add AI tags..."
                       className="text-sm"
                     />
                   ) : (
                     <div className="flex flex-wrap gap-2">
-                      {(editedMetadata.aiTags || photo.metadata.ai.aiTags).map((tag: string, index: number) => (
-                        <Badge 
-                          key={index} 
-                          className="bg-blue-100 text-blue-800 hover:bg-blue-200 text-xs px-3 py-1"
-                        >
-                          {tag}
-                        </Badge>
-                      ))}
+                      {(editedMetadata.aiTags || photo.metadata.ai.aiTags).map(
+                        (tag: string, index: number) => (
+                          <Badge
+                            key={index}
+                            className="bg-blue-100 text-blue-800 hover:bg-blue-200 text-xs px-3 py-1"
+                          >
+                            {tag}
+                          </Badge>
+                        ),
+                      )}
                     </div>
                   )}
                 </div>
               )}
 
               {/* Camera Information */}
-              {(photo.metadata?.exif?.camera || photo.metadata?.exif?.lens || photo.metadata?.exif?.aperture || photo.metadata?.exif?.shutter || photo.metadata?.exif?.iso) && (
+              {(photo.metadata?.exif?.camera ||
+                photo.metadata?.exif?.lens ||
+                photo.metadata?.exif?.aperture ||
+                photo.metadata?.exif?.shutter ||
+                photo.metadata?.exif?.iso) && (
                 <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border">
                   <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-3 flex items-center">
                     <Camera className="w-5 h-5 mr-2" />
@@ -910,32 +1004,52 @@ export default function PhotoDetailModal({
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     {photo.metadata?.exif?.camera && (
                       <div>
-                        <span className="text-gray-600 dark:text-gray-400 block">Camera</span>
-                        <span className="text-gray-800 dark:text-gray-200 font-medium">{photo.metadata.exif.camera}</span>
+                        <span className="text-gray-600 dark:text-gray-400 block">
+                          Camera
+                        </span>
+                        <span className="text-gray-800 dark:text-gray-200 font-medium">
+                          {photo.metadata.exif.camera}
+                        </span>
                       </div>
                     )}
                     {photo.metadata?.exif?.lens && (
                       <div>
-                        <span className="text-gray-600 dark:text-gray-400 block">Lens</span>
-                        <span className="text-gray-800 dark:text-gray-200 font-medium">{photo.metadata.exif.lens}</span>
+                        <span className="text-gray-600 dark:text-gray-400 block">
+                          Lens
+                        </span>
+                        <span className="text-gray-800 dark:text-gray-200 font-medium">
+                          {photo.metadata.exif.lens}
+                        </span>
                       </div>
                     )}
                     {photo.metadata?.exif?.aperture && (
                       <div>
-                        <span className="text-gray-600 dark:text-gray-400 block">Aperture</span>
-                        <span className="text-gray-800 dark:text-gray-200 font-medium">{photo.metadata.exif.aperture}</span>
+                        <span className="text-gray-600 dark:text-gray-400 block">
+                          Aperture
+                        </span>
+                        <span className="text-gray-800 dark:text-gray-200 font-medium">
+                          {photo.metadata.exif.aperture}
+                        </span>
                       </div>
                     )}
                     {photo.metadata?.exif?.shutter && (
                       <div>
-                        <span className="text-gray-600 dark:text-gray-400 block">Shutter</span>
-                        <span className="text-gray-800 dark:text-gray-200 font-medium">{photo.metadata.exif.shutter}</span>
+                        <span className="text-gray-600 dark:text-gray-400 block">
+                          Shutter
+                        </span>
+                        <span className="text-gray-800 dark:text-gray-200 font-medium">
+                          {photo.metadata.exif.shutter}
+                        </span>
                       </div>
                     )}
                     {photo.metadata?.exif?.iso && (
                       <div>
-                        <span className="text-gray-600 dark:text-gray-400 block">ISO</span>
-                        <span className="text-gray-800 dark:text-gray-200 font-medium">{photo.metadata.exif.iso}</span>
+                        <span className="text-gray-600 dark:text-gray-400 block">
+                          ISO
+                        </span>
+                        <span className="text-gray-800 dark:text-gray-200 font-medium">
+                          {photo.metadata.exif.iso}
+                        </span>
                       </div>
                     )}
                   </div>
@@ -957,12 +1071,20 @@ export default function PhotoDetailModal({
                   {photo.metadata?.exif?.gps && (
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
-                        <span className="text-green-600 dark:text-green-400 block">Latitude</span>
-                        <span className="text-green-800 dark:text-green-200 font-mono">{photo.metadata.exif.gps.latitude}</span>
+                        <span className="text-green-600 dark:text-green-400 block">
+                          Latitude
+                        </span>
+                        <span className="text-green-800 dark:text-green-200 font-mono">
+                          {photo.metadata.exif.gps.latitude}
+                        </span>
                       </div>
                       <div>
-                        <span className="text-green-600 dark:text-green-400 block">Longitude</span>
-                        <span className="text-green-800 dark:text-green-200 font-mono">{photo.metadata.exif.gps.longitude}</span>
+                        <span className="text-green-600 dark:text-green-400 block">
+                          Longitude
+                        </span>
+                        <span className="text-green-800 dark:text-green-200 font-mono">
+                          {photo.metadata.exif.gps.longitude}
+                        </span>
                       </div>
                     </div>
                   )}
@@ -970,61 +1092,84 @@ export default function PhotoDetailModal({
               )}
 
               {/* Detected Objects */}
-              {photo.metadata?.ai?.detectedObjects && photo.metadata.ai.detectedObjects.length > 0 && (
-                <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg border border-purple-200 dark:border-purple-800">
-                  <h3 className="text-base font-semibold text-purple-800 dark:text-purple-200 mb-3 flex items-center">
-                    <Eye className="w-5 h-5 mr-2" />
-                    Detected Objects
-                  </h3>
-                  <div className="grid grid-cols-2 gap-3">
-                    {photo.metadata.ai.detectedObjects.map((obj: any, index: number) => (
-                      <div key={index} className="flex items-center justify-between p-2 bg-white dark:bg-purple-900/50 rounded border">
-                        <span className="text-sm text-purple-800 dark:text-purple-200 font-medium">{obj.name}</span>
-                        <Badge variant="outline" className="text-xs border-purple-300 text-purple-700 dark:border-purple-600 dark:text-purple-300">
-                          {Math.round(obj.confidence * 100)}%
-                        </Badge>
-                      </div>
-                    ))}
+              {photo.metadata?.ai?.detectedObjects &&
+                photo.metadata.ai.detectedObjects.length > 0 && (
+                  <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg border border-purple-200 dark:border-purple-800">
+                    <h3 className="text-base font-semibold text-purple-800 dark:text-purple-200 mb-3 flex items-center">
+                      <Eye className="w-5 h-5 mr-2" />
+                      Detected Objects
+                    </h3>
+                    <div className="grid grid-cols-2 gap-3">
+                      {photo.metadata.ai.detectedObjects.map(
+                        (obj: any, index: number) => (
+                          <div
+                            key={index}
+                            className="flex items-center justify-between p-2 bg-white dark:bg-purple-900/50 rounded border"
+                          >
+                            <span className="text-sm text-purple-800 dark:text-purple-200 font-medium">
+                              {obj.name}
+                            </span>
+                            <Badge
+                              variant="outline"
+                              className="text-xs border-purple-300 text-purple-700 dark:border-purple-600 dark:text-purple-300"
+                            >
+                              {Math.round(obj.confidence * 100)}%
+                            </Badge>
+                          </div>
+                        ),
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
               {/* Detected People */}
-              {photo.metadata?.ai?.detectedPeople && photo.metadata.ai.detectedPeople.length > 0 && (
-                <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg border border-orange-200 dark:border-orange-800">
-                  <h3 className="text-base font-semibold text-orange-800 dark:text-orange-200 mb-3 flex items-center">
-                    <Users className="w-5 h-5 mr-2" />
-                    Detected People
-                  </h3>
-                  <div className="space-y-3">
-                    {photo.metadata.ai.detectedPeople.map((person: any, index: number) => (
-                      <div key={index} className="flex items-center justify-between p-3 bg-white dark:bg-orange-900/50 rounded-lg border shadow-sm">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-orange-100 dark:bg-orange-800 rounded-full flex items-center justify-center">
-                            <Users className="w-5 h-5 text-orange-600 dark:text-orange-300" />
-                          </div>
-                          <div>
-                            <div className="text-sm font-medium text-orange-800 dark:text-orange-200">
-                              {person.name || 'Unknown Person'}
-                            </div>
-                            {person.age && (
-                              <div className="text-xs text-orange-600 dark:text-orange-400">
-                                Age: {person.age}
+              {photo.metadata?.ai?.detectedPeople &&
+                photo.metadata.ai.detectedPeople.length > 0 && (
+                  <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg border border-orange-200 dark:border-orange-800">
+                    <h3 className="text-base font-semibold text-orange-800 dark:text-orange-200 mb-3 flex items-center">
+                      <Users className="w-5 h-5 mr-2" />
+                      Detected People
+                    </h3>
+                    <div className="space-y-3">
+                      {photo.metadata.ai.detectedPeople.map(
+                        (person: any, index: number) => (
+                          <div
+                            key={index}
+                            className="flex items-center justify-between p-3 bg-white dark:bg-orange-900/50 rounded-lg border shadow-sm"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-orange-100 dark:bg-orange-800 rounded-full flex items-center justify-center">
+                                <Users className="w-5 h-5 text-orange-600 dark:text-orange-300" />
                               </div>
-                            )}
+                              <div>
+                                <div className="text-sm font-medium text-orange-800 dark:text-orange-200">
+                                  {person.name || 'Unknown Person'}
+                                </div>
+                                {person.age && (
+                                  <div className="text-xs text-orange-600 dark:text-orange-400">
+                                    Age: {person.age}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            <Badge
+                              variant={
+                                person.confidence >= 95
+                                  ? 'default'
+                                  : person.confidence >= 80
+                                    ? 'secondary'
+                                    : 'outline'
+                              }
+                              className="text-xs"
+                            >
+                              {Math.round(person.confidence)}%
+                            </Badge>
                           </div>
-                        </div>
-                        <Badge 
-                          variant={person.confidence >= 95 ? "default" : person.confidence >= 80 ? "secondary" : "outline"}
-                          className="text-xs"
-                        >
-                          {Math.round(person.confidence)}%
-                        </Badge>
-                      </div>
-                    ))}
+                        ),
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
               {/* Face Detection Status and Detected Faces */}
               <div className="bg-cyan-50 dark:bg-cyan-900/20 p-4 rounded-lg border border-cyan-200 dark:border-cyan-800">
@@ -1033,7 +1178,7 @@ export default function PhotoDetailModal({
                     <Users className="w-5 h-5 mr-2" />
                     Face Detection
                   </h3>
-                  <FaceDetectionBadge 
+                  <FaceDetectionBadge
                     status={getFaceDetectionStatus(photo).status}
                     faceCount={getFaceDetectionStatus(photo).faceCount}
                     size="md"
@@ -1042,18 +1187,18 @@ export default function PhotoDetailModal({
                 {detectedFaces && detectedFaces.length > 0 && (
                   <div className="grid grid-cols-2 gap-2">
                     {detectedFaces.map((face: any) => (
-                      <div 
-                        key={face.id} 
+                      <div
+                        key={face.id}
                         className={`flex items-center gap-2 p-2 border rounded cursor-pointer transition-all duration-200 ${
-                          hoveredFace === face.id 
-                            ? 'border-cyan-400 bg-cyan-50 dark:bg-cyan-900/30 shadow-md' 
+                          hoveredFace === face.id
+                            ? 'border-cyan-400 bg-cyan-50 dark:bg-cyan-900/30 shadow-md'
                             : 'hover:border-cyan-300 hover:bg-cyan-25 dark:hover:bg-cyan-900/20'
                         }`}
                         onMouseEnter={() => setHoveredFace(face.id)}
                         onMouseLeave={() => setHoveredFace(null)}
                       >
                         {face.faceCropUrl && (
-                          <img 
+                          <img
                             src={`/api/files/${face.faceCropUrl}`}
                             alt="Face crop"
                             className="w-12 h-12 rounded-full object-cover"
@@ -1061,7 +1206,9 @@ export default function PhotoDetailModal({
                         )}
                         <div className="flex-1 min-w-0">
                           <div className="text-sm font-medium truncate">
-                            {face.personId ? face.person?.name || 'Unknown Person' : 'Unassigned'}
+                            {face.personId
+                              ? face.person?.name || 'Unknown Person'
+                              : 'Unassigned'}
                           </div>
                           <div className="text-xs text-muted-foreground">
                             {Math.round(face.confidence)}% confidence
@@ -1086,21 +1233,38 @@ export default function PhotoDetailModal({
 
                   <div className="space-y-4">
                     <div>
-                      <Label htmlFor="keywords" className="text-sm font-medium text-yellow-800 dark:text-yellow-200">Keywords</Label>
+                      <Label
+                        htmlFor="keywords"
+                        className="text-sm font-medium text-yellow-800 dark:text-yellow-200"
+                      >
+                        Keywords
+                      </Label>
                       <TagEditor
                         tags={editedMetadata.keywords}
-                        onChange={(keywords) => setEditedMetadata(prev => ({ ...prev, keywords }))}
+                        onChange={(keywords) =>
+                          setEditedMetadata((prev) => ({ ...prev, keywords }))
+                        }
                         placeholder="Add keywords..."
                         className="mt-2"
                       />
                     </div>
 
                     <div>
-                      <Label htmlFor="location" className="text-sm font-medium text-yellow-800 dark:text-yellow-200">Location</Label>
+                      <Label
+                        htmlFor="location"
+                        className="text-sm font-medium text-yellow-800 dark:text-yellow-200"
+                      >
+                        Location
+                      </Label>
                       <Input
                         id="location"
                         value={editedMetadata.location}
-                        onChange={(e) => setEditedMetadata(prev => ({ ...prev, location: e.target.value }))}
+                        onChange={(e) =>
+                          setEditedMetadata((prev) => ({
+                            ...prev,
+                            location: e.target.value,
+                          }))
+                        }
                         placeholder="Location..."
                         className="mt-2 bg-white dark:bg-yellow-900/50"
                       />
@@ -1108,10 +1272,20 @@ export default function PhotoDetailModal({
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="eventType" className="text-sm font-medium text-yellow-800 dark:text-yellow-200">Event Type</Label>
+                        <Label
+                          htmlFor="eventType"
+                          className="text-sm font-medium text-yellow-800 dark:text-yellow-200"
+                        >
+                          Event Type
+                        </Label>
                         <Select
                           value={editedMetadata.eventType || 'none'}
-                          onValueChange={(value) => setEditedMetadata(prev => ({ ...prev, eventType: value === 'none' ? '' : value }))}
+                          onValueChange={(value) =>
+                            setEditedMetadata((prev) => ({
+                              ...prev,
+                              eventType: value === 'none' ? '' : value,
+                            }))
+                          }
                         >
                           <SelectTrigger className="mt-2 bg-white dark:bg-yellow-900/50">
                             <SelectValue placeholder="Select event type" />
@@ -1130,11 +1304,21 @@ export default function PhotoDetailModal({
                       </div>
 
                       <div>
-                        <Label htmlFor="eventName" className="text-sm font-medium text-yellow-800 dark:text-yellow-200">Event Name</Label>
+                        <Label
+                          htmlFor="eventName"
+                          className="text-sm font-medium text-yellow-800 dark:text-yellow-200"
+                        >
+                          Event Name
+                        </Label>
                         <Input
                           id="eventName"
                           value={editedMetadata.eventName}
-                          onChange={(e) => setEditedMetadata(prev => ({ ...prev, eventName: e.target.value }))}
+                          onChange={(e) =>
+                            setEditedMetadata((prev) => ({
+                              ...prev,
+                              eventName: e.target.value,
+                            }))
+                          }
                           placeholder="Event name..."
                           className="mt-2 bg-white dark:bg-yellow-900/50"
                         />
@@ -1143,7 +1327,7 @@ export default function PhotoDetailModal({
                   </div>
 
                   <div className="flex gap-3 pt-4 mt-4 border-t border-yellow-200 dark:border-yellow-700">
-                    <Button 
+                    <Button
                       onClick={handleSaveMetadata}
                       disabled={updateMetadataMutation.isPending}
                       className="flex-1 bg-yellow-600 hover:bg-yellow-700"
@@ -1152,7 +1336,7 @@ export default function PhotoDetailModal({
                       <Save className="w-4 h-4 mr-2" />
                       {updateMetadataMutation.isPending ? 'Saving...' : 'Save Changes'}
                     </Button>
-                    <Button 
+                    <Button
                       variant="outline"
                       onClick={resetMetadata}
                       size="sm"
@@ -1160,7 +1344,7 @@ export default function PhotoDetailModal({
                     >
                       <RotateCcw className="w-4 h-4" />
                     </Button>
-                    <Button 
+                    <Button
                       variant="ghost"
                       onClick={() => setIsEditing(false)}
                       size="sm"
@@ -1181,7 +1365,10 @@ export default function PhotoDetailModal({
                   </h3>
                   <div className="flex flex-wrap gap-2">
                     {photo.keywords.map((keyword: string, index: number) => (
-                      <Badge key={index} className="bg-indigo-100 text-indigo-800 hover:bg-indigo-200 text-xs px-3 py-1">
+                      <Badge
+                        key={index}
+                        className="bg-indigo-100 text-indigo-800 hover:bg-indigo-200 text-xs px-3 py-1"
+                      >
                         {keyword}
                       </Badge>
                     ))}
@@ -1190,69 +1377,89 @@ export default function PhotoDetailModal({
               )}
 
               {/* Events Section */}
-              {!isEditing && ((photo.eventType || photo.eventName) || detectedEvents.length > 0) && (
-                <div className="bg-pink-50 dark:bg-pink-900/20 p-4 rounded-lg border border-pink-200 dark:border-pink-800">
-                  <h3 className="text-base font-semibold text-pink-800 dark:text-pink-200 mb-3 flex items-center">
-                    <Calendar className="w-5 h-5 mr-2" />
-                    Events
-                  </h3>
+              {!isEditing &&
+                (photo.eventType || photo.eventName || detectedEvents.length > 0) && (
+                  <div className="bg-pink-50 dark:bg-pink-900/20 p-4 rounded-lg border border-pink-200 dark:border-pink-800">
+                    <h3 className="text-base font-semibold text-pink-800 dark:text-pink-200 mb-3 flex items-center">
+                      <Calendar className="w-5 h-5 mr-2" />
+                      Events
+                    </h3>
 
-                  {/* Manual/Saved Event */}
-                  {(photo.eventType || photo.eventName) && (
-                    <div className="mb-3 p-3 bg-white dark:bg-pink-900/50 rounded-lg border shadow-sm">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          {photo.eventType && (
-                            <Badge variant="outline" className="text-xs mb-2 border-pink-300 text-pink-700 dark:border-pink-600 dark:text-pink-300">
-                              {photo.eventType.charAt(0).toUpperCase() + photo.eventType.slice(1)}
-                            </Badge>
-                          )}
-                          {photo.eventName && (
-                            <div className="text-sm font-medium text-pink-800 dark:text-pink-200">
-                              {photo.eventName}
-                            </div>
-                          )}
-                        </div>
-                        <Badge variant="secondary" className="text-xs">Saved</Badge>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Auto-Detected Events */}
-                  {detectedEvents.length > 0 && (
-                    <div className="space-y-2">
-                      <div className="text-xs text-pink-600 dark:text-pink-400 font-medium">Auto-detected events:</div>
-                      {detectedEvents.map((event: any, index: number) => (
-                        <div key={index} className="p-3 bg-white dark:bg-pink-900/50 rounded-lg border-l-4 border-pink-500 shadow-sm">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <Badge variant="outline" className="text-xs mb-2 border-pink-300 text-pink-700 dark:border-pink-600 dark:text-pink-300">
-                                {event.eventType.charAt(0).toUpperCase() + event.eventType.slice(1)}
+                    {/* Manual/Saved Event */}
+                    {(photo.eventType || photo.eventName) && (
+                      <div className="mb-3 p-3 bg-white dark:bg-pink-900/50 rounded-lg border shadow-sm">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            {photo.eventType && (
+                              <Badge
+                                variant="outline"
+                                className="text-xs mb-2 border-pink-300 text-pink-700 dark:border-pink-600 dark:text-pink-300"
+                              >
+                                {photo.eventType.charAt(0).toUpperCase() +
+                                  photo.eventType.slice(1)}
                               </Badge>
+                            )}
+                            {photo.eventName && (
                               <div className="text-sm font-medium text-pink-800 dark:text-pink-200">
-                                {event.eventName}
+                                {photo.eventName}
                               </div>
-                              {event.age !== undefined && (
-                                <div className="text-xs text-pink-600 dark:text-pink-400 mt-1">
-                                  Age: {event.age} years old
-                                </div>
-                              )}
-                            </div>
-                            <Badge 
-                              variant={event.confidence >= 95 ? "default" : event.confidence >= 80 ? "secondary" : "outline"}
-                              className="text-xs"
-                            >
-                              {event.confidence}%
-                            </Badge>
+                            )}
                           </div>
+                          <Badge variant="secondary" className="text-xs">
+                            Saved
+                          </Badge>
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
+                      </div>
+                    )}
 
-
+                    {/* Auto-Detected Events */}
+                    {detectedEvents.length > 0 && (
+                      <div className="space-y-2">
+                        <div className="text-xs text-pink-600 dark:text-pink-400 font-medium">
+                          Auto-detected events:
+                        </div>
+                        {detectedEvents.map((event: any, index: number) => (
+                          <div
+                            key={index}
+                            className="p-3 bg-white dark:bg-pink-900/50 rounded-lg border-l-4 border-pink-500 shadow-sm"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <Badge
+                                  variant="outline"
+                                  className="text-xs mb-2 border-pink-300 text-pink-700 dark:border-pink-600 dark:text-pink-300"
+                                >
+                                  {event.eventType.charAt(0).toUpperCase() +
+                                    event.eventType.slice(1)}
+                                </Badge>
+                                <div className="text-sm font-medium text-pink-800 dark:text-pink-200">
+                                  {event.eventName}
+                                </div>
+                                {event.age !== undefined && (
+                                  <div className="text-xs text-pink-600 dark:text-pink-400 mt-1">
+                                    Age: {event.age} years old
+                                  </div>
+                                )}
+                              </div>
+                              <Badge
+                                variant={
+                                  event.confidence >= 95
+                                    ? 'default'
+                                    : event.confidence >= 80
+                                      ? 'secondary'
+                                      : 'outline'
+                                }
+                                className="text-xs"
+                              >
+                                {event.confidence}%
+                              </Badge>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
             </div>
           </div>
         </div>
@@ -1273,8 +1480,8 @@ export default function PhotoDetailModal({
               {/* Face Preview */}
               <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                 {assignFace.faceCropUrl ? (
-                  <img 
-                    src={`/api/files/${assignFace.faceCropUrl}`} 
+                  <img
+                    src={`/api/files/${assignFace.faceCropUrl}`}
                     alt="Face to assign"
                     className="w-16 h-16 rounded-full object-cover border-2 border-gray-200"
                   />
@@ -1285,22 +1492,31 @@ export default function PhotoDetailModal({
                 )}
                 <div>
                   <div className="font-medium">Unknown Face</div>
-                  <div className="text-sm text-gray-500">{assignFace.confidence}% confidence</div>
+                  <div className="text-sm text-gray-500">
+                    {assignFace.confidence}% confidence
+                  </div>
                 </div>
               </div>
 
               {/* Existing People */}
               {people.length > 0 && (
                 <div>
-                  <Label className="text-sm font-medium">Assign to existing person</Label>
-                  <Select onValueChange={(personId) => assignFaceMutation.mutate({ faceId: assignFace.id, personId })}>
+                  <Label className="text-sm font-medium">
+                    Assign to existing person
+                  </Label>
+                  <Select
+                    onValueChange={(personId) =>
+                      assignFaceMutation.mutate({ faceId: assignFace.id, personId })
+                    }
+                  >
                     <SelectTrigger className="mt-1">
                       <SelectValue placeholder="Select a person..." />
                     </SelectTrigger>
                     <SelectContent>
                       {people.map((person: any) => (
                         <SelectItem key={person.id} value={person.id}>
-                          {person.name} ({person.photoCount || 0} {(person.photoCount || 0) === 1 ? 'photo' : 'photos'})
+                          {person.name} ({person.photoCount || 0}{' '}
+                          {(person.photoCount || 0) === 1 ? 'photo' : 'photos'})
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -1328,7 +1544,7 @@ export default function PhotoDetailModal({
                       }
                     }}
                   />
-                  <Button 
+                  <Button
                     onClick={() => createPersonMutation.mutate(newPersonName.trim())}
                     disabled={!newPersonName.trim() || createPersonMutation.isPending}
                   >

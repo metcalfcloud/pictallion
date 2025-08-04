@@ -4,8 +4,8 @@ Database Management CLI
 Command-line tool for managing database operations, migrations, and maintenance.
 """
 
-import asyncio
 import argparse
+import asyncio
 import sys
 from pathlib import Path
 
@@ -13,11 +13,10 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent))
 
 from app.core.database import db_manager
-from app.core.migrations import migration_manager, check_schema_compatibility
-from app.core.db_utils import (
-    get_database_stats, vacuum_database, analyze_database, 
-    check_database_integrity, backup_database, restore_database
-)
+from app.core.db_utils import (analyze_database, backup_database,
+                               check_database_integrity, get_database_stats,
+                               restore_database, vacuum_database)
+from app.core.migrations import check_schema_compatibility, migration_manager
 
 
 async def init_database():
@@ -36,10 +35,10 @@ async def reset_database():
     """Reset database (drop and recreate all tables)."""
     print("⚠️  WARNING: This will delete all data!")
     confirm = input("Type 'yes' to confirm: ")
-    if confirm.lower() != 'yes':
+    if confirm.lower() != "yes":
         print("Operation cancelled")
         return
-    
+
     print("Resetting database...")
     await db_manager.reset()
     print("✅ Database reset completed")
@@ -48,28 +47,28 @@ async def reset_database():
 async def check_status():
     """Check database and migration status."""
     print("Checking database status...")
-    
+
     # Health check
     health = await db_manager.health_check()
     print(f"Database health: {health.get('database', 'unknown')}")
     print(f"Database type: {health.get('type', 'unknown')}")
-    
+
     # Migration status
     status = await migration_manager.check_migration_status()
     print(f"Current revision: {status.get('current_revision', 'None')}")
     print(f"Head revision: {status.get('head_revision', 'None')}")
     print(f"Status: {status.get('status', 'Unknown')}")
-    
+
     # Compatibility check
     compatibility = await check_schema_compatibility()
     print(f"Schema compatible: {compatibility.get('compatible', False)}")
-    if compatibility.get('issues'):
+    if compatibility.get("issues"):
         print("Issues found:")
-        for issue in compatibility['issues']:
+        for issue in compatibility["issues"]:
             print(f"  ❌ {issue}")
-    if compatibility.get('warnings'):
+    if compatibility.get("warnings"):
         print("Warnings:")
-        for warning in compatibility['warnings']:
+        for warning in compatibility["warnings"]:
             print(f"  ⚠️  {warning}")
 
 
@@ -77,31 +76,31 @@ async def show_stats():
     """Show database statistics."""
     print("Database Statistics:")
     stats = await get_database_stats()
-    
-    if 'error' in stats:
+
+    if "error" in stats:
         print(f"❌ Error getting stats: {stats['error']}")
         return
-    
+
     print(f"Database type: {stats.get('database_type', 'unknown')}")
     print(f"Database URL: {stats.get('database_url', 'unknown')}")
-    
+
     print("\nTable counts:")
-    for table, info in stats.get('tables', {}).items():
-        count = info.get('count', 0)
-        error = info.get('error')
+    for table, info in stats.get("tables", {}).items():
+        count = info.get("count", 0)
+        error = info.get("error")
         if error:
             print(f"  {table}: Error - {error}")
         else:
             print(f"  {table}: {count}")
-    
-    if 'file_version_tiers' in stats:
+
+    if "file_version_tiers" in stats:
         print("\nFile version tiers:")
-        for tier, count in stats['file_version_tiers'].items():
+        for tier, count in stats["file_version_tiers"].items():
             print(f"  {tier}: {count}")
-    
-    if 'processing_states' in stats:
+
+    if "processing_states" in stats:
         print("\nProcessing states:")
-        for state, count in stats['processing_states'].items():
+        for state, count in stats["processing_states"].items():
             print(f"  {state}: {count}")
 
 
@@ -121,9 +120,9 @@ def create_migration():
     if not message:
         print("Migration message is required")
         return
-    
-    autogenerate = input("Auto-generate migration? (y/n): ").lower() == 'y'
-    
+
+    autogenerate = input("Auto-generate migration? (y/n): ").lower() == "y"
+
     print(f"Creating migration: {message}")
     success = migration_manager.create_migration(message, autogenerate=autogenerate)
     if success:
@@ -135,14 +134,14 @@ def create_migration():
 async def maintenance():
     """Run database maintenance tasks."""
     print("Running database maintenance...")
-    
+
     try:
         print("- Vacuuming database...")
         await vacuum_database()
-        
+
         print("- Analyzing database...")
         await analyze_database()
-        
+
         print("✅ Maintenance completed successfully")
     except Exception as e:
         print(f"❌ Maintenance failed: {e}")
@@ -152,10 +151,10 @@ async def integrity_check():
     """Check database integrity."""
     print("Checking database integrity...")
     results = await check_database_integrity()
-    
+
     print(f"Overall status: {results.get('status', 'unknown')}")
     print("Checks performed:")
-    for check in results.get('checks', []):
+    for check in results.get("checks", []):
         print(f"  {check}")
 
 
@@ -165,7 +164,7 @@ def backup():
     if not backup_path:
         print("Backup path is required")
         return
-    
+
     print(f"Creating backup: {backup_path}")
     success = asyncio.run(backup_database(backup_path))
     if success:
@@ -180,13 +179,13 @@ def restore():
     if not backup_path:
         print("Backup path is required")
         return
-    
+
     print("⚠️  WARNING: This will overwrite the current database!")
     confirm = input("Type 'yes' to confirm: ")
-    if confirm.lower() != 'yes':
+    if confirm.lower() != "yes":
         print("Operation cancelled")
         return
-    
+
     print(f"Restoring from backup: {backup_path}")
     success = asyncio.run(restore_database(backup_path))
     if success:
@@ -198,33 +197,45 @@ def restore():
 def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(description="Database Management CLI")
-    parser.add_argument('command', choices=[
-        'init', 'reset', 'status', 'stats', 'migrate', 'create-migration',
-        'maintenance', 'integrity', 'backup', 'restore'
-    ], help='Command to execute')
-    
+    parser.add_argument(
+        "command",
+        choices=[
+            "init",
+            "reset",
+            "status",
+            "stats",
+            "migrate",
+            "create-migration",
+            "maintenance",
+            "integrity",
+            "backup",
+            "restore",
+        ],
+        help="Command to execute",
+    )
+
     args = parser.parse_args()
-    
+
     try:
-        if args.command == 'init':
+        if args.command == "init":
             asyncio.run(init_database())
-        elif args.command == 'reset':
+        elif args.command == "reset":
             asyncio.run(reset_database())
-        elif args.command == 'status':
+        elif args.command == "status":
             asyncio.run(check_status())
-        elif args.command == 'stats':
+        elif args.command == "stats":
             asyncio.run(show_stats())
-        elif args.command == 'migrate':
+        elif args.command == "migrate":
             asyncio.run(run_migrations())
-        elif args.command == 'create-migration':
+        elif args.command == "create-migration":
             create_migration()
-        elif args.command == 'maintenance':
+        elif args.command == "maintenance":
             asyncio.run(maintenance())
-        elif args.command == 'integrity':
+        elif args.command == "integrity":
             asyncio.run(integrity_check())
-        elif args.command == 'backup':
+        elif args.command == "backup":
             backup()
-        elif args.command == 'restore':
+        elif args.command == "restore":
             restore()
     except KeyboardInterrupt:
         print("\nOperation cancelled by user")

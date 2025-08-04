@@ -1,14 +1,14 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { Calendar, Globe, Users, Save } from "lucide-react";
-import { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Calendar, Globe, Users, Save } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
 
 interface HolidaySet {
   code: string;
@@ -51,31 +51,31 @@ export default function EventSettings() {
   const saveHolidaySettings = useMutation({
     mutationFn: async (holidays: string[]) => {
       const response = await apiRequest('PUT', '/api/settings/enabled_holidays', {
-        value: JSON.stringify(holidays)
+        value: JSON.stringify(holidays),
       });
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/settings/enabled_holidays'] });
       toast({
-        title: "Settings Saved",
-        description: "Holiday detection settings updated successfully.",
+        title: 'Settings Saved',
+        description: 'Holiday detection settings updated successfully.',
       });
     },
     onError: () => {
       toast({
-        title: "Save Failed",
-        description: "Failed to save holiday settings.",
-        variant: "destructive"
+        title: 'Save Failed',
+        description: 'Failed to save holiday settings.',
+        variant: 'destructive',
       });
-    }
+    },
   });
 
   const handleHolidayToggle = (countryCode: string, enabled: boolean) => {
     if (enabled) {
-      setEnabledHolidays(prev => [...prev, countryCode]);
+      setEnabledHolidays((prev) => [...prev, countryCode]);
     } else {
-      setEnabledHolidays(prev => prev.filter(code => code !== countryCode));
+      setEnabledHolidays((prev) => prev.filter((code) => code !== countryCode));
     }
   };
 
@@ -83,7 +83,8 @@ export default function EventSettings() {
     saveHolidaySettings.mutate(enabledHolidays);
   };
 
-  const hasChanges = JSON.stringify(enabledHolidays) !== JSON.stringify(currentSettings || ['US']);
+  const hasChanges =
+    JSON.stringify(enabledHolidays) !== JSON.stringify(currentSettings || ['US']);
 
   return (
     <Card>
@@ -103,14 +104,19 @@ export default function EventSettings() {
           <p className="text-sm text-muted-foreground mb-4">
             Choose which country's holidays to automatically detect in your photos.
           </p>
-          
+
           <div className="space-y-3">
             {holidaySets.map((holidaySet) => (
-              <div key={holidaySet.code} className="flex items-center justify-between p-3 border rounded-lg">
+              <div
+                key={holidaySet.code}
+                className="flex items-center justify-between p-3 border rounded-lg"
+              >
                 <div className="flex items-center gap-3">
                   <Switch
                     checked={enabledHolidays.includes(holidaySet.code)}
-                    onCheckedChange={(checked) => handleHolidayToggle(holidaySet.code, checked)}
+                    onCheckedChange={(checked) =>
+                      handleHolidayToggle(holidaySet.code, checked)
+                    }
                   />
                   <div>
                     <Label className="text-sm font-medium">{holidaySet.name}</Label>
@@ -135,17 +141,23 @@ export default function EventSettings() {
             Birthday Detection
           </h3>
           <p className="text-sm text-muted-foreground mb-4">
-            Birthday events are automatically detected based on people's birthdate information and the photo's taken date.
+            Birthday events are automatically detected based on people's birthdate
+            information and the photo's taken date.
           </p>
-          
+
           <div className="p-3 bg-muted/50 rounded-lg">
             <div className="flex items-center gap-2 mb-2">
               <Switch checked={true} disabled />
-              <Label className="text-sm font-medium">Automatic Birthday Detection</Label>
-              <Badge variant="outline" className="text-xs">Always On</Badge>
+              <Label className="text-sm font-medium">
+                Automatic Birthday Detection
+              </Label>
+              <Badge variant="outline" className="text-xs">
+                Always On
+              </Badge>
             </div>
             <p className="text-xs text-muted-foreground">
-              This feature automatically calculates ages and detects birthday events when people have birthdate information.
+              This feature automatically calculates ages and detects birthday events
+              when people have birthdate information.
             </p>
           </div>
         </div>
@@ -155,7 +167,7 @@ export default function EventSettings() {
         {/* Save Button */}
         {hasChanges && (
           <div className="flex justify-end">
-            <Button 
+            <Button
               onClick={handleSave}
               disabled={saveHolidaySettings.isPending}
               className="flex items-center gap-2"

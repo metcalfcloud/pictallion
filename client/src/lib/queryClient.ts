@@ -1,4 +1,4 @@
-import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { QueryClient, QueryFunction } from '@tanstack/react-query';
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -14,16 +14,16 @@ export async function apiRequest(
 ): Promise<Response> {
   const res = await fetch(url, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
+    headers: data ? { 'Content-Type': 'application/json' } : {},
     body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
+    credentials: 'include',
   });
 
   await throwIfResNotOk(res);
   return res;
 }
 
-type UnauthorizedBehavior = "returnNull" | "throw";
+type UnauthorizedBehavior = 'returnNull' | 'throw';
 export const getQueryFn: <T>(options: {
   on401: UnauthorizedBehavior;
 }) => QueryFunction<T> =
@@ -31,7 +31,11 @@ export const getQueryFn: <T>(options: {
   async ({ queryKey }) => {
     // Handle query keys with parameters
     let url = queryKey[0] as string;
-    if (queryKey.length > 1 && typeof queryKey[1] === 'object' && queryKey[1] !== null) {
+    if (
+      queryKey.length > 1 &&
+      typeof queryKey[1] === 'object' &&
+      queryKey[1] !== null
+    ) {
       const params = new URLSearchParams();
       const paramObj = queryKey[1] as Record<string, string>;
       Object.entries(paramObj).forEach(([key, value]) => {
@@ -42,14 +46,14 @@ export const getQueryFn: <T>(options: {
       }
     } else if (queryKey.length > 1) {
       // Handle simple path joins like ["/api/photos", "123"]
-      url = queryKey.join("/");
+      url = queryKey.join('/');
     }
 
     const res = await fetch(url, {
-      credentials: "include",
+      credentials: 'include',
     });
 
-    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+    if (unauthorizedBehavior === 'returnNull' && res.status === 401) {
       return null;
     }
 
@@ -60,7 +64,7 @@ export const getQueryFn: <T>(options: {
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      queryFn: getQueryFn({ on401: "throw" }),
+      queryFn: getQueryFn({ on401: 'throw' }),
       refetchInterval: false,
       refetchOnWindowFocus: false,
       staleTime: Infinity,

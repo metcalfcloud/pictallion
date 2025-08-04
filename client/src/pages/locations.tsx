@@ -1,24 +1,40 @@
-import { useState, useEffect } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useToast } from "@/hooks/use-toast";
-import { queryClient } from "@/lib/queryClient";
-import { MapPin, Plus, Clock, TrendingUp, Camera, Map, Edit2, Trash2, MoreVertical } from "lucide-react";
-import LocationMap from "@/components/LocationMap";
-import LocationTimeline from "@/components/LocationTimeline";
+import { useState, useEffect } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useToast } from '@/hooks/use-toast';
+import { queryClient } from '@/lib/queryClient';
+import {
+  MapPin,
+  Plus,
+  Clock,
+  TrendingUp,
+  Camera,
+  Map,
+  Edit2,
+  Trash2,
+  MoreVertical,
+} from 'lucide-react';
+import LocationMap from '@/components/LocationMap';
+import LocationTimeline from '@/components/LocationTimeline';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from '@/components/ui/dropdown-menu';
 import {
   Form,
   FormControl,
@@ -26,11 +42,11 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import type { Location } from "@shared/schema";
+} from '@/components/ui/form';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import type { Location } from '@shared/schema';
 
 interface LocationHotspot {
   latitude: number;
@@ -50,7 +66,7 @@ interface LocationStats {
 
 // Form schemas
 const editLocationSchema = z.object({
-  name: z.string().min(1, "Name is required"),
+  name: z.string().min(1, 'Name is required'),
   description: z.string().optional(),
 });
 
@@ -59,8 +75,8 @@ type EditLocationFormData = z.infer<typeof editLocationSchema>;
 export default function Locations() {
   const { toast } = useToast();
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
-  const [newLocationName, setNewLocationName] = useState("");
-  const [newLocationDescription, setNewLocationDescription] = useState("");
+  const [newLocationName, setNewLocationName] = useState('');
+  const [newLocationDescription, setNewLocationDescription] = useState('');
   const [selectedHotspot, setSelectedHotspot] = useState<LocationHotspot | null>(null);
   const [editingLocation, setEditingLocation] = useState<Location | null>(null);
   const [deletingLocation, setDeletingLocation] = useState<Location | null>(null);
@@ -69,8 +85,8 @@ export default function Locations() {
   const editForm = useForm<EditLocationFormData>({
     resolver: zodResolver(editLocationSchema),
     defaultValues: {
-      name: "",
-      description: "",
+      name: '',
+      description: '',
     },
   });
 
@@ -79,45 +95,45 @@ export default function Locations() {
     if (editingLocation) {
       editForm.reset({
         name: editingLocation.name,
-        description: editingLocation.description || "",
+        description: editingLocation.description || '',
       });
     }
   }, [editingLocation, editForm]);
 
   // Fetch location statistics and hotspots
   const { data: locationStats, isLoading } = useQuery<LocationStats>({
-    queryKey: ["/api/locations/stats"],
+    queryKey: ['/api/locations/stats'],
   });
 
   // Fetch all locations
   const { data: locations = [] } = useQuery<Location[]>({
-    queryKey: ["/api/locations"],
+    queryKey: ['/api/locations'],
   });
 
   // Create location mutation
   const createLocationMutation = useMutation({
     mutationFn: (locationData: any) => {
-      return fetch("/api/locations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      return fetch('/api/locations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(locationData),
       }).then((res) => res.json());
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/locations"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/locations/stats"] });
+      queryClient.invalidateQueries({ queryKey: ['/api/locations'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/locations/stats'] });
       toast({
-        title: "Location Created",
-        description: "New location has been added successfully.",
+        title: 'Location Created',
+        description: 'New location has been added successfully.',
       });
-      setNewLocationName("");
-      setNewLocationDescription("");
+      setNewLocationName('');
+      setNewLocationDescription('');
     },
     onError: (error: Error) => {
       toast({
-        title: "Error",
+        title: 'Error',
         description: error.message,
-        variant: "destructive",
+        variant: 'destructive',
       });
     },
   });
@@ -126,27 +142,27 @@ export default function Locations() {
   const editLocationMutation = useMutation({
     mutationFn: async (data: { id: string; updates: Partial<Location> }) => {
       const response = await fetch(`/api/locations/${data.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data.updates),
       });
-      if (!response.ok) throw new Error("Failed to update location");
+      if (!response.ok) throw new Error('Failed to update location');
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/locations"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/locations/stats"] });
+      queryClient.invalidateQueries({ queryKey: ['/api/locations'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/locations/stats'] });
       setEditingLocation(null);
       toast({
-        title: "Success",
-        description: "Location updated successfully",
+        title: 'Success',
+        description: 'Location updated successfully',
       });
     },
     onError: () => {
       toast({
-        title: "Error",
-        description: "Failed to update location",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to update location',
+        variant: 'destructive',
       });
     },
   });
@@ -155,25 +171,25 @@ export default function Locations() {
   const deleteLocationMutation = useMutation({
     mutationFn: async (id: string) => {
       const response = await fetch(`/api/locations/${id}`, {
-        method: "DELETE",
+        method: 'DELETE',
       });
-      if (!response.ok) throw new Error("Failed to delete location");
+      if (!response.ok) throw new Error('Failed to delete location');
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/locations"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/locations/stats"] });
+      queryClient.invalidateQueries({ queryKey: ['/api/locations'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/locations/stats'] });
       setDeletingLocation(null);
       toast({
-        title: "Success",
-        description: "Location deleted successfully",
+        title: 'Success',
+        description: 'Location deleted successfully',
       });
     },
     onError: () => {
       toast({
-        title: "Error",
-        description: "Failed to delete location",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to delete location',
+        variant: 'destructive',
       });
     },
   });
@@ -195,9 +211,9 @@ export default function Locations() {
   const createFromHotspot = (hotspot: LocationHotspot) => {
     if (!newLocationName.trim()) {
       toast({
-        title: "Name Required",
-        description: "Please enter a name for this location.",
-        variant: "destructive",
+        title: 'Name Required',
+        description: 'Please enter a name for this location.',
+        variant: 'destructive',
       });
       return;
     }
@@ -305,7 +321,9 @@ export default function Locations() {
                 <Camera className="w-5 h-5 text-green-500" />
                 <div>
                   <p className="text-sm text-muted-foreground">Photos with Location</p>
-                  <p className="text-2xl font-bold">{locationStats.totalPhotosWithLocation}</p>
+                  <p className="text-2xl font-bold">
+                    {locationStats.totalPhotosWithLocation}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -316,7 +334,9 @@ export default function Locations() {
                 <TrendingUp className="w-5 h-5 text-orange-500" />
                 <div>
                   <p className="text-sm text-muted-foreground">Hotspots Found</p>
-                  <p className="text-2xl font-bold">{locationStats.hotspots?.length || 0}</p>
+                  <p className="text-2xl font-bold">
+                    {locationStats.hotspots?.length || 0}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -328,9 +348,14 @@ export default function Locations() {
                 <div>
                   <p className="text-sm text-muted-foreground">Coverage</p>
                   <p className="text-2xl font-bold">
-                    {locationStats.totalPhotosWithLocation > 0 
-                      ? Math.round((locationStats.totalPhotosWithLocation / (locationStats.totalPhotosWithLocation + 100)) * 100)
-                      : 0}%
+                    {locationStats.totalPhotosWithLocation > 0
+                      ? Math.round(
+                          (locationStats.totalPhotosWithLocation /
+                            (locationStats.totalPhotosWithLocation + 100)) *
+                            100,
+                        )
+                      : 0}
+                    %
                   </p>
                 </div>
               </div>
@@ -358,8 +383,8 @@ export default function Locations() {
                       <span>{location.name}</span>
                     </span>
                     <div className="flex items-center space-x-2">
-                      <Badge variant={location.isUserDefined ? "default" : "secondary"}>
-                        {location.isUserDefined ? "Custom" : "Auto"}
+                      <Badge variant={location.isUserDefined ? 'default' : 'secondary'}>
+                        {location.isUserDefined ? 'Custom' : 'Auto'}
                       </Badge>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -368,11 +393,13 @@ export default function Locations() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => setEditingLocation(location)}>
+                          <DropdownMenuItem
+                            onClick={() => setEditingLocation(location)}
+                          >
                             <Edit2 className="w-4 h-4 mr-2" />
                             Edit
                           </DropdownMenuItem>
-                          <DropdownMenuItem 
+                          <DropdownMenuItem
                             onClick={() => setDeletingLocation(location)}
                             className="text-red-600"
                           >
@@ -386,18 +413,20 @@ export default function Locations() {
                 </CardHeader>
                 <CardContent>
                   {location.description && (
-                    <p className="text-sm text-muted-foreground mb-2">{location.description}</p>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      {location.description}
+                    </p>
                   )}
                   {location.placeName && (
-                    <p className="text-sm text-blue-600 dark:text-blue-400 mb-2">{location.placeName}</p>
+                    <p className="text-sm text-blue-600 dark:text-blue-400 mb-2">
+                      {location.placeName}
+                    </p>
                   )}
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">
                       {location.latitude}, {location.longitude}
                     </span>
-                    <Badge variant="outline">
-                      {location.photoCount} photos
-                    </Badge>
+                    <Badge variant="outline">{location.photoCount} photos</Badge>
                   </div>
                 </CardContent>
               </Card>
@@ -421,9 +450,7 @@ export default function Locations() {
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center space-x-2">
                           <MapPin className="w-4 h-4 text-orange-500" />
-                          <span className="font-medium">
-                            Hotspot {index + 1}
-                          </span>
+                          <span className="font-medium">Hotspot {index + 1}</span>
                           <Badge>{hotspot.photoCount} photos</Badge>
                         </div>
                         <Dialog>
@@ -440,7 +467,8 @@ export default function Locations() {
                               <div>
                                 <Label>Coordinates</Label>
                                 <p className="text-sm text-muted-foreground">
-                                  {hotspot.latitude.toFixed(6)}, {hotspot.longitude.toFixed(6)}
+                                  {hotspot.latitude.toFixed(6)},{' '}
+                                  {hotspot.longitude.toFixed(6)}
                                 </p>
                               </div>
                               <div>
@@ -459,17 +487,24 @@ export default function Locations() {
                                 />
                               </div>
                               <div>
-                                <Label htmlFor="hotspot-description">Description (Optional)</Label>
+                                <Label htmlFor="hotspot-description">
+                                  Description (Optional)
+                                </Label>
                                 <Textarea
                                   id="hotspot-description"
                                   value={newLocationDescription}
-                                  onChange={(e) => setNewLocationDescription(e.target.value)}
+                                  onChange={(e) =>
+                                    setNewLocationDescription(e.target.value)
+                                  }
                                   placeholder="Additional details..."
                                 />
                               </div>
                               <Button
                                 onClick={() => createFromHotspot(hotspot)}
-                                disabled={!newLocationName.trim() || createLocationMutation.isPending}
+                                disabled={
+                                  !newLocationName.trim() ||
+                                  createLocationMutation.isPending
+                                }
                               >
                                 Create Location
                               </Button>
@@ -493,7 +528,8 @@ export default function Locations() {
                   <MapPin className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
                   <h3 className="text-lg font-medium mb-2">No Hotspots Found</h3>
                   <p className="text-muted-foreground">
-                    No location clusters found. Upload more photos with GPS data to discover patterns.
+                    No location clusters found. Upload more photos with GPS data to
+                    discover patterns.
                   </p>
                 </div>
               )}
@@ -511,7 +547,10 @@ export default function Locations() {
             </CardHeader>
             <CardContent>
               <div className="h-96 bg-muted rounded-lg overflow-hidden">
-                <LocationMap locations={locations} hotspots={locationStats?.hotspots || []} />
+                <LocationMap
+                  locations={locations}
+                  hotspots={locationStats?.hotspots || []}
+                />
               </div>
             </CardContent>
           </Card>
@@ -541,7 +580,10 @@ export default function Locations() {
             <DialogTitle>Edit Location</DialogTitle>
           </DialogHeader>
           <Form {...editForm}>
-            <form onSubmit={editForm.handleSubmit(handleEditLocation)} className="space-y-4">
+            <form
+              onSubmit={editForm.handleSubmit(handleEditLocation)}
+              className="space-y-4"
+            >
               <FormField
                 control={editForm.control}
                 name="name"
@@ -569,11 +611,15 @@ export default function Locations() {
                 )}
               />
               <div className="flex justify-end space-x-2">
-                <Button type="button" variant="outline" onClick={() => setEditingLocation(null)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setEditingLocation(null)}
+                >
                   Cancel
                 </Button>
                 <Button type="submit" disabled={editLocationMutation.isPending}>
-                  {editLocationMutation.isPending ? "Updating..." : "Update Location"}
+                  {editLocationMutation.isPending ? 'Updating...' : 'Update Location'}
                 </Button>
               </div>
             </form>
@@ -588,19 +634,20 @@ export default function Locations() {
             <DialogTitle>Delete Location</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground mb-4">
-            Are you sure you want to delete "{deletingLocation?.name}"? This action cannot be undone.
-            The photos will remain but will no longer be associated with this location.
+            Are you sure you want to delete "{deletingLocation?.name}"? This action
+            cannot be undone. The photos will remain but will no longer be associated
+            with this location.
           </p>
           <div className="flex justify-end space-x-2">
             <Button variant="outline" onClick={() => setDeletingLocation(null)}>
               Cancel
             </Button>
-            <Button 
-              variant="destructive" 
+            <Button
+              variant="destructive"
               onClick={handleDeleteLocation}
               disabled={deleteLocationMutation.isPending}
             >
-              {deleteLocationMutation.isPending ? "Deleting..." : "Delete Location"}
+              {deleteLocationMutation.isPending ? 'Deleting...' : 'Delete Location'}
             </Button>
           </div>
         </DialogContent>

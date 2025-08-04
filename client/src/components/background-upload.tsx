@@ -1,16 +1,44 @@
-import React, { useState, useCallback, useRef, DragEvent, ChangeEvent, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
-import { useQueryClient, useMutation } from "@tanstack/react-query";
-import { Upload, X, CheckCircle, AlertCircle, File, Clock, HardDrive, AlertTriangle } from "lucide-react";
-import { uploadManager, UploadFile } from "@/lib/upload-manager";
+import React, {
+  useState,
+  useCallback,
+  useRef,
+  DragEvent,
+  ChangeEvent,
+  useEffect,
+} from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
+import { useQueryClient, useMutation } from '@tanstack/react-query';
+import {
+  Upload,
+  X,
+  CheckCircle,
+  AlertCircle,
+  File,
+  Clock,
+  HardDrive,
+  AlertTriangle,
+} from 'lucide-react';
+import { uploadManager, UploadFile } from '@/lib/upload-manager';
 
 interface DuplicateConflict {
   id: string;
@@ -49,15 +77,17 @@ interface BackgroundUploadProps {
   onConflictResolved?: () => void;
 }
 
-export function BackgroundUpload({ 
+export function BackgroundUpload({
   open = true,
-  onOpenChange, 
+  onOpenChange,
   mode = 'fullscreen',
   preloadedFiles,
-  onConflictResolved 
+  onConflictResolved,
 }: BackgroundUploadProps) {
   const [uploadFiles, setUploadFiles] = useState<UploadFile[]>([]);
-  const [conflictResolutions, setConflictResolutions] = useState<Map<string, { action: string; conflict: DuplicateConflict }>>(new Map());
+  const [conflictResolutions, setConflictResolutions] = useState<
+    Map<string, { action: string; conflict: DuplicateConflict }>
+  >(new Map());
   const [showConflicts, setShowConflicts] = useState(!!preloadedFiles?.length);
   const [isDragActive, setIsDragActive] = useState(false);
   const { toast } = useToast();
@@ -69,10 +99,10 @@ export function BackgroundUpload({
     const unsubscribe = uploadManager.subscribe(() => {
       setUploadFiles(uploadManager.getUploads());
     });
-    
+
     // Initialize with current uploads
     setUploadFiles(uploadManager.getUploads());
-    
+
     return unsubscribe;
   }, []);
 
@@ -85,38 +115,41 @@ export function BackgroundUpload({
   }, [preloadedFiles]);
 
   // File handling
-  const handleFilesSelected = useCallback((files: File[]) => {
-    const validFiles = files.filter(file => 
-      file.type.startsWith('image/') || file.type.startsWith('video/')
-    );
+  const handleFilesSelected = useCallback(
+    (files: File[]) => {
+      const validFiles = files.filter(
+        (file) => file.type.startsWith('image/') || file.type.startsWith('video/'),
+      );
 
-    if (validFiles.length === 0) {
+      if (validFiles.length === 0) {
+        toast({
+          title: 'No Valid Files',
+          description: 'Please select image or video files.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Add files to global upload manager
+      uploadManager.addFiles(validFiles);
+
       toast({
-        title: "No Valid Files",
-        description: "Please select image or video files.",
-        variant: "destructive"
+        title: 'Files Added',
+        description: `${validFiles.length} files added to upload queue and will continue in background.`,
       });
-      return;
-    }
 
-    // Add files to global upload manager
-    uploadManager.addFiles(validFiles);
-    
-    toast({
-      title: "Files Added",
-      description: `${validFiles.length} files added to upload queue and will continue in background.`,
-    });
-
-    // Refresh data after upload (the manager will handle the actual upload)
-    queryClient.invalidateQueries({ queryKey: ["/api/photos"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/activity"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/photos/recent"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/faces"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/faces/unassigned"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/faces/suggestions"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/people"] });
-  }, [toast, queryClient]);
+      // Refresh data after upload (the manager will handle the actual upload)
+      queryClient.invalidateQueries({ queryKey: ['/api/photos'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/activity'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/photos/recent'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/faces'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/faces/unassigned'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/faces/suggestions'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/people'] });
+    },
+    [toast, queryClient],
+  );
 
   // Drag and drop handlers
   const handleDragEnter = (e: DragEvent) => {
@@ -187,7 +220,9 @@ export function BackgroundUpload({
       case 'skipped':
         return <CheckCircle className="w-4 h-4 text-blue-600" />;
       case 'uploading':
-        return <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />;
+        return (
+          <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+        );
       default:
         return <File className="w-4 h-4 text-muted-foreground" />;
     }
@@ -212,8 +247,8 @@ export function BackgroundUpload({
 
   // Main upload interface
   const UploadInterface = () => {
-    const isUploading = uploadFiles.some(f => f.status === 'uploading');
-    
+    const isUploading = uploadFiles.some((f) => f.status === 'uploading');
+
     return (
       <div className="space-y-6">
         {/* Background Upload Info */}
@@ -225,7 +260,8 @@ export function BackgroundUpload({
                 Background Upload System
               </h4>
               <p className="text-xs text-blue-700 dark:text-blue-400 mt-1">
-                Files will continue uploading even if you navigate to other pages. Check the progress indicator in the bottom-right corner.
+                Files will continue uploading even if you navigate to other pages. Check
+                the progress indicator in the bottom-right corner.
               </p>
             </div>
           </div>
@@ -234,8 +270,8 @@ export function BackgroundUpload({
         {/* Drag and Drop Area */}
         <div
           className={`border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors ${
-            isDragActive 
-              ? 'border-primary bg-primary/5' 
+            isDragActive
+              ? 'border-primary bg-primary/5'
               : 'border-border hover:border-primary hover:bg-primary/5'
           }`}
           onDragEnter={handleDragEnter}
@@ -275,7 +311,10 @@ export function BackgroundUpload({
 
             <div className="space-y-2 max-h-48 overflow-y-auto">
               {uploadFiles.map((uploadFile) => (
-                <div key={uploadFile.id} className="flex items-center space-x-3 p-3 bg-background rounded-lg border">
+                <div
+                  key={uploadFile.id}
+                  className="flex items-center space-x-3 p-3 bg-background rounded-lg border"
+                >
                   {getStatusIcon(uploadFile.status)}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-card-foreground truncate">
@@ -290,7 +329,9 @@ export function BackgroundUpload({
                       </div>
                     )}
                     {uploadFile.message && uploadFile.status !== 'uploading' && (
-                      <p className="text-xs text-muted-foreground mt-1">{uploadFile.message}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {uploadFile.message}
+                      </p>
                     )}
                   </div>
                   <span className="text-sm text-muted-foreground">
@@ -315,7 +356,9 @@ export function BackgroundUpload({
 
   // Action buttons
   const ActionButtons = () => {
-    const hasCompleted = uploadFiles.some(f => ['success', 'error', 'conflict', 'skipped'].includes(f.status));
+    const hasCompleted = uploadFiles.some((f) =>
+      ['success', 'error', 'conflict', 'skipped'].includes(f.status),
+    );
 
     // Don't show action buttons if there are no files and no actions to take
     if (uploadFiles.length === 0) {
@@ -324,11 +367,7 @@ export function BackgroundUpload({
 
     return (
       <div className="flex justify-end space-x-3 pt-4 border-t">
-        {hasCompleted && (
-          <Button onClick={clearCompletedFiles}>
-            Clear Completed
-          </Button>
-        )}
+        {hasCompleted && <Button onClick={clearCompletedFiles}>Clear Completed</Button>}
         {mode === 'modal' && (
           <Button variant="outline" onClick={closeModal}>
             Close
@@ -355,7 +394,8 @@ export function BackgroundUpload({
         <DialogHeader>
           <DialogTitle>Upload Photos</DialogTitle>
           <DialogDescription>
-            Upload photos and videos to your collection. Uploads continue in the background.
+            Upload photos and videos to your collection. Uploads continue in the
+            background.
           </DialogDescription>
         </DialogHeader>
 

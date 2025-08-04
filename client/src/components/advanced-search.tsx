@@ -1,16 +1,35 @@
-import { useState, useEffect } from "react";
-import { Search, Filter, X, Calendar, MapPin, Tag, Star, Camera, Users } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Slider } from "@/components/ui/slider";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { RatingFilter } from "./rating-system";
-import { cn } from "@/lib/utils";
+import * as React from 'react';
+import { useState, useEffect } from 'react';
+import {
+  Search,
+  Filter,
+  X,
+  Calendar,
+  MapPin,
+  Tag,
+  Star,
+  Camera,
+} from 'lucide-react';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from './ui/select';
+import { Slider } from './ui/slider';
+import { Checkbox } from './ui/checkbox';
+import { Separator } from './ui/separator';
+import { Badge } from './ui/badge';
+import {
+  Collapsible,
+  CollapsibleContent,
+} from './ui/collapsible';
+import { RatingFilter } from './rating-system';
+import { cn } from '../lib/utils';
 
 export interface SearchFilters {
   query?: string;
@@ -38,11 +57,11 @@ interface AdvancedSearchProps {
   className?: string;
 }
 
-export function AdvancedSearch({ 
-  filters, 
-  onFiltersChange, 
+export function AdvancedSearch({
+  filters,
+  onFiltersChange,
   onSearch,
-  className 
+  className,
 }: AdvancedSearchProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
@@ -50,26 +69,29 @@ export function AdvancedSearch({
   // Update active filters count
   useEffect(() => {
     const active = [];
-    if (filters.query) active.push('query');
+    if (typeof filters.query === 'string' && filters.query.trim() !== '') active.push('query');
     if (filters.tier) active.push('tier');
-    if (filters.rating?.min || filters.rating?.max) active.push('rating');
+    if (
+      (typeof filters.rating?.min === 'number' && !isNaN(filters.rating.min) && filters.rating.min !== 0) ||
+      (typeof filters.rating?.max === 'number' && !isNaN(filters.rating.max) && filters.rating.max !== 5)
+    ) active.push('rating');
     if (filters.dateRange?.start || filters.dateRange?.end) active.push('date');
-    if (filters.keywords?.length) active.push('keywords');
-    if (filters.eventType?.length) active.push('events');
-    if (filters.location) active.push('location');
-    if (filters.mimeType?.length) active.push('filetype');
-    if (filters.camera) active.push('camera');
-    if (filters.minConfidence) active.push('confidence');
-    if (filters.hasGPS) active.push('gps');
+    if (Array.isArray(filters.keywords) && filters.keywords.length > 0) active.push('keywords');
+    if (Array.isArray(filters.eventType) && filters.eventType.length > 0) active.push('events');
+    if (typeof filters.location === 'string' && filters.location.trim() !== '') active.push('location');
+    if (Array.isArray(filters.mimeType) && filters.mimeType.length > 0) active.push('filetype');
+    if (typeof filters.camera === 'string' && filters.camera.trim() !== '') active.push('camera');
+    if (typeof filters.minConfidence === 'number' && !isNaN(filters.minConfidence) && filters.minConfidence > 0) active.push('confidence');
+    if (typeof filters.hasGPS === 'boolean' && filters.hasGPS) active.push('gps');
     if (filters.isReviewed !== undefined) active.push('reviewed');
 
     setActiveFilters(active);
   }, [filters]);
 
-  const updateFilter = (key: keyof SearchFilters, value: any) => {
+  const updateFilter = (key: keyof SearchFilters, value: unknown) => {
     onFiltersChange({
       ...filters,
-      [key]: value
+      [key]: value,
     });
   };
 
@@ -122,17 +144,17 @@ export function AdvancedSearch({
   };
 
   return (
-    <div className={cn("space-y-4", className)}>
+    <div className={cn('space-y-4', className)}>
       {/* Main search bar */}
       <div className="flex gap-2">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search photos by filename, description, tags, location..."
-            value={filters.query || ""}
-            onChange={(e) => updateFilter('query', e.target.value)}
+            value={typeof filters.query === 'string' ? filters.query : ''}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateFilter('query', e.target.value)}
             className="pl-10"
-            onKeyDown={(e) => e.key === 'Enter' && onSearch()}
+            onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => e.key === 'Enter' && onSearch()}
           />
         </div>
 
@@ -140,8 +162,9 @@ export function AdvancedSearch({
           variant="outline"
           onClick={() => setIsExpanded(!isExpanded)}
           className={cn(
-            "flex items-center gap-2",
-            activeFilters.length > 0 && "border-blue-500 text-blue-600 dark:text-blue-400"
+            'flex items-center gap-2',
+            activeFilters.length > 0 &&
+              'border-blue-500 text-blue-600 dark:text-blue-400',
           )}
         >
           <Filter className="h-4 w-4" />
@@ -153,19 +176,21 @@ export function AdvancedSearch({
           )}
         </Button>
 
-        <Button onClick={onSearch}>
-          Search
-        </Button>
+        <Button onClick={onSearch}>Search</Button>
       </div>
 
       {/* Active filters */}
       {activeFilters.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {activeFilters.map((filterKey) => (
-            <Badge key={filterKey} variant="secondary" className="flex items-center gap-1">
+            <Badge
+              key={filterKey}
+              variant="secondary"
+              className="flex items-center gap-1"
+            >
               {filterKey}
-              <X 
-                className="h-3 w-3 cursor-pointer hover:text-red-500" 
+              <X
+                className="h-3 w-3 cursor-pointer hover:text-red-500"
                 onClick={() => removeFilter(filterKey)}
               />
             </Badge>
@@ -185,7 +210,6 @@ export function AdvancedSearch({
       <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
         <CollapsibleContent className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-
             {/* Basic Filters */}
             <div className="space-y-4">
               <h3 className="font-medium flex items-center gap-2">
@@ -196,7 +220,12 @@ export function AdvancedSearch({
               <div className="space-y-3">
                 <div>
                   <Label htmlFor="tier">Tier</Label>
-                  <Select value={filters.tier || "all"} onValueChange={(value) => updateFilter('tier', value === 'all' ? undefined : value)}>
+                  <Select
+                    value={filters.tier || 'all'}
+                    onValueChange={(value: string) =>
+                      updateFilter('tier', value === 'all' ? undefined : value)
+                    }
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="All tiers" />
                     </SelectTrigger>
@@ -211,9 +240,11 @@ export function AdvancedSearch({
 
                 <div>
                   <Label htmlFor="filetype">File Type</Label>
-                  <Select 
-                    value={filters.mimeType?.[0] || "all"} 
-                    onValueChange={(value) => updateFilter('mimeType', value === 'all' ? undefined : [value])}
+                  <Select
+                    value={Array.isArray(filters.mimeType) && typeof filters.mimeType[0] === 'string' ? filters.mimeType[0] : 'all'}
+                    onValueChange={(value: string) =>
+                      updateFilter('mimeType', value === 'all' ? undefined : [value])
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="All types" />
@@ -232,8 +263,10 @@ export function AdvancedSearch({
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="reviewed"
-                    checked={filters.isReviewed || false}
-                    onCheckedChange={(checked) => updateFilter('isReviewed', checked ? true : undefined)}
+                    checked={typeof filters.isReviewed === 'boolean' ? filters.isReviewed : false}
+                    onCheckedChange={(checked: boolean) =>
+                      updateFilter('isReviewed', checked ? true : undefined)
+                    }
                   />
                   <Label htmlFor="reviewed">Only reviewed photos</Label>
                 </div>
@@ -241,8 +274,10 @@ export function AdvancedSearch({
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="hasGPS"
-                    checked={filters.hasGPS || false}
-                    onCheckedChange={(checked) => updateFilter('hasGPS', checked ? true : undefined)}
+                    checked={typeof filters.hasGPS === 'boolean' ? filters.hasGPS : false}
+                    onCheckedChange={(checked: boolean) =>
+                      updateFilter('hasGPS', checked ? true : undefined)
+                    }
                   />
                   <Label htmlFor="hasGPS">Has GPS location</Label>
                 </div>
@@ -257,20 +292,23 @@ export function AdvancedSearch({
               </h3>
 
               <RatingFilter
-                minRating={filters.rating?.min || 0}
-                maxRating={filters.rating?.max || 5}
+                minRating={typeof filters.rating?.min === 'number' && !isNaN(filters.rating.min) ? filters.rating.min : 0}
+                maxRating={typeof filters.rating?.max === 'number' && !isNaN(filters.rating.max) ? filters.rating.max : 5}
                 onRatingRangeChange={(min, max) => {
-                  updateFilter('rating', 
-                    min === 0 && max === 5 ? undefined : { min, max }
+                  updateFilter(
+                    'rating',
+                    min === 0 && max === 5 ? undefined : { min, max },
                   );
                 }}
               />
 
               <div>
-                <Label>AI Confidence (min {filters.minConfidence || 0}%)</Label>
+                <Label>AI Confidence (min {typeof filters.minConfidence === 'number' && !isNaN(filters.minConfidence) ? filters.minConfidence : 0}%)</Label>
                 <Slider
-                  value={[filters.minConfidence || 0]}
-                  onValueChange={([value]) => updateFilter('minConfidence', value > 0 ? value : undefined)}
+                  value={[typeof filters.minConfidence === 'number' && !isNaN(filters.minConfidence) ? filters.minConfidence : 0]}
+                  onValueChange={([value]: number[]) =>
+                    updateFilter('minConfidence', value > 0 ? value : undefined)
+                  }
                   max={100}
                   step={5}
                   className="mt-2"
@@ -291,8 +329,10 @@ export function AdvancedSearch({
                   <Input
                     id="camera"
                     placeholder="e.g. Canon EOS R5"
-                    value={filters.camera || ""}
-                    onChange={(e) => updateFilter('camera', e.target.value || undefined)}
+                    value={typeof filters.camera === 'string' ? filters.camera : ''}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      updateFilter('camera', e.target.value || undefined)
+                    }
                   />
                 </div>
 
@@ -301,8 +341,8 @@ export function AdvancedSearch({
                   <Input
                     id="lens"
                     placeholder="e.g. 24-70mm f/2.8"
-                    value={filters.lens || ""}
-                    onChange={(e) => updateFilter('lens', e.target.value || undefined)}
+                    value={typeof filters.lens === 'string' ? filters.lens : ''}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateFilter('lens', e.target.value || undefined)}
                   />
                 </div>
               </div>
@@ -321,8 +361,10 @@ export function AdvancedSearch({
                   <Input
                     id="location"
                     placeholder="e.g. Paris, beach, home"
-                    value={filters.location || ""}
-                    onChange={(e) => updateFilter('location', e.target.value || undefined)}
+                    value={typeof filters.location === 'string' ? filters.location : ''}
+                    onChange={(e) =>
+                      updateFilter('location', e.target.value || undefined)
+                    }
                   />
                 </div>
 
@@ -331,16 +373,20 @@ export function AdvancedSearch({
                   <Input
                     id="eventName"
                     placeholder="e.g. wedding, vacation, birthday"
-                    value={filters.eventName || ""}
-                    onChange={(e) => updateFilter('eventName', e.target.value || undefined)}
+                    value={typeof filters.eventName === 'string' ? filters.eventName : ''}
+                    onChange={(e) =>
+                      updateFilter('eventName', e.target.value || undefined)
+                    }
                   />
                 </div>
 
                 <div>
                   <Label htmlFor="eventType">Event Type</Label>
-                  <Select 
-                    value={filters.eventType?.[0] || "all"} 
-                    onValueChange={(value) => updateFilter('eventType', value === 'all' ? undefined : [value])}
+                  <Select
+                    value={Array.isArray(filters.eventType) && typeof filters.eventType[0] === 'string' ? filters.eventType[0] : 'all'}
+                    onValueChange={(value) =>
+                      updateFilter('eventType', value === 'all' ? undefined : [value])
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="All events" />
@@ -373,12 +419,14 @@ export function AdvancedSearch({
                   <Input
                     id="startDate"
                     type="date"
-                    value={filters.dateRange?.start?.toISOString().split('T')[0] || ""}
+                    value={filters.dateRange?.start instanceof Date ? filters.dateRange.start.toISOString().split('T')[0] : ''}
                     onChange={(e) => {
-                      const date = e.target.value ? new Date(e.target.value) : undefined;
+                      const date = e.target.value
+                        ? new Date(e.target.value)
+                        : undefined;
                       updateFilter('dateRange', {
                         ...filters.dateRange,
-                        start: date
+                        start: date,
                       });
                     }}
                   />
@@ -389,12 +437,14 @@ export function AdvancedSearch({
                   <Input
                     id="endDate"
                     type="date"
-                    value={filters.dateRange?.end?.toISOString().split('T')[0] || ""}
+                    value={filters.dateRange?.end instanceof Date ? filters.dateRange.end.toISOString().split('T')[0] : ''}
                     onChange={(e) => {
-                      const date = e.target.value ? new Date(e.target.value) : undefined;
+                      const date = e.target.value
+                        ? new Date(e.target.value)
+                        : undefined;
                       updateFilter('dateRange', {
                         ...filters.dateRange,
-                        end: date
+                        end: date,
                       });
                     }}
                   />
@@ -414,13 +464,16 @@ export function AdvancedSearch({
                 <Input
                   id="keywords"
                   placeholder="e.g. landscape, sunset, mountain"
-                  value={filters.keywords?.join(', ') || ""}
+                  value={Array.isArray(filters.keywords) ? filters.keywords.join(', ') : ''}
                   onChange={(e) => {
                     const keywords = e.target.value
                       .split(',')
-                      .map(k => k.trim())
-                      .filter(k => k.length > 0);
-                    updateFilter('keywords', keywords.length > 0 ? keywords : undefined);
+                      .map((k) => k.trim())
+                      .filter((k) => k.length > 0);
+                    updateFilter(
+                      'keywords',
+                      keywords.length > 0 ? keywords : undefined,
+                    );
                   }}
                 />
               </div>
@@ -433,9 +486,7 @@ export function AdvancedSearch({
             <Button variant="outline" onClick={clearFilters}>
               Clear All Filters
             </Button>
-            <Button onClick={onSearch}>
-              Apply Filters
-            </Button>
+            <Button onClick={onSearch}>Apply Filters</Button>
           </div>
         </CollapsibleContent>
       </Collapsible>

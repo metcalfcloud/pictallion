@@ -24,7 +24,7 @@ See [.env.example](.env.example:1) for all required variables. Key settings:
 
 ```bash
 # Build and run all services
-docker-compose -f docker/docker-compose.yml up --build
+docker compose -f docker/docker-compose.yml up --build
 ```
 
 - Backend: Exposed on port 8000
@@ -58,19 +58,56 @@ docker run -p 8000:8000 pictallion-backend:prod
 
 ## Secrets Management
 
-- Store secrets in environment variables or Docker secrets
+- Store secrets in Docker secrets or a managed secret manager (recommended for production)
 - Never commit secrets to source control
+- Use `.env.example` as a template; never store real secrets in `.env` files
+- For Docker Compose, use the `secrets:` block to mount secrets securely (see example below)
+- Reference secrets in your application as `/run/secrets/<secret_name>`
+- Rotate secrets and session keys regularly
+- For CI/CD, use your provider's secret management (e.g., GitHub Actions secrets)
+
+## Reproducible Builds & CI/CD
+
+- All artefacts can be built and deployed from a fresh clone using:
+  ```
+  just build
+  docker compose up --build
+  ```
+- CI/CD pipelines (see `.github/workflows/`) automate builds, tests, and deployments
+- Ensure all environment variables are set via secrets/config layers before deployment
+- For production, verify image size (≤400MB) and volume usage for persistent data
+- Do NOT hard-code passwords, API keys, or session secrets in .env files
+- See [.env.example](.env.example:1) for placeholder values and secure config guidance
+- Example Docker Compose secrets usage:
+  ```
+  secrets:
+    db_user:
+      file: ../secrets/db_user.txt
+    db_pass:
+      file: ../secrets/db_pass.txt
+  ```
+- Reference secrets in your compose and Dockerfile as `/run/secrets/db_user` and `/run/secrets/db_pass`
 
 ## Health Checks & Monitoring
 
 - Backend exposes `/health` endpoint
-- Use Docker healthcheck or external monitoring
+- Use Docker healthcheck or external monitoring (Prometheus/Grafana recommended)
+
+## Rollback Procedures
+
+- To rollback a deployment, restore the previous Docker image and database/media backups
+- Use versioned backups for `/data/media` and PostgreSQL
+- For database: `pg_restore` or `psql` with backup files
+- For media: restore from backup directory
+- Always test rollback in staging before production
 
 ## Troubleshooting
 
 - Check logs with `docker logs <container>`
-- Validate environment variables
-- Ensure database connectivity
+- Validate environment variables (see `.env.example`)
+- Ensure database connectivity (`docker exec <db-container> psql ...`)
+- Use `/health` endpoint for service status
+- For CI/CD failures, review workflow logs and secret configuration
 
 ## References
 

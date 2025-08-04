@@ -1,16 +1,34 @@
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { FolderOpen, Settings } from "lucide-react";
-import { BackgroundUpload } from "@/components/background-upload";
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { FolderOpen, Settings } from 'lucide-react';
+import { BackgroundUpload } from '@/components/background-upload';
+
+interface ExifData {
+  dateTimeOriginal?: string;
+  createDate?: string;
+  dateTime?: string;
+}
+
+interface MediaAsset {
+  originalFilename?: string;
+}
+
+interface Photo {
+  metadata?: {
+    exif?: ExifData;
+  };
+  mediaAsset?: MediaAsset;
+  createdAt?: string;
+}
 
 // Helper function to extract photo date from metadata or filename
-const extractPhotoDate = (photo: any): Date | null => {
+const extractPhotoDate = (photo: Photo): Date | null => {
   try {
     // First try EXIF datetime fields with various formats
     if (photo.metadata?.exif) {
       const exif = photo.metadata.exif;
-      
+
       // Try DateTimeOriginal first (most accurate)
       if (exif.dateTimeOriginal) {
         const date = new Date(exif.dateTimeOriginal);
@@ -18,7 +36,7 @@ const extractPhotoDate = (photo: any): Date | null => {
           return date;
         }
       }
-      
+
       // Try CreateDate
       if (exif.createDate) {
         const date = new Date(exif.createDate);
@@ -26,7 +44,7 @@ const extractPhotoDate = (photo: any): Date | null => {
           return date;
         }
       }
-      
+
       // Try DateTime
       if (exif.dateTime) {
         const date = new Date(exif.dateTime);
@@ -77,7 +95,8 @@ export default function Upload() {
         <div>
           <h2 className="text-2xl font-semibold">Upload Photos</h2>
           <p className="text-muted-foreground">
-            Add photos and videos to your collection with intelligent duplicate detection
+            Add photos and videos to your collection with intelligent duplicate
+            detection
           </p>
         </div>
         <div className="flex space-x-2">

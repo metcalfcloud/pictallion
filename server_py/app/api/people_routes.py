@@ -794,8 +794,7 @@ async def merge_people(
                 (
                     r
                     for r in target_relationships
-                    if r.person1Id == other_person_id
-                    or r.person1Id == other_person_id
+                    if r.person1Id == other_person_id or r.person1Id == other_person_id
                 ),
                 None,
             )

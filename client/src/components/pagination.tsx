@@ -1,6 +1,6 @@
-import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Button } from '@/components/ui/button';
+import { ChevronLeft, ChevronRight, MoreHorizontal } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface PaginationProps {
   currentPage: number;
@@ -19,7 +19,7 @@ export function Pagination({
   showInfo = true,
   startIndex,
   endIndex,
-  totalItems
+  totalItems,
 }: PaginationProps) {
   if (totalPages <= 1) return null;
 
@@ -72,7 +72,7 @@ export function Pagination({
           Showing {startIndex} to {endIndex} of {totalItems} photos
         </div>
       )}
-      
+
       <div className="flex items-center space-x-1">
         <Button
           variant="outline"
@@ -84,7 +84,7 @@ export function Pagination({
           <ChevronLeft className="h-4 w-4" />
         </Button>
 
-        {pageNumbers.map((page, index) => (
+        {pageNumbers.map((page, index) =>
           page === 'ellipsis' ? (
             <span key={`ellipsis-${index}`} className="px-2">
               <MoreHorizontal className="h-4 w-4" />
@@ -92,18 +92,18 @@ export function Pagination({
           ) : (
             <Button
               key={page}
-              variant={currentPage === page ? "default" : "outline"}
+              variant={currentPage === page ? 'default' : 'outline'}
               size="sm"
               onClick={() => onPageChange(page)}
               className={cn(
-                "h-8 w-8 p-0",
-                currentPage === page && "bg-primary text-primary-foreground"
+                'h-8 w-8 p-0',
+                currentPage === page && 'bg-primary text-primary-foreground',
               )}
             >
               {page}
             </Button>
-          )
-        ))}
+          ),
+        )}
 
         <Button
           variant="outline"

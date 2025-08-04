@@ -17,13 +17,13 @@ interface OptimizedImageProps {
 const THUMBNAIL_SIZES = {
   small: 150,
   medium: 250,
-  large: 400
+  large: 400,
 } as const;
 
 const QUALITY_VALUES = {
   low: 60,
   medium: 80,
-  high: 95
+  high: 95,
 } as const;
 
 export function OptimizedImage({
@@ -36,16 +36,16 @@ export function OptimizedImage({
   onLoad,
   onError,
   loading = 'eager',
-  placeholder = false // Disable placeholder for instant loading
+  placeholder = false, // Disable placeholder for instant loading
 }: OptimizedImageProps) {
   const [imageError, setImageError] = useState(false);
 
   // Generate optimized image URL
   const getOptimizedSrc = (originalSrc: string) => {
     if (!originalSrc) return '';
-    
+
     const size = THUMBNAIL_SIZES[thumbnailSize];
-    
+
     // Check if the src is already an API route
     if (originalSrc.startsWith('/api/files/')) {
       // Add thumbnail parameters to existing API route
@@ -59,7 +59,7 @@ export function OptimizedImage({
         return originalSrc;
       }
     }
-    
+
     return originalSrc; // Return original if not an API route
   };
 
@@ -67,11 +67,13 @@ export function OptimizedImage({
 
   if (imageError) {
     return (
-      <div className={cn(
-        "flex items-center justify-center bg-muted text-muted-foreground",
-        aspectRatio === 'square' && "aspect-square",
-        className
-      )}>
+      <div
+        className={cn(
+          'flex items-center justify-center bg-muted text-muted-foreground',
+          aspectRatio === 'square' && 'aspect-square',
+          className,
+        )}
+      >
         <div className="text-center">
           <div className="text-sm">Failed to load image</div>
         </div>
@@ -80,17 +82,19 @@ export function OptimizedImage({
   }
 
   return (
-    <div className={cn(
-      "relative overflow-hidden bg-muted",
-      aspectRatio === 'square' && "aspect-square",
-      className
-    )}>
+    <div
+      className={cn(
+        'relative overflow-hidden bg-muted',
+        aspectRatio === 'square' && 'aspect-square',
+        className,
+      )}
+    >
       <img
         src={optimizedSrc}
         alt={alt}
         className={cn(
-          "w-full h-full object-cover",
-          aspectRatio === 'square' && "aspect-square"
+          'w-full h-full object-cover',
+          aspectRatio === 'square' && 'aspect-square',
         )}
         onLoad={onLoad}
         onError={() => {

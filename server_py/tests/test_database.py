@@ -243,7 +243,9 @@ class TestRelationships:
             await db_session.refresh(version)
 
         # Get versions by media asset
-        asset_versions: list[FileVersion] = await file_version.get_by_media_asset(db_session, asset.id)
+        asset_versions: list[FileVersion] = await file_version.get_by_media_asset(
+            db_session, asset.id
+        )
         assert len(asset_versions) == 3
 
         tiers = [v.tier for v in asset_versions]

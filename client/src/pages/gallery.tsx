@@ -1,25 +1,48 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { useState, useEffect } from "react";
-import * as React from "react";
-import { Search, Grid, List, Filter, Bot, Star, Eye, CheckSquare, Square, MoreHorizontal, Sparkles, Users, X } from "lucide-react";
-import { useLocation } from "wouter";
-import { cn } from "@/lib/utils";
-import PhotoGrid from "@/components/photo-grid";
-import PhotoDetailModal from "@/components/photo-detail-modal";
-import { AdvancedSearch } from "@/components/advanced-search";
-import BatchOperations from "@/components/batch-operations";
-import SmartCollections from "@/components/smart-collections";
-import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
-import { useImagePreloader } from "@/hooks/use-image-preloader";
-import { ProcessingStateBadge, getProcessingState } from "@/components/ui/processing-state-badge";
-import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { useState, useEffect } from 'react';
+import * as React from 'react';
+import {
+  Search,
+  Grid,
+  List,
+  Filter,
+  Bot,
+  Star,
+  Eye,
+  CheckSquare,
+  Square,
+  MoreHorizontal,
+  Sparkles,
+  Users,
+  X,
+} from 'lucide-react';
+import { useLocation } from 'wouter';
+import { cn } from '@/lib/utils';
+import PhotoGrid from '@/components/photo-grid';
+import PhotoDetailModal from '@/components/photo-detail-modal';
+import { AdvancedSearch } from '@/components/advanced-search';
+import BatchOperations from '@/components/batch-operations';
+import SmartCollections from '@/components/smart-collections';
+import { useInfiniteScroll } from '@/hooks/use-infinite-scroll';
+import { useImagePreloader } from '@/hooks/use-image-preloader';
+import {
+  ProcessingStateBadge,
+  getProcessingState,
+} from '@/components/ui/processing-state-badge';
+import { apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
 
-import type { Photo } from "@shared/types";
+import type { Photo } from '@shared/types';
 
 export default function Gallery() {
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
@@ -31,7 +54,9 @@ export default function Gallery() {
   const [selectedPhotos, setSelectedPhotos] = useState<string[]>([]);
   const [showBatchOperations, setShowBatchOperations] = useState(false);
   const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
-  const [searchFilters, setSearchFilters] = useState<import("@/components/advanced-search").SearchFilters>({});
+  const [searchFilters, setSearchFilters] = useState<
+    import('@/components/advanced-search').SearchFilters
+  >({});
   const [showSmartCollections, setShowSmartCollections] = useState(false);
   const [isBatchProcessing, setIsBatchProcessing] = useState(false);
   const [processingStats, setProcessingStats] = useState({ processed: 0, total: 0 });
@@ -48,18 +73,21 @@ export default function Gallery() {
   }, [location, peopleFilter]);
 
   const { data: photos, isLoading } = useQuery<Photo[]>({
-    queryKey: ["/api/photos", tierFilter !== 'all' ? { tier: tierFilter } : {}],
+    queryKey: ['/api/photos', tierFilter !== 'all' ? { tier: tierFilter } : {}],
     refetchInterval: isBatchProcessing ? 2000 : false, // Auto-refresh every 2 seconds during batch processing
   });
 
   const { data: people } = useQuery({
-    queryKey: ["/api/people"],
+    queryKey: ['/api/people'],
   });
 
   // Get photos for the selected person when filtering by people
   const { data: personPhotos } = useQuery({
-    queryKey: ["/api/people", peopleFilter, "photos"],
-    queryFn: () => peopleFilter ? fetch(`/api/people/${peopleFilter}/photos`).then(res => res.json()) : null,
+    queryKey: ['/api/people', peopleFilter, 'photos'],
+    queryFn: () =>
+      peopleFilter
+        ? fetch(`/api/people/${peopleFilter}/photos`).then((res) => res.json())
+        : null,
     enabled: !!peopleFilter,
   });
 
@@ -69,18 +97,18 @@ export default function Gallery() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/photos"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+      queryClient.invalidateQueries({ queryKey: ['/api/photos'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
       toast({
-        title: "Processing Complete",
-        description: "Photo has been reprocessed with updated AI analysis.",
+        title: 'Processing Complete',
+        description: 'Photo has been reprocessed with updated AI analysis.',
       });
     },
     onError: (error) => {
       toast({
-        title: "Processing Failed", 
+        title: 'Processing Failed',
         description: error.message,
-        variant: "destructive"
+        variant: 'destructive',
       });
     },
   });
@@ -88,7 +116,7 @@ export default function Gallery() {
   const bulkProcessMutation = useMutation({
     mutationFn: async ({ photoIds }: { photoIds: string[] }) => {
       const response = await apiRequest('POST', '/api/photos/batch-process', {
-        photoIds
+        photoIds,
       });
       return response.json();
     },
@@ -99,10 +127,10 @@ export default function Gallery() {
     onSuccess: (result) => {
       setIsBatchProcessing(false);
       setProcessingStats({ processed: 0, total: 0 });
-      queryClient.invalidateQueries({ queryKey: ["/api/photos"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+      queryClient.invalidateQueries({ queryKey: ['/api/photos'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
       toast({
-        title: "Bulk Processing Complete",
+        title: 'Bulk Processing Complete',
         description: `Successfully processed ${result.processed} photos to Silver tier.`,
       });
     },
@@ -110,9 +138,9 @@ export default function Gallery() {
       setIsBatchProcessing(false);
       setProcessingStats({ processed: 0, total: 0 });
       toast({
-        title: "Bulk Processing Failed",
+        title: 'Bulk Processing Failed',
         description: error.message,
-        variant: "destructive"
+        variant: 'destructive',
       });
     },
   });
@@ -120,7 +148,7 @@ export default function Gallery() {
   const bulkPromoteMutation = useMutation({
     mutationFn: async ({ photoIds }: { photoIds: string[] }) => {
       const response = await apiRequest('POST', '/api/photos/batch-promote', {
-        photoIds
+        photoIds,
       });
       return response.json();
     },
@@ -131,10 +159,10 @@ export default function Gallery() {
     onSuccess: (result) => {
       setIsBatchProcessing(false);
       setProcessingStats({ processed: 0, total: 0 });
-      queryClient.invalidateQueries({ queryKey: ["/api/photos"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+      queryClient.invalidateQueries({ queryKey: ['/api/photos'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
       toast({
-        title: "Bulk Promotion Complete",
+        title: 'Bulk Promotion Complete',
         description: `Successfully promoted ${result.promoted} photos to Gold tier.`,
       });
     },
@@ -142,9 +170,9 @@ export default function Gallery() {
       setIsBatchProcessing(false);
       setProcessingStats({ processed: 0, total: 0 });
       toast({
-        title: "Bulk Promotion Failed",
+        title: 'Bulk Promotion Failed',
         description: error.message,
-        variant: "destructive"
+        variant: 'destructive',
       });
     },
   });
@@ -152,11 +180,11 @@ export default function Gallery() {
   // Track processing progress by counting tier changes
   React.useEffect(() => {
     if (isBatchProcessing && photos) {
-      const silverCount = photos.filter(photo => photo.tier === 'silver').length;
+      const silverCount = photos.filter((photo) => photo.tier === 'silver').length;
       const totalProcessed = Math.max(0, processingStats.total - silverCount);
-      
+
       if (totalProcessed !== processingStats.processed) {
-        setProcessingStats(prev => ({ ...prev, processed: totalProcessed }));
+        setProcessingStats((prev) => ({ ...prev, processed: totalProcessed }));
       }
     }
   }, [photos, isBatchProcessing, processingStats.total, processingStats.processed]);
@@ -174,8 +202,8 @@ export default function Gallery() {
     const handleQuickCollection = (event: CustomEvent) => {
       // For now, just show a toast - can be expanded later
       toast({
-        title: "Quick Collection",
-        description: "Collection feature coming soon!",
+        title: 'Quick Collection',
+        description: 'Collection feature coming soon!',
       });
     };
 
@@ -186,53 +214,65 @@ export default function Gallery() {
     return () => {
       window.removeEventListener('quickSearch', handleQuickSearch as EventListener);
       window.removeEventListener('quickPromote', handleQuickPromote as EventListener);
-      window.removeEventListener('quickCollection', handleQuickCollection as EventListener);
+      window.removeEventListener(
+        'quickCollection',
+        handleQuickCollection as EventListener,
+      );
     };
   }, [bulkPromoteMutation, toast]);
 
-  const filteredPhotos = photos?.filter(photo => {
-    // Search query filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      const filename = photo.mediaAsset.originalFilename.toLowerCase();
-      const tags = photo.metadata?.ai?.aiTags?.join(' ').toLowerCase() || '';
-      const description = photo.metadata?.ai?.longDescription?.toLowerCase() || '';
+  const filteredPhotos =
+    photos?.filter((photo) => {
+      // Search query filter
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const filename = photo.mediaAsset.originalFilename.toLowerCase();
+        const tags = photo.metadata?.ai?.aiTags?.join(' ').toLowerCase() || '';
+        const description = photo.metadata?.ai?.longDescription?.toLowerCase() || '';
 
-      if (!(filename.includes(query) || tags.includes(query) || description.includes(query))) {
-        return false;
+        if (
+          !(
+            filename.includes(query) ||
+            tags.includes(query) ||
+            description.includes(query)
+          )
+        ) {
+          return false;
+        }
       }
-    }
 
-    // People filter - check if photo is in the person's photos
-    if (peopleFilter && personPhotos) {
-      const isInPersonPhotos = personPhotos.some((personPhoto: any) => personPhoto.id === photo.id);
-      if (!isInPersonPhotos) {
-        return false;
+      // People filter - check if photo is in the person's photos
+      if (peopleFilter && personPhotos) {
+        const isInPersonPhotos = personPhotos.some(
+          (personPhoto: any) => personPhoto.id === photo.id,
+        );
+        if (!isInPersonPhotos) {
+          return false;
+        }
       }
-    }
 
-    return true;
-  }) || [];
+      return true;
+    }) || [];
 
   // Use infinite scroll for seamless browsing experience
   const {
     displayedItems: displayedPhotos,
     hasMore,
     isLoading: isLoadingMore,
-    sentinelRef
+    sentinelRef,
   } = useInfiniteScroll({
     data: filteredPhotos,
-    itemsPerPage: 20 // Load 20 photos at a time for smooth scrolling
+    itemsPerPage: 20, // Load 20 photos at a time for smooth scrolling
   });
 
   // Preload upcoming images for instant display
   const upcomingImages = filteredPhotos
     .slice(displayedPhotos.length, displayedPhotos.length + 20)
-    .map(photo => `/api/files/${photo.mediaAsset.filePath}?quality=low&w=250&h=250`);
-  
-  useImagePreloader({ 
-    images: upcomingImages, 
-    preloadCount: 15 
+    .map((photo) => `/api/files/${photo.mediaAsset.filePath}?quality=low&w=250&h=250`);
+
+  useImagePreloader({
+    images: upcomingImages,
+    preloadCount: 15,
   });
 
   const handleProcessPhoto = (photoId: string) => {
@@ -241,31 +281,33 @@ export default function Gallery() {
 
   const handleBulkProcessSilver = () => {
     // Get unreviewed silver photos for batch processing
-    const silverPhotos = filteredPhotos.filter(photo => photo.tier === 'silver' && !photo.isReviewed);
+    const silverPhotos = filteredPhotos.filter(
+      (photo) => photo.tier === 'silver' && !photo.isReviewed,
+    );
     if (silverPhotos.length === 0) {
       toast({
-        title: "No Unprocessed Photos",
-        description: "No Silver tier photos available for processing.",
-        variant: "destructive"
+        title: 'No Unprocessed Photos',
+        description: 'No Silver tier photos available for processing.',
+        variant: 'destructive',
       });
       return;
     }
-    const photoIds = silverPhotos.map(p => p.id);
+    const photoIds = silverPhotos.map((p) => p.id);
     console.log(`Processing ${photoIds.length} silver photos...`);
     bulkProcessMutation.mutate({ photoIds });
   };
 
   const handleBulkPromoteToGold = () => {
-    const silverPhotos = filteredPhotos.filter(photo => photo.tier === 'silver');
+    const silverPhotos = filteredPhotos.filter((photo) => photo.tier === 'silver');
     if (silverPhotos.length === 0) {
       toast({
-        title: "No Silver Photos",
-        description: "No Silver tier photos available for promotion.",
-        variant: "destructive"
+        title: 'No Silver Photos',
+        description: 'No Silver tier photos available for promotion.',
+        variant: 'destructive',
       });
       return;
     }
-    bulkPromoteMutation.mutate({ photoIds: silverPhotos.map(p => p.id) });
+    bulkPromoteMutation.mutate({ photoIds: silverPhotos.map((p) => p.id) });
   };
 
   return (
@@ -275,7 +317,9 @@ export default function Gallery() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-semibold text-card-foreground">Gallery</h2>
-            <p className="text-sm text-muted-foreground">Browse and manage your photo collection</p>
+            <p className="text-sm text-muted-foreground">
+              Browse and manage your photo collection
+            </p>
           </div>
           <div className="flex items-center space-x-4">
             <div className="relative">
@@ -309,16 +353,16 @@ export default function Gallery() {
               </span>
             </div>
             <div className="w-full bg-blue-200 dark:bg-blue-800 rounded-full h-2">
-              <div 
+              <div
                 className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                style={{ 
-                  width: `${processingStats.total > 0 ? (processingStats.processed / processingStats.total) * 100 : 0}%` 
+                style={{
+                  width: `${processingStats.total > 0 ? (processingStats.processed / processingStats.total) * 100 : 0}%`,
                 }}
               />
             </div>
             <p className="text-sm text-blue-700 dark:text-blue-300 mt-2">
-              You can navigate away from this page - processing will continue in the background.
-              Return here to see the updated results.
+              You can navigate away from this page - processing will continue in the
+              background. Return here to see the updated results.
             </p>
           </div>
         )}
@@ -342,7 +386,8 @@ export default function Gallery() {
               <div className="flex items-center bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg px-3 py-2">
                 <Users className="w-4 h-4 text-blue-600 mr-2" />
                 <span className="text-sm text-blue-900 dark:text-blue-100 mr-2">
-                  {people?.find((p: any) => p.id === peopleFilter)?.name || 'Unknown Person'}
+                  {people?.find((p: any) => p.id === peopleFilter)?.name ||
+                    'Unknown Person'}
                 </span>
                 <Button
                   variant="ghost"
@@ -360,8 +405,8 @@ export default function Gallery() {
               </div>
             ) : null}
 
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={() => setShowAdvancedSearch(!showAdvancedSearch)}
             >
@@ -369,8 +414,8 @@ export default function Gallery() {
               More Filters
             </Button>
 
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={() => setShowSmartCollections(!showSmartCollections)}
             >
@@ -395,15 +440,20 @@ export default function Gallery() {
               <Button
                 size="sm"
                 onClick={() => handleBulkProcessSilver()}
-                disabled={processPhotoMutation.isPending || bulkProcessMutation.isPending || isBatchProcessing}
-              >
-                <Bot className={cn("w-4 h-4 mr-2", isBatchProcessing && "animate-pulse")} />
-                {isBatchProcessing 
-                  ? `Processing... (${processingStats.processed}/${processingStats.total})` 
-                  : bulkProcessMutation.isPending 
-                  ? 'Starting...' 
-                  : 'Review Silver Photos'
+                disabled={
+                  processPhotoMutation.isPending ||
+                  bulkProcessMutation.isPending ||
+                  isBatchProcessing
                 }
+              >
+                <Bot
+                  className={cn('w-4 h-4 mr-2', isBatchProcessing && 'animate-pulse')}
+                />
+                {isBatchProcessing
+                  ? `Processing... (${processingStats.processed}/${processingStats.total})`
+                  : bulkProcessMutation.isPending
+                    ? 'Starting...'
+                    : 'Review Silver Photos'}
               </Button>
             )}
 
@@ -411,15 +461,20 @@ export default function Gallery() {
               <Button
                 size="sm"
                 onClick={() => handleBulkPromoteToGold()}
-                disabled={processPhotoMutation.isPending || bulkPromoteMutation.isPending || isBatchProcessing}
-              >
-                <Star className={cn("w-4 h-4 mr-2", isBatchProcessing && "animate-pulse")} />
-                {isBatchProcessing 
-                  ? `Promoting... (${processingStats.processed}/${processingStats.total})` 
-                  : bulkPromoteMutation.isPending 
-                  ? 'Starting...' 
-                  : 'Promote All to Gold'
+                disabled={
+                  processPhotoMutation.isPending ||
+                  bulkPromoteMutation.isPending ||
+                  isBatchProcessing
                 }
+              >
+                <Star
+                  className={cn('w-4 h-4 mr-2', isBatchProcessing && 'animate-pulse')}
+                />
+                {isBatchProcessing
+                  ? `Promoting... (${processingStats.processed}/${processingStats.total})`
+                  : bulkPromoteMutation.isPending
+                    ? 'Starting...'
+                    : 'Promote All to Gold'}
               </Button>
             )}
 
@@ -482,37 +537,48 @@ export default function Gallery() {
         {isLoading ? (
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {Array.from({ length: 12 }).map((_, i) => (
-              <div key={i} className="w-full h-32 bg-gray-200 rounded-lg animate-pulse" />
+              <div
+                key={i}
+                className="w-full h-32 bg-gray-200 rounded-lg animate-pulse"
+              />
             ))}
           </div>
         ) : filteredPhotos.length > 0 ? (
           <div className="space-y-6">
-            <PhotoGrid 
+            <PhotoGrid
               photos={displayedPhotos}
               viewMode={viewMode}
               onPhotoClick={setSelectedPhoto}
               onProcessPhoto={handleProcessPhoto}
-              isProcessing={processPhotoMutation.isPending || bulkProcessMutation.isPending || bulkPromoteMutation.isPending}
+              isProcessing={
+                processPhotoMutation.isPending ||
+                bulkProcessMutation.isPending ||
+                bulkPromoteMutation.isPending
+              }
               selectedPhotos={selectedPhotos}
               onPhotoSelect={(photoId, selected) => {
                 if (selected) {
-                  setSelectedPhotos(prev => [...prev, photoId]);
+                  setSelectedPhotos((prev) => [...prev, photoId]);
                 } else {
-                  setSelectedPhotos(prev => prev.filter(id => id !== photoId));
+                  setSelectedPhotos((prev) => prev.filter((id) => id !== photoId));
                 }
               }}
             />
-            
+
             {/* Infinite Scroll Sentinel */}
             {hasMore && (
               <div ref={sentinelRef} className="py-8 text-center">
                 {isLoadingMore ? (
                   <div className="flex items-center justify-center space-x-2">
                     <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                    <span className="text-muted-foreground">Loading more photos...</span>
+                    <span className="text-muted-foreground">
+                      Loading more photos...
+                    </span>
                   </div>
                 ) : (
-                  <p className="text-muted-foreground">Scroll down to load more photos</p>
+                  <p className="text-muted-foreground">
+                    Scroll down to load more photos
+                  </p>
                 )}
               </div>
             )}
@@ -523,18 +589,17 @@ export default function Gallery() {
               <div className="text-gray-400 mb-4">
                 <Grid className="w-16 h-16 mx-auto" />
               </div>
-              <h3 className="text-lg font-semibold text-card-foreground mb-2">No photos found</h3>
+              <h3 className="text-lg font-semibold text-card-foreground mb-2">
+                No photos found
+              </h3>
               <p className="text-muted-foreground mb-4">
-                {searchQuery 
+                {searchQuery
                   ? `No photos match your search for "${searchQuery}"`
                   : tierFilter !== 'all'
-                  ? `No photos in ${tierFilter} tier`
-                  : "Upload some photos to get started"
-                }
+                    ? `No photos in ${tierFilter} tier`
+                    : 'Upload some photos to get started'}
               </p>
-              {!searchQuery && tierFilter === 'all' && (
-                <Button>Upload Photos</Button>
-              )}
+              {!searchQuery && tierFilter === 'all' && <Button>Upload Photos</Button>}
             </CardContent>
           </Card>
         )}

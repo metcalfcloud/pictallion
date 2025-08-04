@@ -17,7 +17,7 @@ interface UseInfiniteScrollReturn<T> {
 export function useInfiniteScroll<T>({
   data,
   itemsPerPage = 20,
-  threshold = 0.8
+  threshold = 0.8,
 }: UseInfiniteScrollProps<T>): UseInfiniteScrollReturn<T> {
   const [currentIndex, setCurrentIndex] = useState(itemsPerPage);
   const [isLoading, setIsLoading] = useState(false);
@@ -29,11 +29,11 @@ export function useInfiniteScroll<T>({
 
   const loadMore = useCallback(() => {
     if (!hasMore || isLoading) return;
-    
+
     setIsLoading(true);
     // Simulate brief loading for smooth UX
     setTimeout(() => {
-      setCurrentIndex(prev => Math.min(prev + itemsPerPage, data.length));
+      setCurrentIndex((prev) => Math.min(prev + itemsPerPage, data.length));
       setIsLoading(false);
     }, 100);
   }, [hasMore, isLoading, itemsPerPage, data.length]);
@@ -53,7 +53,7 @@ export function useInfiniteScroll<T>({
           loadMore();
         }
       },
-      { threshold }
+      { threshold },
     );
 
     observerRef.current.observe(sentinelRef.current);
@@ -81,6 +81,6 @@ export function useInfiniteScroll<T>({
     loadMore,
     isLoading,
     reset,
-    sentinelRef: setSentinelRef
+    sentinelRef: setSentinelRef,
   };
 }

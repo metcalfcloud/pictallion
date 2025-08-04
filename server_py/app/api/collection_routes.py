@@ -8,7 +8,7 @@ Converted from TypeScript Express routes to maintain 100% API compatibility.
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
 
-from app.core.crud import CRUDOperations
+from app.core.crud import CollectionCRUD
 from app.core.database import get_db
 from app.models.schemas import (InsertCollection, InsertCollectionPhoto,
                                 SmartCollectionRules)
@@ -82,7 +82,7 @@ async def list_collections(
     include_smart: bool = Query(True, description="Include smart collections"),
     include_photo_count: bool = Query(True, description="Include photo counts"),
     db: AsyncSession = Depends(get_db),
-    crud: CRUDOperations = Depends(CRUDOperations),
+    crud: CollectionCRUD = Depends(CollectionCRUD),
 ):
     """
     List all collections with optional photo counts and cover photos.
@@ -120,7 +120,7 @@ async def list_collections(
 async def create_collection(
     request: CollectionCreateRequest,
     db: AsyncSession = Depends(get_db),
-    crud: CRUDOperations = Depends(CRUDOperations),
+    crud: CollectionCRUD = Depends(CollectionCRUD),
 ):
     """Create a new collection."""
     try:
@@ -153,7 +153,7 @@ async def get_collection(
     collection_id: str,
     include_photos: bool = Query(False, description="Include collection photos"),
     db: AsyncSession = Depends(get_db),
-    crud: CRUDOperations = Depends(CRUDOperations),
+    crud: CollectionCRUD = Depends(CollectionCRUD),
 ):
     """Get collection by ID with optional photos."""
     try:
@@ -183,7 +183,7 @@ async def update_collection(
     collection_id: str,
     request: CollectionUpdateRequest,
     db: AsyncSession = Depends(get_db),
-    crud: CRUDOperations = Depends(CRUDOperations),
+    crud: CollectionCRUD = Depends(CollectionCRUD),
 ):
     """Update collection details."""
     try:
@@ -211,7 +211,7 @@ async def update_collection(
 async def delete_collection(
     collection_id: str,
     db: AsyncSession = Depends(get_db),
-    crud: CRUDOperations = Depends(CRUDOperations),
+    crud: CollectionCRUD = Depends(CollectionCRUD),
 ):
     """Delete a collection."""
     try:
@@ -236,7 +236,7 @@ async def get_collection_photos(
     page: int = Query(1, ge=1),
     limit: int = Query(100, ge=1, le=500),
     db: AsyncSession = Depends(get_db),
-    crud: CRUDOperations = Depends(CRUDOperations),
+    crud: CollectionCRUD = Depends(CollectionCRUD),
 ):
     """Get photos in a collection with pagination."""
     try:
@@ -272,7 +272,7 @@ async def add_photos_to_collection(
     collection_id: str,
     request: PhotosRequest,
     db: AsyncSession = Depends(get_db),
-    crud: CRUDOperations = Depends(CRUDOperations),
+    crud: CollectionCRUD = Depends(CollectionCRUD),
 ):
     """Add photos to a collection."""
     try:
@@ -315,7 +315,7 @@ async def remove_photos_from_collection(
     collection_id: str,
     request: PhotosRequest,
     db: AsyncSession = Depends(get_db),
-    crud: CRUDOperations = Depends(CRUDOperations),
+    crud: CollectionCRUD = Depends(CollectionCRUD),
 ):
     """Remove photos from a collection."""
     try:
@@ -354,7 +354,7 @@ async def remove_photos_from_collection(
 # Smart Collections endpoints
 @router.get("/smart-collections", response_model=List[CollectionResponse])
 async def list_smart_collections(
-    db: AsyncSession = Depends(get_db), crud: CRUDOperations = Depends(CRUDOperations)
+    db: AsyncSession = Depends(get_db), crud: CollectionCRUD = Depends(CollectionCRUD)
 ):
     """Get all smart collections."""
     try:
@@ -380,7 +380,7 @@ async def list_smart_collections(
 async def create_smart_collection(
     request: SmartCollectionCreateRequest,
     db: AsyncSession = Depends(get_db),
-    crud: CRUDOperations = Depends(CRUDOperations),
+    crud: CollectionCRUD = Depends(CollectionCRUD),
 ):
     """Create a new smart collection."""
     try:
@@ -410,7 +410,7 @@ async def toggle_smart_collection(
     collection_id: str,
     request: SmartCollectionToggleRequest,
     db: AsyncSession = Depends(get_db),
-    crud: CRUDOperations = Depends(CRUDOperations),
+    crud: CollectionCRUD = Depends(CollectionCRUD),
 ):
     """Toggle smart collection active status."""
     try:
@@ -435,7 +435,7 @@ async def toggle_smart_collection(
 
 @router.post("/smart-collections/organize")
 async def organize_smart_collections(
-    db: AsyncSession = Depends(get_db), crud: CRUDOperations = Depends(CRUDOperations)
+    db: AsyncSession = Depends(get_db), crud: CollectionCRUD = Depends(CollectionCRUD)
 ):
     """Organize photos into smart collections based on rules."""
     try:
@@ -471,7 +471,7 @@ async def get_smart_collection_photos(
     page: int = Query(1, ge=1),
     limit: int = Query(100, ge=1, le=500),
     db: AsyncSession = Depends(get_db),
-    crud: CRUDOperations = Depends(CRUDOperations),
+    crud: CollectionCRUD = Depends(CollectionCRUD),
 ):
     """Get photos in a smart collection."""
     try:
@@ -510,7 +510,7 @@ async def get_smart_collection_photos(
 async def get_collection_stats(
     collection_id: str,
     db: AsyncSession = Depends(get_db),
-    crud: CRUDOperations = Depends(CRUDOperations),
+    crud: CollectionCRUD = Depends(CollectionCRUD),
 ):
     """Get collection statistics."""
     try:

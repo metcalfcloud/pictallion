@@ -1,24 +1,30 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  Calendar, 
-  Search, 
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Calendar,
+  Search,
   Filter,
   Users,
   Gift,
   Camera,
   Eye,
-  ChevronRight
-} from "lucide-react";
-import { cn } from "@/lib/utils";
-import { apiRequest } from "@/lib/queryClient";
-import type { Photo } from "@shared/types";
+  ChevronRight,
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { apiRequest } from '@/lib/queryClient';
+import type { Photo } from '@shared/types';
 
 interface EventSummary {
   eventType: string;
@@ -40,8 +46,8 @@ interface DetectedEvent {
 }
 
 export default function EventsPage() {
-  const [selectedEventType, setSelectedEventType] = useState<string>("all");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedEventType, setSelectedEventType] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedEvent, setSelectedEvent] = useState<EventSummary | null>(null);
 
   // Fetch all photos to analyze events
@@ -55,32 +61,44 @@ export default function EventsPage() {
       // First try EXIF datetime fields with validation
       if (photo.metadata?.exif) {
         const exif = photo.metadata.exif;
-        
+
         // Try DateTimeOriginal first (most accurate)
         if (exif.dateTimeOriginal) {
           const date = new Date(exif.dateTimeOriginal);
-          if (!isNaN(date.getTime()) && date.getFullYear() > 1900 && date.getFullYear() < 2100) {
+          if (
+            !isNaN(date.getTime()) &&
+            date.getFullYear() > 1900 &&
+            date.getFullYear() < 2100
+          ) {
             return date.toISOString().split('T')[0];
           }
         }
-        
+
         // Try CreateDate
         if (exif.createDate) {
           const date = new Date(exif.createDate);
-          if (!isNaN(date.getTime()) && date.getFullYear() > 1900 && date.getFullYear() < 2100) {
+          if (
+            !isNaN(date.getTime()) &&
+            date.getFullYear() > 1900 &&
+            date.getFullYear() < 2100
+          ) {
             return date.toISOString().split('T')[0];
           }
         }
-        
+
         // Try DateTime
         if (exif.dateTime) {
           const date = new Date(exif.dateTime);
-          if (!isNaN(date.getTime()) && date.getFullYear() > 1900 && date.getFullYear() < 2100) {
+          if (
+            !isNaN(date.getTime()) &&
+            date.getFullYear() > 1900 &&
+            date.getFullYear() < 2100
+          ) {
             return date.toISOString().split('T')[0];
           }
         }
       }
-      
+
       // Try to extract from filename if it has timestamp format (YYYYMMDD_HHMMSS)
       const filename = photo.mediaAsset?.originalFilename || '';
       const timestampMatch = filename.match(/^(\d{8})_(\d{6})/);
@@ -89,13 +107,17 @@ export default function EventsPage() {
         const year = parseInt(dateStr.substring(0, 4));
         const month = parseInt(dateStr.substring(4, 6)) - 1; // Month is 0-indexed
         const day = parseInt(dateStr.substring(6, 8));
-        
+
         const extractedDate = new Date(year, month, day);
-        if (!isNaN(extractedDate.getTime()) && extractedDate.getFullYear() > 1900 && extractedDate.getFullYear() < 2100) {
+        if (
+          !isNaN(extractedDate.getTime()) &&
+          extractedDate.getFullYear() > 1900 &&
+          extractedDate.getFullYear() < 2100
+        ) {
           return extractedDate.toISOString().split('T')[0];
         }
       }
-      
+
       return null;
     } catch (error) {
       console.error('Error extracting photo date:', error);
@@ -108,12 +130,14 @@ export default function EventsPage() {
     queryKey: ['/api/events/all-detected', photos.length],
     queryFn: async () => {
       const eventsByPhoto: Record<string, DetectedEvent[]> = {};
-      
+
       for (const photo of photos) {
         const photoDate = extractPhotoDate(photo);
         if (photoDate) {
           try {
-            const response = await apiRequest('POST', '/api/events/detect', { photoDate });
+            const response = await apiRequest('POST', '/api/events/detect', {
+              photoDate,
+            });
             const events = await response.json();
             if (events.length > 0) {
               eventsByPhoto[photo.id] = events;
@@ -123,7 +147,7 @@ export default function EventsPage() {
           }
         }
       }
-      
+
       return eventsByPhoto;
     },
     enabled: photos.length > 0,
@@ -132,13 +156,13 @@ export default function EventsPage() {
   // Process events into summary format
   const processEvents = (): EventSummary[] => {
     const eventSummaries: Record<string, EventSummary> = {};
-    
+
     // Process auto-detected events
     Object.entries(allDetectedEvents).forEach(([photoId, events]) => {
-      const photo = photos.find(p => p.id === photoId);
+      const photo = photos.find((p) => p.id === photoId);
       if (!photo) return;
-      
-      events.forEach(event => {
+
+      events.forEach((event) => {
         const key = `${event.eventType}_${event.eventName}`;
         if (!eventSummaries[key]) {
           eventSummaries[key] = {
@@ -147,22 +171,22 @@ export default function EventsPage() {
             photoCount: 0,
             latestPhoto: '',
             confidence: event.confidence,
-            dates: []
+            dates: [],
           };
         }
-        
+
         eventSummaries[key].photoCount++;
         eventSummaries[key].latestPhoto = `/api/files/${photo.filePath}`;
-        
+
         const photoDate = extractPhotoDate(photo);
         if (photoDate && !eventSummaries[key].dates.includes(photoDate)) {
           eventSummaries[key].dates.push(photoDate);
         }
       });
     });
-    
+
     // Process manual events
-    photos.forEach(photo => {
+    photos.forEach((photo) => {
       if (photo.eventType || photo.eventName) {
         const key = `${photo.eventType || 'manual'}_${photo.eventName || 'Event'}`;
         if (!eventSummaries[key]) {
@@ -171,50 +195,59 @@ export default function EventsPage() {
             eventName: photo.eventName || 'Event',
             photoCount: 0,
             latestPhoto: '',
-            dates: []
+            dates: [],
           };
         }
-        
+
         eventSummaries[key].photoCount++;
         eventSummaries[key].latestPhoto = `/api/files/${photo.filePath}`;
-        
+
         const photoDate = extractPhotoDate(photo);
         if (photoDate && !eventSummaries[key].dates.includes(photoDate)) {
           eventSummaries[key].dates.push(photoDate);
         }
       }
     });
-    
+
     return Object.values(eventSummaries).sort((a, b) => b.photoCount - a.photoCount);
   };
 
   const eventSummaries = processEvents();
 
   // Filter events
-  const filteredEvents = eventSummaries.filter(event => {
-    const matchesType = selectedEventType === "all" || event.eventType === selectedEventType;
-    const matchesSearch = event.eventName.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredEvents = eventSummaries.filter((event) => {
+    const matchesType =
+      selectedEventType === 'all' || event.eventType === selectedEventType;
+    const matchesSearch = event.eventName
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase());
     return matchesType && matchesSearch;
   });
 
   // Get photos for selected event
   const getPhotosForEvent = (event: EventSummary): Photo[] => {
-    return photos.filter(photo => {
+    return photos.filter((photo) => {
       // Check manual events
-      if ((photo.eventType === event.eventType || (!photo.eventType && event.eventType === 'manual')) &&
-          (photo.eventName === event.eventName || (!photo.eventName && event.eventName === 'Event'))) {
+      if (
+        (photo.eventType === event.eventType ||
+          (!photo.eventType && event.eventType === 'manual')) &&
+        (photo.eventName === event.eventName ||
+          (!photo.eventName && event.eventName === 'Event'))
+      ) {
         return true;
       }
-      
+
       // Check auto-detected events
       const detectedEvents = allDetectedEvents[photo.id] || [];
-      return detectedEvents.some(detected => 
-        detected.eventType === event.eventType && detected.eventName === event.eventName
+      return detectedEvents.some(
+        (detected) =>
+          detected.eventType === event.eventType &&
+          detected.eventName === event.eventName,
       );
     });
   };
 
-  const eventTypes = Array.from(new Set(eventSummaries.map(e => e.eventType)));
+  const eventTypes = Array.from(new Set(eventSummaries.map((e) => e.eventType)));
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -253,13 +286,16 @@ export default function EventsPage() {
                   </div>
                 </div>
                 <div className="sm:w-48">
-                  <Select value={selectedEventType} onValueChange={setSelectedEventType}>
+                  <Select
+                    value={selectedEventType}
+                    onValueChange={setSelectedEventType}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Filter by type" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Events</SelectItem>
-                      {eventTypes.map(type => (
+                      {eventTypes.map((type) => (
                         <SelectItem key={type} value={type}>
                           {type.charAt(0).toUpperCase() + type.slice(1)}
                         </SelectItem>
@@ -275,8 +311,8 @@ export default function EventsPage() {
           {selectedEvent ? (
             <div className="space-y-6">
               <div className="flex items-center gap-4">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={() => setSelectedEvent(null)}
                   className="flex items-center gap-2"
                 >
@@ -303,11 +339,13 @@ export default function EventsPage() {
                       />
                     </div>
                     <div className="mt-2">
-                      <Badge className={cn("text-xs", {
-                        'bg-yellow-500': photo.tier === 'gold',
-                        'bg-gray-500': photo.tier === 'silver',
-                        'bg-orange-500': photo.tier === 'bronze'
-                      })}>
+                      <Badge
+                        className={cn('text-xs', {
+                          'bg-yellow-500': photo.tier === 'gold',
+                          'bg-gray-500': photo.tier === 'silver',
+                          'bg-orange-500': photo.tier === 'bronze',
+                        })}
+                      >
                         {photo.tier}
                       </Badge>
                     </div>
@@ -318,17 +356,23 @@ export default function EventsPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredEvents.map((event, index) => (
-                <Card 
-                  key={index} 
+                <Card
+                  key={index}
                   className="cursor-pointer hover:shadow-lg transition-shadow"
                   onClick={() => setSelectedEvent(event)}
                 >
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        {event.eventType === 'holiday' && <Gift className="w-5 h-5 text-green-600" />}
-                        {event.eventType === 'birthday' && <Users className="w-5 h-5 text-blue-600" />}
-                        {event.eventType === 'manual' && <Camera className="w-5 h-5 text-purple-600" />}
+                        {event.eventType === 'holiday' && (
+                          <Gift className="w-5 h-5 text-green-600" />
+                        )}
+                        {event.eventType === 'birthday' && (
+                          <Users className="w-5 h-5 text-blue-600" />
+                        )}
+                        {event.eventType === 'manual' && (
+                          <Camera className="w-5 h-5 text-purple-600" />
+                        )}
                         <CardTitle className="text-lg">{event.eventName}</CardTitle>
                       </div>
                       <ChevronRight className="w-4 h-4 text-muted-foreground" />
@@ -338,8 +382,14 @@ export default function EventsPage() {
                         {event.eventType}
                       </Badge>
                       {event.confidence && (
-                        <Badge 
-                          variant={event.confidence >= 95 ? "default" : event.confidence >= 80 ? "secondary" : "outline"}
+                        <Badge
+                          variant={
+                            event.confidence >= 95
+                              ? 'default'
+                              : event.confidence >= 80
+                                ? 'secondary'
+                                : 'outline'
+                          }
                           className="text-xs"
                         >
                           {event.confidence}%
@@ -360,7 +410,7 @@ export default function EventsPage() {
                           />
                         </div>
                       )}
-                      
+
                       <div className="flex items-center justify-between text-sm text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <Camera className="w-4 h-4" />
@@ -384,10 +434,9 @@ export default function EventsPage() {
                 <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-semibold mb-2">No Events Found</h3>
                 <p className="text-muted-foreground">
-                  {searchQuery || selectedEventType !== "all" 
-                    ? "Try adjusting your filters to see more events."
-                    : "Upload photos with dates to automatically detect events, or manually tag photos with event information."
-                  }
+                  {searchQuery || selectedEventType !== 'all'
+                    ? 'Try adjusting your filters to see more events.'
+                    : 'Upload photos with dates to automatically detect events, or manually tag photos with event information.'}
                 </p>
               </CardContent>
             </Card>

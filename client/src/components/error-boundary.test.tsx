@@ -13,7 +13,7 @@ describe('ErrorBoundary', () => {
     render(
       <ErrorBoundary>
         <span>Safe</span>
-      </ErrorBoundary>
+      </ErrorBoundary>,
     );
     expect(screen.getByText('Safe')).toBeTruthy();
   });
@@ -22,7 +22,7 @@ describe('ErrorBoundary', () => {
     render(
       <ErrorBoundary>
         <ThrowError />
-      </ErrorBoundary>
+      </ErrorBoundary>,
     );
     expect(screen.getByText(/something went wrong/i)).toBeTruthy();
     expect(screen.getByText(/test error/i)).toBeTruthy();
@@ -32,7 +32,7 @@ describe('ErrorBoundary', () => {
     render(
       <ErrorBoundary fallback={<span>Custom fallback</span>}>
         <ThrowError />
-      </ErrorBoundary>
+      </ErrorBoundary>,
     );
     expect(screen.getByText('Custom fallback')).toBeTruthy();
   });

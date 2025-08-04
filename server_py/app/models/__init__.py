@@ -11,8 +11,8 @@ from .media_asset import (AIPrompt, AssetHistory, Collection, CollectionPhoto,
                           Event, Face, FileVersion, GlobalTagLibrary, Location,
                           MediaAsset, Person, Relationship, Setting, User)
 # Import schemas and types
-from .schemas import (AICategoryEnum,  # Enums; Metadata types; Insert schemas
-                      AIMetadata, AIProviderEnum, CombinedMetadata,
+from .schemas import AICategoryEnum  # Enums; Metadata types; Insert schemas
+from .schemas import (AIMetadata, AIProviderEnum, CombinedMetadata,
                       EventTypeEnum, ExifMetadata, InsertAIPrompt,
                       InsertAssetHistory, InsertCollection,
                       InsertCollectionPhoto, InsertEvent, InsertFace,

@@ -73,7 +73,7 @@ graph TB
 ### 📚 Documentation
 
 - [`API_DOCUMENTATION.md`](API_DOCUMENTATION.md): Full FastAPI endpoint reference, request/response schemas, authentication, error handling, usage examples.
-- [`DEPLOYMENT.md`](DEPLOYMENT.md): Production Docker setup, environment variables, scaling, and automation.
+- [`DEPLOYMENT.md`](DEPLOYMENT.md): Production Docker setup, environment variables, scaling, automation, secret management, rollback, and troubleshooting.
 - [`DEVELOPMENT.md`](DEVELOPMENT.md): Dual frontend/backend development workflow.
 - [`ARCHITECTURE.md`](ARCHITECTURE.md): System, service, and database diagrams.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md): Python backend contribution guidelines, code style, and testing.
@@ -138,6 +138,16 @@ A comprehensive photo management platform with intelligent tiered processing (Br
 - **Professional UI**: Clean, modern design built with React and Tailwind CSS
 
 ## 🚀 Quick Start
+
+## 🏭 Production Deployment
+
+See [`DEPLOYMENT.md`](DEPLOYMENT.md:1) for full production deployment instructions.
+
+- Use Docker Compose for reproducible, secure deployments.
+- All secrets must be managed via Docker secrets or your CI/CD provider's secret manager.
+- Never commit secrets to source control; use `.env.example` as a template only.
+- All environment variables must be set before deployment (see `.env.example`).
+- Rollback procedures and troubleshooting steps are documented in [`DEPLOYMENT.md`](DEPLOYMENT.md:1).
 
 ### Prerequisites
 
@@ -246,6 +256,22 @@ Includes PostgreSQL database and Ollama for complete local setup with:
 - Health checks and monitoring
 - Persistent data volumes
 
+## 📝 Line Endings & Cross-Platform Development
+
+Consistent line endings are essential for reliable builds, Docker images, and CI/CD pipelines, especially when collaborating across Windows, macOS, and Linux. Mixed or incorrect line endings can cause script failures, configuration errors, and subtle bugs in cross-platform environments.
+
+This repository uses a `.gitattributes` file to enforce LF (`\n`) line endings for shell scripts and config files, and to normalize text files for compatibility. Git automatically converts line endings as needed for your OS, ensuring files work everywhere.
+
+**How it works:**
+- `.gitattributes` specifies which files must use LF endings (e.g., `.sh`, `.env`, `.yml`).
+- All text files are normalized so contributors on any platform get consistent results.
+- This prevents issues with Docker builds, CI jobs, and local development.
+
+**If you encounter line ending issues:**
+- Run `git add --renormalize .` to re-stage files with correct endings.
+- Commit the changes to update your local repository.
+
+For more details, see the `.gitattributes` file in the project root.
 ## 🔧 Configuration
 
 ### Environment Variables
@@ -355,9 +381,11 @@ python -m pytest                         # Run backend tests
 - [Contributing Guide](CONTRIBUTING.md) - Development guidelines
 - [Security Policy](SECURITY.md) - Security best practices and reporting
 
-## 🔒 Security
+## 🔒 Security & Secrets
 
-- Environment variables for sensitive configuration
+- All secrets and sensitive configuration must be managed securely (see [`DEPLOYMENT.md`](DEPLOYMENT.md:1))
+- Use Docker secrets or CI/CD secret managers for production
+- Never commit secrets to source control
 - Session-based authentication
 - File upload validation and security checks
 - SQL injection prevention with parameterized queries
@@ -365,6 +393,11 @@ python -m pytest                         # Run backend tests
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🛠️ Troubleshooting & Rollback
+
+- Troubleshooting steps and rollback procedures are documented in [`DEPLOYMENT.md`](DEPLOYMENT.md:1)
+- For operational issues, see [`server_py/docs/OPERATIONS.md`](server_py/docs/OPERATIONS.md:1)
 
 ## 🙋 Support
 

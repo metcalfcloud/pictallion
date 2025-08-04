@@ -8,6 +8,10 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
+    gfortran \
+    pkg-config \
+    cmake \
+    libopenblas-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy Python backend requirements
@@ -20,14 +24,24 @@ COPY server_py/ ./
 # Copy shared frontend assets if needed
 COPY client/dist/ ./static/
 
-# Copy data directory for media files
-COPY data/ ./data/
+# Only copy empty data directory structure for media files (persistent data should be mounted as a volume)
+RUN mkdir -p data/media
+
 
 ENV PYTHONPATH=/app
 ENV DB_TYPE=postgres
-# DB config via environment variables:
-# DATABASE_URL, DB_HOST, DB_PORT, DB_USER, DB_PASS, DB_NAME
+# DB config via environment variables or Docker secrets:
+# DATABASE_URL, DB_HOST, DB_PORT, DB_NAME
+# DB_USER and DB_PASS should be provided via Docker secrets at /run/secrets/db_user and /run/secrets/db_pass
 
 EXPOSE 8000
+
+# Image size check (fail build if >400MB)
+RUN set -e; \
+    actual_size=$(du -sm / | cut -f1); \
+    if [ "$actual_size" -gt 400 ]; then \
+      echo "❌ Final image size ${actual_size}MB exceeds 400MB limit"; \
+      exit 1; \
+    fi
 
 CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

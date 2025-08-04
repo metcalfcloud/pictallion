@@ -30,9 +30,7 @@ const queryClient = new QueryClient();
 function TestComponent({ tier }: { tier: string }) {
   const { data, isSuccess } = usePhotos(tier);
   return (
-    <div>
-      {isSuccess && <span data-testid="result">{JSON.stringify(data)}</span>}
-    </div>
+    <div>{isSuccess && <span data-testid="result">{JSON.stringify(data)}</span>}</div>
   );
 }
 
@@ -42,7 +40,7 @@ describe('usePhotos', () => {
     const { findByTestId } = render(
       <QueryClientProvider client={queryClient}>
         <TestComponent tier="gold" />
-      </QueryClientProvider>
+      </QueryClientProvider>,
     );
 
     const result = await findByTestId('result');
