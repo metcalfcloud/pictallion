@@ -1,8 +1,7 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, integer, jsonb, boolean, uuid } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, integer, jsonb, boolean } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod";
 
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -213,7 +212,7 @@ export const relationshipsRelations = relations(relationships, ({ one }) => ({
   }),
 }));
 
-export const locationsRelations = relations(locations, ({ many }) => ({
+export const locationsRelations = relations(locations, ({ many: _many }) => ({
   // No direct relations needed - we'll query photos by coordinate proximity
 }));
 
@@ -407,7 +406,7 @@ export interface CombinedMetadata {
 export interface SmartCollectionRule {
   field: string; // rating, keywords, eventType, location, etc.
   operator: 'equals' | 'contains' | 'greater_than' | 'less_than' | 'between' | 'in';
-  value: any;
+  value: string | number | boolean | string[];
 }
 
 export interface SmartCollectionRules {

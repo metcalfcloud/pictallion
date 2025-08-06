@@ -47,12 +47,12 @@ jobs:
 
       - name: 🎨 Lint code
         run: |
-          cd client
+          cd frontend
           npx eslint . --max-warnings=0
           npx prettier --check .
 
       - name: 🏗️ Build client
-        run: cd client && npm run build
+        run: cd frontend && npm run build
 
       - name: ✅ Type check
         run: npm run check
@@ -64,7 +64,7 @@ jobs:
 
       - name: 🧪 Run client tests with coverage
         run: |
-          cd client
+          cd frontend
           npx vitest run --coverage --reporter=lcov
           npx vitest run --coverage --reporter=text
           # Enforce minimum coverage (example: 85%)
@@ -72,9 +72,30 @@ jobs:
       - name: Upload client coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
-          file: client/coverage/lcov.info
-          flags: client
-          name: client-coverage
+          file: frontend/coverage/lcov.info
+          flags: tauri-frontend
+          name: tauri-frontend-coverage
+
+      - name: 🦀 Setup Rust toolchain
+        uses: actions/setup-rust@v1
+        with:
+          rust-version: stable
+
+      - name: 📦 Install Rust dependencies
+        run: |
+          cd src-tauri
+          cargo fetch
+
+      - name: 🏗️ Build Rust/Tauri backend
+        run: |
+          cd src-tauri
+          cargo build --release
+
+      - name:  Run Rust unit tests
+        run: |
+          cd src-tauri
+          cargo test --all --release
+
       - name: 🧪 Run server tests (placeholder)
         run: |
           echo "Server tests are managed in test-python-backend.yml"

@@ -26,7 +26,7 @@ export default defineConfig({
         changeOrigin: true
       }
     }
-  }
+  },
   test: {
     globals: true,
     environment: 'jsdom',
@@ -35,9 +35,5 @@ export default defineConfig({
       "@": "/client/src",
       "@shared": "/shared"
     }
-    },
-    test: {
-      globals: true,
-      environment: 'jsdom'
-    }
-  })
+  }
+})

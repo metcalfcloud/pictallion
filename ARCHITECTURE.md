@@ -1,92 +1,60 @@
 # Pictallion System Architecture
 
-This document provides a detailed overview of the Python backend architecture, technology stack, service relationships, and database schema.
+This document describes the overall architecture of Pictallion, including its frontend, backend, integration points, and design principles.
 
-## Executive Summary
+## High-Level Overview
 
-- Python FastAPI backend replaces TypeScript/Node.js backend
-- Full API compatibility and feature parity
-- Modular service layer, scalable deployment
+Pictallion is a cross-platform photo management application with a modern React frontend and a secure, high-performance Rust/Tauri backend. The system is modular, testable, and designed for maintainability.
 
 ## Architecture Diagram
 
 ```mermaid
 graph TB
-    Client[Frontend Client] --> API[FastAPI Application]
-    API --> Auth[Authentication Layer]
-    API --> Routes[API Routes Layer]
-    Routes --> PhotoRoutes[Photo Management]
-    Routes --> PeopleRoutes[People & Faces]
-    Routes --> AIRoutes[AI Processing]
-    Routes --> CollectionRoutes[Collections]
-    Routes --> EventRoutes[Events]
-    Routes --> LocationRoutes[Locations]
-    Routes --> SettingsRoutes[Settings]
-    PhotoRoutes --> PhotoService[Photo Service]
-    PeopleRoutes --> FaceService[Face Detection Service]
-    AIRoutes --> AIService[AI Service]
-    CollectionRoutes --> CollectionService[Collection Service]
-    EventRoutes --> EventService[Event Detection Service]
-    LocationRoutes --> LocationService[Location Service]
-    SettingsRoutes --> SettingsService[Settings Service]
-    PhotoService --> FileManager[File Manager]
-    PhotoService --> MetadataService[Metadata Service]
-    PhotoService --> ThumbnailService[Thumbnail Service]
-    FaceService --> AILib[Face Recognition Lib]
-    AIService --> Ollama[Ollama API]
-    AIService --> OpenAI[OpenAI API]
-    AIService --> TensorFlow[TensorFlow]
-    FileManager --> Storage[File System]
-    MetadataService --> ImageLib[Pillow/PIL]
-    PhotoService --> Database[SQLModel/SQLAlchemy]
-    FaceService --> Database
-    AIService --> Database
-    CollectionService --> Database
-    EventService --> Database
-    LocationService --> Database
-    SettingsService --> Database
-    Database --> SQLite[SQLite File]
-    Database --> Postgres[PostgreSQL]
+    Frontend[React/TypeScript Frontend] --> IPC[Tauri IPC Bridge]
+    IPC --> Backend[Rust/Tauri Backend]
+    Backend --> DB[SQLite Database]
+    Backend --> FS[Tiered File Storage]
+    Backend --> Metadata[EXIF/XMP Metadata]
+    Backend --> Photo[Photo Management]
+    Backend --> People[Face Detection & People Management]
+    Backend --> Shared[Shared Types & Schemas]
+    Frontend --> Shared
 ```
 
 ## Technology Stack
 
-- **Backend:** Python 3.11+, FastAPI, SQLModel, SQLAlchemy, Alembic
-- **Frontend:** React 18+, TypeScript, Tailwind CSS
-- **AI/ML:** Ollama, OpenAI, TensorFlow, face_recognition, dlib
-- **Database:** PostgreSQL (production), SQLite (development)
-- **Testing:** pytest, coverage, CI/CD via GitHub Actions
+- **Frontend:** React 19, TypeScript, Vite, Material-UI, Tailwind CSS, Vitest
+- **Backend:** Rust, Tauri, sqlx (async SQLite), rexiv2 (EXIF/XMP)
+- **Integration:** Tauri IPC commands expose backend functionality to the frontend
+- **Database:** SQLite (development and production)
+- **Testing:** Vitest (frontend), Rust unit tests (backend), CI/CD via GitHub Actions
 
-## Service Layer
+## Main Components
 
-- AIService: AI analysis, tag generation
-- FaceDetectionService: Face detection, embedding
-- FileManagerService: Tiered file management, EXIF extraction
-- ThumbnailService: Dynamic thumbnail generation
-- EventDetectionService: Event detection
-- LocationService: GPS and geocoding
-- MetadataEmbeddingService: EXIF/XMP embedding
-- AdvancedSearchService: Search and filtering
-- BurstPhotoDetectionService: Burst sequence analysis
-- DuplicateDetectionService: Duplicate resolution
+- **Frontend (`frontend/`):** User interface, state management, Tauri IPC integration, testing
+- **Backend (`src-tauri/`):** Core logic, database, file storage, metadata extraction, IPC command definitions
+- **Shared (`shared/`):** Common types, schemas, and utilities used by both frontend and backend
+
+## Integration
+
+- The frontend communicates with the backend via Tauri IPC commands.
+- Shared modules provide consistent types and schemas across the stack.
+- Tiered storage logic (bronze/silver/gold) is managed by the backend and exposed to the frontend.
 
 ## Database Schema
 
-- MediaAsset: Photo metadata
-- FileVersion: Tiered file storage
-- People, Faces: Face recognition data
-- Collections, Events: Organization
-- Settings: Configuration
+- **users:** Migration marker table
+- **photos:** Photo metadata and tier information
+- Additional tables defined in [`src-tauri/migrations/001_initial.sql`](src-tauri/migrations/001_initial.sql:1)
 
 ## Design Principles
 
 - Async-first, modular, testable
-- RESTful API, OpenAPI docs
-- Secure, scalable, maintainable
+- IPC-based API, OpenAPI compatibility planned
+- Secure, maintainable, reproducible from `git clone` + `just` + `docker compose up`
 
 ## References
 
-- [Migration Guide](MIGRATION_GUIDE.md)
-- [API Documentation](API_DOCUMENTATION.md)
-- [Deployment Guide](DEPLOYMENT.md)
-- [Security](SECURITY.md)
+- [API Documentation](API_DOCUMENTATION.md:1)
+- [Deployment Guide](DEPLOYMENT.md:1)
+- [Security](SECURITY.md:1)

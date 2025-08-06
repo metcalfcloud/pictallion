@@ -1,54 +1,115 @@
-# Pictallion Development Setup Guide
+# Pictallion Development Guide
 
-This guide describes how to set up a development environment for the Python FastAPI backend and React frontend.
+This guide describes how to set up and work with the Pictallion development environment, covering both the React frontend and the Rust/Tauri backend.
 
 ## Prerequisites
 
-- Python 3.11+
 - Node.js 18+
-- PostgreSQL (local or Docker)
+- Rust toolchain (for backend/Tauri)
 - Optional: Ollama (local AI), OpenAI API key
 
-## Backend Setup
+## Environment Setup
 
-```bash
-cd server_py
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-cp ../.env.example .env
-# Edit .env with your settings
-python manage_db.py migrate
-python -m uvicorn app.main:app --reload --port 8000
-```
+All common development tasks are automated using [`just`](https://github.com/casey/just). Recipes are defined in the project root [`justfile`](justfile:1).
 
-## Frontend Setup
+- **Setup:**  
+  ```bash
+  just setup
+  ```
+- **Development:**  
+  ```bash
+  just dev
+  ```
+- **Build:**  
+  ```bash
+  just build
+  ```
+- **Test:**  
+  ```bash
+  just test
+  ```
+- **Lint:**  
+  ```bash
+  just lint
+  ```
+- **Clean:**  
+  ```bash
+  just clean
+  ```
 
-```bash
-cd client
-npm install
-npm run dev
-```
+Manual steps are not required; dependencies and workflows are managed via `just`.
 
-- Frontend runs on http://localhost:5173
-- Backend API runs on http://localhost:8000
+## Project Structure
 
-## Dual Workflow
+- **Frontend:** [`frontend/`](frontend/) (React, TypeScript, Tailwind CSS)
+- **Backend:** [`src-tauri/`](src-tauri/) (Rust, Tauri)
+- **Scripts:** [`scripts/`](scripts/) (utility and CI scripts)
 
-- Frontend API requests are proxied to backend
-- Edit both frontend and backend code independently
-- Use test data and scripts in [`scripts/`](scripts/) for development
+## Development Workflow
+
+- Start development servers with `just dev`.
+- Edit frontend and backend code independently.
+- Use test data and scripts in [`scripts/`](scripts/) for development.
+- Frontend runs on [http://localhost:5173](http://localhost:5173).
+- Backend API runs via Tauri.
 
 ## Testing
 
-- Backend: `pytest` (see [`server_py/README.md`](server_py/README.md:1))
-- Frontend: `npm run test`
+- **Frontend:**  
+  Run all tests:
+  ```bash
+  just test
+  ```
+  Or run directly in [`frontend/`](frontend/):
+  ```bash
+  npm run test
+  ```
+  See [`frontend/tests/README.md`](frontend/tests/README.md:1) for details.
+
+- **Backend:**  
+  Run Rust/Tauri tests:
+  ```bash
+  just test
+  ```
+  Or use Cargo directly in [`src-tauri/`](src-tauri/):
+  ```bash
+  cargo test
+  ```
+
+### Tauri Integration Testing
+
+- Tauri APIs are mocked for frontend integration tests.
+- See:
+  - [`frontend/tests/mocks/tauriMocks.ts`](frontend/tests/mocks/tauriMocks.ts:1)
+  - [`frontend/tests/setup.ts`](frontend/tests/setup.ts:1)
+  - [`frontend/vitest.config.ts`](frontend/vitest.config.ts:1)
+
+#### Running Specific Tests
+
+```bash
+npm run test -- tests/integration/
+npm run test -- tests/integration/tauriApi.test.ts
+npm run test -- tests/integration/upload.test.tsx
+```
+
+#### Test Environment Requirements
+
+- Node.js 18+
+- Vitest
+- @testing-library/react
+- @testing-library/user-event
+- @testing-library/jest-dom
+
+No Tauri runtime or Rust toolchain is required for frontend tests.
 
 ## Troubleshooting
 
-- Check environment variables in `.env`
-- Validate database connection
-- Review logs for errors
+- Ensure all prerequisites are installed and available in your PATH.
+- If build errors occur, run `cargo clean` and rebuild.
+- For dependency issues, delete `node_modules` and reinstall with `npm install`.
+- If Tauri fails to start, verify Rust toolchain and Tauri CLI versions.
+- For frontend issues, check that the API server is running and accessible.
+- Review logs in the terminal for error messages.
 
 ## References
 

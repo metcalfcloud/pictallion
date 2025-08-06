@@ -1,58 +1,100 @@
-# justfile for reproducible workflows
-# Recipes for frontend and backend build, test, lint, coverage, docker compose, and deployment
-# All commands match those documented in README.md and DEPLOYMENT.md
+# Unified automation for Rust, Python, and TypeScript
 
-# --- Frontend ---
-frontend-build:
-    cd client && npm run build
+# Platform-specific shell configuration for cross-platform compatibility
+set shell := ["cmd.exe", "/C"]
 
-frontend-dev:
-    cd client && npm run dev
+# Install Rust, Python, and Node dependencies
+setup:
+	cd src-tauri/src-tauri && cargo build
+	cd frontend && npm install
 
-frontend-test:
-    cd client && npm run test
+# Start frontend development server (Vite)
+dev-frontend:
+	cd frontend && npm run dev
 
-frontend-lint:
-    cd client && npm run lint
+# Start backend development server (Tauri)
+dev-backend:
+	cargo tauri dev
 
-frontend-typecheck:
-    cd client && npm run check
+# Start both frontend and backend development servers
+dev:
+	cd frontend && npm run dev &
+	cargo tauri dev
 
-# --- Backend ---
-backend-dev:
-    cd server_py && python -m uvicorn app.main:app --reload --port 8000
+# Run frontend unit tests (Vitest)
+test-frontend:
+	cd frontend && npm run test
 
-backend-migrate:
-    cd server_py && python manage_db.py migrate
+# Run frontend end-to-end tests (Playwright)
+test-e2e:
+	cd frontend && npm run test:e2e
 
-backend-test:
-    cd server_py && pytest
+# Run frontend end-to-end tests with UI
+test-e2e-ui:
+	cd frontend && npm run test:e2e:ui
 
-backend-coverage:
-    cd server_py && pytest --cov=app --cov-report=term-missing
+# Run backend tests (Rust)
+test-backend:
+	cd src-tauri/src-tauri && cargo test
 
-backend-lint:
-    cd server_py && black . && isort . && mypy app
+# Run all automated tests (frontend unit, e2e, and backend)
+test:
+	cd frontend && npm run test
+	cd frontend && npm run test:e2e
+	cd src-tauri/src-tauri && cargo test
 
-# --- Docker Compose ---
-docker-up:
-    docker compose -f docker/docker-compose.yml up --build
+# Run ESLint on frontend code
+lint-frontend:
+	cd frontend && npm run lint
 
-docker-down:
-    docker compose -f docker/docker-compose.yml down
+# Run Rust linting (clippy) on backend code
+lint-backend:
+	cd src-tauri/src-tauri && cargo clippy
 
-docker-test-config:
-    ./scripts/test-docker-config.sh
+# Run all linting checks
+lint:
+	cd frontend && npm run lint
+	cd src-tauri/src-tauri && cargo clippy
 
-docker-setup:
-    ./scripts/docker-setup.sh
+# Format frontend code (using Prettier via npm script if available, otherwise ESLint)
+format-frontend:
+	cd frontend && npm run format || npm run lint -- --fix
 
-# --- Deployment ---
-deploy-production:
-    ./scripts/build-production.sh
+# Format backend Rust code
+format-backend:
+	cd src-tauri/src-tauri && cargo fmt
 
-deploy-docker:
-    ./scripts/build-docker.sh
+# Format all code (frontend and backend)
+format:
+	cd frontend && (npm run format || npm run lint -- --fix)
+	cd src-tauri/src-tauri && cargo fmt
 
-package:
-    ./scripts/ci/package.sh
+# Build frontend for production
+build-frontend:
+	cd frontend && npm run build
+
+# Build backend for production
+build-backend:
+	cd src-tauri/src-tauri && cargo build --release
+
+# Build complete application (frontend + backend)
+build:
+	cd frontend && npm run build
+	cargo tauri build
+
+# Build project documentation
+build-docs:
+	cd docs && mkdir build 2>nul || echo "build directory exists" && npx cpy "*.md" build/
+
+# Clean frontend build artifacts
+clean-frontend:
+	cd frontend && npm run clean
+
+# Clean backend build artifacts
+clean-backend:
+	cd src-tauri/src-tauri && cargo clean
+
+# Remove all build artifacts (frontend and backend)
+clean:
+	cd frontend && npm run clean
+	cd src-tauri/src-tauri && cargo clean

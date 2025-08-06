@@ -64,122 +64,68 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
       - name: Install system dependencies (Linux)
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
+            libwebkit2gtk-4.0-dev \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
             rpm \
             fakeroot \
-            dpkg \
-            libnss3-dev \
-            libatk-bridge2.0-dev \
-            libdrm2 \
-            libxcomposite1 \
-            libxdamage1 \
-            libxrandr2 \
-            libgbm1 \
-            libxss1 \
-            libasound2-dev
+            dpkg
 
       - name: Install system dependencies (macOS)
         if: matrix.os == 'macos-latest'
         run: |
-          # Install necessary dependencies for macOS builds
-          npm install --global create-dmg || true
+          # macOS dependencies are handled by Tauri
+          echo "macOS dependencies handled by Tauri"
 
-      - name: Install dependencies
-        shell: bash
-        run: |
-          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            # Windows-specific npm configuration
-            npm config set fetch-retry-mintimeout 20000
-            npm config set fetch-retry-maxtimeout 120000
-            npm config set fetch-timeout 300000
-            npm install --no-audit --prefer-offline || npm install --no-audit
-          elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
-            # Handle macOS Silicon compatibility
-            export npm_config_target_arch=${{ matrix.arch }}
-            export npm_config_target_platform=darwin
-            export npm_config_cache=/tmp/.npm
-            npm ci --no-audit
-          else
-            npm ci --no-audit
-          fi
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci --no-audit
 
-      - name: Build application
-        shell: bash
-        run: |
-          echo "Building application for ${{ matrix.platform }}-${{ matrix.arch }}"
-          npm run build
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
 
-      - name: Prepare Electron build
-        shell: bash
-        run: |
-          # Ensure dist directory exists with built assets
-          if [[ ! -d "dist/public" || ! -f "dist/index.js" ]]; then
-            echo "Build output missing. Contents of dist:"
-            ls -la dist/ || echo "No dist directory"
-            exit 1
-          fi
-
-          # Verify Electron main entry point
-          if [[ ! -f "electron/main.js" ]]; then
-            echo "Electron main.js not found"
-            exit 1
-          fi
-
-      - name: Build Electron application
-        shell: bash
+      - name: Build Tauri application
+        uses: tauri-apps/tauri-action@v0
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CSC_IDENTITY_AUTO_DISCOVERY: false
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_ID_PASS: ${{ secrets.APPLE_ID_PASS }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: |
-          if [[ "${{ matrix.platform }}" == "mac" ]]; then
-            # macOS specific build
-            if [[ "${{ matrix.arch }}" == "arm64" ]]; then
-              npx electron-builder --mac --arm64 --config.mac.target.arch=arm64
-            else
-              npx electron-builder --mac --x64 --config.mac.target.arch=x64
-            fi
-          elif [[ "${{ matrix.platform }}" == "win" ]]; then
-            # Windows specific build
-            if [[ "${{ matrix.ext }}" == "msi" ]]; then
-              npx electron-builder --win --config.win.target=msi
-            else
-              npx electron-builder --win --config.win.target=nsis
-            fi
-          elif [[ "${{ matrix.platform }}" == "linux" ]]; then
-            # Linux specific build
-            if [[ "${{ matrix.ext }}" == "AppImage" ]]; then
-              npx electron-builder --linux AppImage
-            elif [[ "${{ matrix.ext }}" == "deb" ]]; then
-              npx electron-builder --linux deb
-            elif [[ "${{ matrix.ext }}" == "rpm" ]]; then
-              npx electron-builder --linux rpm
-            fi
-          fi
+        with:
+          projectPath: src-tauri
+          args: ${{ matrix.ext == 'AppImage' && '--target appimage' || matrix.ext == 'deb' && '--target deb' || matrix.ext == 'rpm' && '--target rpm' || '' }}
 
       - name: List build artifacts
         shell: bash
         run: |
           echo "Build artifacts:"
-          find dist -name "*.dmg" -o -name "*.exe" -o -name "*.msi" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.rpm" | sort
+          find src-tauri/target/release/bundle -name "*.dmg" -o -name "*.exe" -o -name "*.msi" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.rpm" | sort
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.platform }}-${{ matrix.arch }}-${{ matrix.ext }}
           path: |
-            dist/*.dmg
-            dist/*.exe
-            dist/*.msi  
-            dist/*.AppImage
-            dist/*.deb
-            dist/*.rpm
+            src-tauri/target/release/bundle/**/*.dmg
+            src-tauri/target/release/bundle/**/*.exe
+            src-tauri/target/release/bundle/**/*.msi
+            src-tauri/target/release/bundle/**/*.AppImage
+            src-tauri/target/release/bundle/**/*.deb
+            src-tauri/target/release/bundle/**/*.rpm
           retention-days: 30
 
   docker:
@@ -199,8 +145,7 @@ jobs:
 
       - name: Install dependencies and build
         run: |
-          npm ci --no-audit
-          npm run build
+          cd frontend && npm ci --no-audit && npm run build
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3

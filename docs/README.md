@@ -1,52 +1,32 @@
-# Screenshots Directory
+# Project Documentation Overview
 
-This directory contains screenshots and documentation images for Pictallion.
+This directory contains comprehensive documentation for the Pictallion project. Use these resources to understand the architecture, API, development workflow, deployment, security practices, and contribution guidelines.
 
-## Required Screenshots
+## Documentation Structure
 
-To complete the README documentation, please add the following screenshots:
+- [`API_DOCUMENTATION.md`](../API_DOCUMENTATION.md:1): Details all available API endpoints, request/response formats, and usage examples.
+- [`ARCHITECTURE.md`](../ARCHITECTURE.md:1): Explains the overall system design, major components, and data flow.
+- [`DEVELOPMENT.md`](../DEVELOPMENT.md:1): Provides instructions for setting up the development environment, running the project locally, and development best practices.
+- [`DEPLOYMENT.md`](../DEPLOYMENT.md:1): Outlines deployment procedures, environment configuration, and release management.
+- [`SECURITY.md`](../SECURITY.md:1): Documents security policies, threat models, and secure coding guidelines.
+- [`CONTRIBUTING.md`](../CONTRIBUTING.md:1): Describes how to contribute to the project, including code standards and pull request process.
 
-### `dashboard-screenshot.png`
-- Main dashboard view showing:
-  - Analytics cards (total photos, tier distribution)
-  - Recent activity feed
-  - Recent photos grid
-  - Processing statistics
+## Usage
 
-### `gallery-screenshot.png`
-- Gallery view demonstrating:
-  - Photo grid with tier badges
-  - Advanced search interface
-  - Batch selection capabilities
-  - Filter controls
+Refer to each documentation file for specific guidance. For general project information, installation, and major updates, see the main [`README.md`](../README.md:1) in the project root.
 
-### `collections-screenshot.png`
-- Collections management showing:
-  - Collection grid view
-  - Collection creation dialog
-  - Photo organization features
+## Local Testing & Troubleshooting
 
-### `advanced-search-screenshot.png`
-- Advanced search interface featuring:
-  - Filter panels
-  - Date range selectors
-  - Tag and metadata filters
-  - Search results
+- Use the [`justfile`](../justfile:1) in the project root for setup, development, build, test, lint, and clean commands.
+- Ensure all prerequisites are installed:
+  - **Rust** (for backend)
+  - **Tauri CLI** (for desktop integration)
+  - **Node.js** and **npm** or **yarn** (for frontend)
+  - **pytest** (for Python backend testing)
+  - **Vitest** and **Playwright** (for frontend testing)
+- For troubleshooting, review terminal logs and documentation files for guidance.
 
-## How to Add Screenshots
+## Feedback & Support
 
-1. Run the application locally (`npm run dev`)
-2. Navigate to each key page/feature
-3. Take high-quality screenshots (1200x800px recommended)
-4. Save them in this directory with the exact filenames listed above
-5. Ensure screenshots show the professional interface and key features
-
-## Screenshot Guidelines
-
-- Use consistent browser window size
-- Include realistic data (sample photos, collections, etc.)
-- Highlight key features and functionality
-- Maintain good contrast and readability
-- Show the modern, professional interface design
-
-The screenshots will automatically appear in the main README.md file once added to this directory.
+Report issues or request support via [GitHub Issues](https://github.com/yourusername/pictallion/issues) or [GitHub Discussions](https://github.com/yourusername/pictallion/discussions).
+If your repository URL differs, update these links accordingly.

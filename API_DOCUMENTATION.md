@@ -1,73 +1,88 @@
-# Pictallion FastAPI Backend - API Documentation
+# Pictallion Rust/Tauri Backend - API & IPC Documentation
 
-This document provides a comprehensive reference for all FastAPI endpoints, request/response schemas, authentication, error handling, and usage examples.
+This document provides an up-to-date reference for all Tauri IPC commands, request/response schemas, error handling, and usage notes.
 
 ## Overview
 
-- 150+ endpoints covering photo management, people/faces, AI, collections, events, locations, analytics, and system operations.
-- All endpoints follow RESTful conventions and return JSON.
+- IPC commands expose backend functionality to the frontend via Tauri's invoke API.
+- All commands are asynchronous and use Rust's async features.
+- SQLite is used for persistent storage via `sqlx`; tiered file operations are supported.
+- EXIF/XMP metadata extraction uses `rexiv2`.
+- Tiered storage structure: bronze (immutable), silver (AI-processed), gold (finalized), archive (long-term).
 
-## Authentication
-
-- Current: No authentication required (standalone desktop mode)
-- Future: JWT-based authentication planned (see [`SECURITY.md`](SECURITY.md:1))
-
-## Endpoint Reference
+## IPC Command Reference
 
 ### Photo Management
 
-- `GET /api/photos/` - List photos
-- `POST /api/photos/` - Upload new photo
-- `PATCH /api/photos/{photo_id}` - Update photo metadata
-- `DELETE /api/photos/{photo_id}` - Delete photo
-- `GET /api/files/media/{file_id}` - Download photo file
+- `add_photo(filePath: String) -> Result<String, String>`
+  - Adds a photo to the database and moves the file to the bronze tier (`data/media/bronze/`).
 
-### People & Faces
+- `list_photos() -> Result<Vec<Photo>, String>`
+  - Returns a list of all photos with metadata.
 
-- `GET /api/people/` - List people
-- `POST /api/faces/` - Add face data
-- `GET /api/faces/{face_id}` - Get face details
+- `get_photo_metadata(photoId: String) -> Result<String, String>`
+  - Returns photo metadata as a JSON string from SQLite.
 
-### AI Processing
+- `promote_photo_tier(photoId: String, tier: String) -> Result<String, String>`
+  - Moves photo to specified tier (`bronze`, `silver`, `gold`, `archive`) and updates SQLite.
 
-- `POST /api/ai/process` - Run AI analysis on photo
-- `GET /api/ai/status/{job_id}` - Get AI job status
+- `promote_photo(photoId: String, tier: String) -> Result<String, String>`
+  - Alias for `promote_photo_tier`.
 
-### Collections & Smart Collections
+### People Management
 
-- `GET /api/collections/` - List collections
-- `POST /api/collections/` - Create collection
+- `list_people() -> Result<Vec<Person>, String>`
+  - Lists all people in the database.
 
-### Events & Settings
+- `create_person(req: CreatePersonRequest) -> Result<Person, String>`
+  - Creates a new person record.
 
-- `GET /api/events/` - List events
-- `GET /api/settings/` - Get settings
+- `update_person(personId: String, req: UpdatePersonRequest) -> Result<Person, String>`
+  - Updates an existing person.
 
-### Locations
+- `delete_person(personId: String) -> Result<String, String>`
+  - Deletes a person record.
 
-- `GET /api/locations/` - List locations
+- `merge_people(req: MergePeopleRequest) -> Result<String, String>`
+  - Merges multiple people records.
 
-### Analytics & System
+- `list_relationships(personId: String) -> Result<Vec<Relationship>, String>`
+  - Lists relationships for a given person.
 
-- `GET /api/stats` - System analytics
-- `GET /api/health` - Health check
+### Face Detection & Recognition
+
+- `detect_faces(imagePath: String) -> Result<Vec<DetectedFace>, String>`
+  - Detects faces in an image and returns bounding boxes.
+
+- `generate_face_embedding(imagePath: String, boundingBox: [number, number, number, number]) -> Result<Vec<number>, String>`
+  - Generates a face embedding for a detected face.
+
+- `face_detection_health_check() -> Result<bool, String>`
+  - Checks if face detection is operational.
+
+### Metadata Management
+
+- `extract_metadata(filePath: String) -> Result<String, String>`
+  - Extracts EXIF/XMP metadata as JSON.
+
+- `embed_metadata(filePath: String, metadata: String) -> Result<(), String>`
+  - Embeds EXIF/XMP metadata from JSON into a file.
+
+### Filesystem Operations
+
+- `create_tier_dir(tier: String) -> Result<(), String>`
+  - Creates a directory for the specified tier (`data/media/{tier}/`).
+
+- `move_file_to_tier(src: String, tier: String) -> Result<(), String>`
+  - Moves a file to the specified tier directory.
 
 ## Request/Response Schemas
 
-Example: Photo Update
+### Example: Get Photo Metadata
 
 ```json
-PATCH /api/photos/{photo_id}
-{
-  "rating": 5,
-  "keywords": ["vacation", "beach"],
-  "location": "Cancun"
-}
-```
-
-Response:
-
-```json
+invoke("get_photo_metadata", { photoId: "abc123" })
+// Response:
 {
   "id": "abc123",
   "original_filename": "IMG_001.jpg",
@@ -78,29 +93,63 @@ Response:
 }
 ```
 
-## Error Handling
-
-- Standard HTTP status codes
-- Error responses include `detail` field
-
-Example:
+### Example: Add Photo
 
 ```json
-{
-  "detail": "Photo not found"
-}
+invoke("add_photo", { filePath: "data/media/bronze/photo.jpg" })
+// Response:
+"Photo added successfully: data/media/bronze/photo.jpg"
 ```
+
+### Example: List People
+
+```json
+invoke("list_people", {})
+// Response:
+[
+  { "id": "person1", "name": "Alice" },
+  { "id": "person2", "name": "Bob" }
+]
+```
+
+### Example: Detect Faces
+
+```json
+invoke("detect_faces", { imagePath: "data/media/bronze/image.jpg" })
+// Response:
+[
+  { "boundingBox": [10, 20, 50, 60], "embedding": [0.1, 0.2, ...] }
+]
+```
+
+## Error Handling
+
+- All IPC commands return `Result<T, String>`; errors include descriptive messages.
+- Standard error response:
+  ```json
+  {
+    "error": "Photo not found"
+  }
+  ```
+
+## Authentication
+
+- Current: No authentication required (standalone desktop mode).
+- Future: JWT-based authentication planned (see [`SECURITY.md`](SECURITY.md:1)).
+
+## Migration Notes
+
+- IPC commands are designed to match legacy FastAPI endpoints for seamless migration.
+- SQLite schema and tiered storage logic are preserved.
 
 ## Usage Examples
 
-See [`DEVELOPMENT.md`](DEVELOPMENT.md:1) for API usage in frontend and scripts.
-
-## Rate Limiting
-
-- Not enabled by default; see [`SECURITY.md`](SECURITY.md:1) for future plans.
+See [`DEVELOPMENT.md`](DEVELOPMENT.md:1) for IPC usage in frontend and scripts. For frontend integration, see [`frontend/src/lib/tauriApi.ts`](frontend/src/lib/tauriApi.ts:1).
 
 ## References
 
 - [Architecture](ARCHITECTURE.md)
 - [Deployment Guide](DEPLOYMENT.md)
+- [Development Guide](DEVELOPMENT.md)
 - [Security](SECURITY.md)
+- [Frontend API Wrappers](frontend/src/lib/tauriApi.ts)
