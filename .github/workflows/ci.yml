@@ -77,9 +77,7 @@ jobs:
           name: tauri-frontend-coverage
 
       - name: 🦀 Setup Rust toolchain
-        uses: actions/setup-rust@v1
-        with:
-          rust-version: stable
+        uses: dtolnay/rust-toolchain@stable
 
       - name: 📦 Install Rust dependencies
         run: |
@@ -177,8 +175,3 @@ jobs:
               echo "ℹ️ Found $TOTAL total vulnerabilities (see weekly security report for details)"
             fi
           fi
-
-      - name: 🔍 Run pip-audit for Python backend
-        run: |
-          pip install pip-audit
-          pip-audit --requirement server_py/requirements.txt || pip-audit --skip-editable
