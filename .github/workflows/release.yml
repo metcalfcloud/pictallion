@@ -137,16 +137,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install dependencies and build
-        run: |
-          cd frontend && npm ci --no-audit && npm run build
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -156,26 +146,14 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
-      - name: Generate Docker configuration
+      - name: Build and push Docker image
         run: |
-          chmod +x scripts/build-docker.sh
-          ./scripts/build-docker.sh
-
-      - name: Build and push Docker images
-        run: |
-          # Build SQLite version
-          docker build -f docker/Dockerfile.sqlite -t pictallion:sqlite .
-          docker tag pictallion:sqlite ${{ secrets.DOCKERHUB_USERNAME }}/pictallion:sqlite-${{ github.ref_name }}
-          docker tag pictallion:sqlite ${{ secrets.DOCKERHUB_USERNAME }}/pictallion:sqlite-latest
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/pictallion:sqlite-${{ github.ref_name }}
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/pictallion:sqlite-latest
-
-          # Build external DB version
-          docker build -f docker/Dockerfile.external -t pictallion:external .
-          docker tag pictallion:external ${{ secrets.DOCKERHUB_USERNAME }}/pictallion:external-${{ github.ref_name }}
-          docker tag pictallion:external ${{ secrets.DOCKERHUB_USERNAME }}/pictallion:external-latest
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/pictallion:external-${{ github.ref_name }}
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/pictallion:external-latest
+          # Build web frontend image
+          docker build -f docker/Dockerfile -t pictallion:web .
+          docker tag pictallion:web ${{ secrets.DOCKERHUB_USERNAME }}/pictallion:web-${{ github.ref_name }}
+          docker tag pictallion:web ${{ secrets.DOCKERHUB_USERNAME }}/pictallion:web-latest
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/pictallion:web-${{ github.ref_name }}
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/pictallion:web-latest
 
   release:
     runs-on: ubuntu-latest
@@ -223,8 +201,7 @@ jobs:
           echo "" >> release-notes.md
           echo "## Docker Images" >> release-notes.md
           echo "" >> release-notes.md
-          echo "- \`pictallion:sqlite-${{ github.ref_name }}\` - Self-contained with SQLite" >> release-notes.md
-          echo "- \`pictallion:external-${{ github.ref_name }}\` - For external PostgreSQL" >> release-notes.md
+          echo "- \`pictallion:web-${{ github.ref_name }}\` - Web frontend deployment" >> release-notes.md
           echo "" >> release-notes.md
           echo "## Features in this release" >> release-notes.md
           echo "- Professional photo management with AI-powered metadata" >> release-notes.md
