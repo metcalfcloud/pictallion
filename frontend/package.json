@@ -19,7 +19,6 @@
     "@emotion/styled": "^11.14.1",
     "@mui/icons-material": "^5.18.0",
     "@mui/material": "^5.15.14",
-    "@tauri-apps/api": "^1.5.4",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },

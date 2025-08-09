@@ -8,18 +8,20 @@ setup:
 	cd src-tauri/src-tauri && cargo build
 	cd frontend && npm install
 
-# Start frontend development server (Vite)
+# Start frontend development server (Vite) - browser-only mode
 dev-frontend:
 	cd frontend && npm run dev
 
-# Start backend development server (Tauri)
+# Start Tauri desktop dev (backend) from correct directory
 dev-backend:
-	cargo tauri dev
+	cd src-tauri/src-tauri && cargo tauri dev
 
-# Start both frontend and backend development servers
+# Start Vite then launch Tauri desktop pointing at Vite dev URL
+# This opens a desktop window with live-reloading UI.
+# On Windows, '&' starts the first command then continues; Vite keeps running.
 dev:
 	cd frontend && npm run dev &
-	cargo tauri dev
+	cd src-tauri/src-tauri && cargo tauri dev -- --dev-url http://localhost:5173
 
 # Run frontend unit tests (Vitest)
 test-frontend:
@@ -79,8 +81,11 @@ build-backend:
 
 # Build complete application (frontend + backend)
 build:
+	@echo "Building frontend assets..."
 	cd frontend && npm run build
-	cargo tauri build
+	@echo "Building Tauri application..."
+	cd src-tauri/src-tauri && cargo tauri build
+	@echo "Production build completed successfully!"
 
 # Build project documentation
 build-docs:
@@ -98,3 +103,23 @@ clean-backend:
 clean:
 	cd frontend && npm run clean
 	cd src-tauri/src-tauri && cargo clean
+
+# Show dev process status and URLs for troubleshooting
+diagnose-dev:
+	echo Checking if Vite is running on http://localhost:5173 ...
+	powershell -NoProfile -Command "$ErrorActionPreference='SilentlyContinue'; try { $r = Invoke-WebRequest -UseBasicParsing http://localhost:5173/; if ($r.StatusCode -eq 200) { Write-Host 'Vite is responding (200)'; exit 0 } else { Write-Host ('Vite responded with status ' + $r.StatusCode); exit 1 } } catch { Write-Host 'Vite not responding'; exit 1 }"
+	echo If not running, start it with: start \"Pictallion Vite Dev\" cmd /C \"cd frontend && npm run dev\"
+	echo To launch desktop window manually: cd src-tauri/src-tauri && cargo tauri dev -- --dev-url http://localhost:5173
+
+# Quick environment diagnostics for Tauri v2 dev
+# Prints versions and checks basic Windows build tooling presence.
+diagnose:
+	node --version
+	npm --version
+	rustc --version
+	cargo --version
+	npx --yes @tauri-apps/cli -V
+	where cl.exe || echo "MSVC Build Tools cl.exe not found (OK if using alternative toolchain)"
+	where powershell.exe
+	echo "If Tauri window does not open, ensure Vite is on http://localhost:5173 and ports are free."
+	echo "Use: just dev  (desktop), just dev-frontend (browser-only), just dev-backend (Tauri only)"

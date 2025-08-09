@@ -11,7 +11,6 @@ export default tseslint.config(
       '.coverage/**',
       'src-tauri/**',
       'server_py/**',
-      'electron/**',
       'scripts/**',
       'docs/**',
       'data/**',

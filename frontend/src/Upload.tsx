@@ -15,6 +15,11 @@ export function Upload() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  // Real-time environment detection function
+  const isTauriEnvironment = (): boolean => {
+    return typeof window !== 'undefined' && !!window.__TAURI_IPC__;
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0] || null;
     setFile(selected);
@@ -52,11 +57,34 @@ export function Upload() {
     setLoading(true);
     setError(null);
     setSuccess(null);
+    
+    // Debug logging
+    console.log("[Upload] Starting upload process");
+    console.log("[Upload] window.__TAURI_IPC__ type:", typeof window.__TAURI_IPC__);
+    console.log("[Upload] window.__TAURI_IPC__ value:", window.__TAURI_IPC__);
+    console.log("[Upload] isTauriEnvironment():", isTauriEnvironment());
+    
     try {
-      await addPhoto(file.name);
-      setSuccess("Photo uploaded successfully!");
+      if (isTauriEnvironment()) {
+        console.log("[Upload] Using Tauri environment path");
+        // In Tauri, we need to pass the file path, but since we have a File object from the browser,
+        // we'll pass the file name as a placeholder. In a real Tauri app, you'd typically use
+        // Tauri's file dialog or have the file already saved to disk.
+        await addPhoto(file.name);
+        setSuccess("Photo uploaded successfully to your library!");
+      } else {
+        console.log("[Upload] Using browser environment path");
+        // In browser, pass the File object directly
+        const result = await addPhoto(file);
+        setSuccess(`${result} (Browser demo mode - photo not actually saved)`);
+      }
     } catch (e) {
-      setError(`Failed to upload photo: ${String(e)}`);
+      const errorMessage = String(e);
+      if (errorMessage.includes('Feature unavailable')) {
+        setError('This feature requires the desktop app. Please download and use the Tauri desktop version for full functionality.');
+      } else {
+        setError(`Failed to upload photo: ${errorMessage}`);
+      }
     }
     setLoading(false);
   };
@@ -64,6 +92,14 @@ export function Upload() {
   return (
     <Box sx={{ mt: 2 }}>
       <Stack spacing={2} alignItems="center">
+        {!isTauriEnvironment() && (
+          <Alert severity="info" sx={{ width: "100%", mb: 2 }}>
+            <Typography variant="body2">
+              <strong>Browser Demo Mode:</strong> You're running in browser mode with limited functionality.
+              For full photo management features, please use the desktop app.
+            </Typography>
+          </Alert>
+        )}
         <Box
           sx={{
             border: dragActive ? "2px dashed #535bf2" : "2px dashed #ccc",

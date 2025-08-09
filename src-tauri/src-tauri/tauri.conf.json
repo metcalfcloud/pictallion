@@ -2,25 +2,25 @@
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "pictallion-backend",
   "version": "0.1.0",
-  "identifier": "com.tauri.dev",
+  "identifier": "com.metcalfcloud.pictallion",
   "build": {
-    "frontendDist": "dist",
-    "beforeDevCommand": "echo Working directory: %cd% && echo PATH: %PATH% && cd c:/code/pictallion/frontend && npm run dev",
-    "beforeBuildCommand": "npm run build"
+    "frontendDist": "../../frontend/dist",
+    "devUrl": "http://localhost:5173"
   },
   "app": {
     "windows": [
       {
-        "title": "src-tauri",
-        "width": 800,
-        "height": 600,
+        "title": "Pictallion",
+        "width": 1200,
+        "height": 800,
         "resizable": true,
         "fullscreen": false
       }
     ],
     "security": {
       "csp": null
-    }
+    },
+    "withGlobalTauri": true
   },
   "bundle": {
     "active": true,
