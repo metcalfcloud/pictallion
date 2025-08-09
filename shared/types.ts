@@ -5,7 +5,7 @@ export interface Photo {
   filePath: string;
   mimeType: string;
   fileSize: number;
-  metadata: any;
+  metadata: Record<string, unknown>;
   isReviewed: boolean;
   rating?: number;
   keywords?: string[];

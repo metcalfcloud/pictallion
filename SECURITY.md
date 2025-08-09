@@ -1,170 +1,62 @@
-# Security Policy
+# Pictallion Security Guidelines
 
-## Supported Versions
+This document describes security practices for all major components of Pictallion, including backend, frontend, Docker, and CI/CD.
 
-We provide security updates for the following versions of Pictallion:
+## Environment & Secrets
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 1.x.x   | :white_check_mark: |
-| < 1.0   | :x:                |
+- Store secrets in environment variables or Docker secrets.
+- Never commit secrets or credentials to source control.
+- Use strong, unique session secrets.
+- Pre-commit hooks (e.g., git-secrets) are enforced to prevent accidental leaks.
 
-## Reporting Security Vulnerabilities
+## Authentication & Authorization
 
-If you discover a security vulnerability in Pictallion, please report it responsibly:
+- Desktop mode: No authentication required.
+- Web/API mode: Authentication is **not currently implemented**.
+- Rate limiting and CORS/CSRF middleware are **not present** in the current implementation.
 
-### Private Disclosure
+## File Upload Security
 
-**Do NOT** open a public GitHub issue for security vulnerabilities.
+- Validate file types and sizes (`ALLOWED_FILE_TYPES`, `MAX_FILE_SIZE`).
+- Store uploads in isolated directories.
+- Scan uploads for malware (recommended for all deployments).
 
-Instead, please:
+## Frontend Security
 
-1. **Email**: Send details to security@pictallion.com
-2. **GitHub**: Use [private vulnerability reporting](https://github.com/yourusername/pictallion/security/advisories/new)
+- Escape and encode user input in React components.
+- Use libraries such as `dompurify` to prevent XSS (recommended).
+- Enforce Content Security Policy: `default-src 'self'`.
 
-### What to Include
+## Database Security
 
-Please provide:
+- Use parameterized queries to prevent SQL injection (if applicable).
+- Restrict database access to trusted components only.
+- Regularly back up database and media files.
 
-- Description of the vulnerability
-- Steps to reproduce the issue
-- Potential impact assessment
-- Suggested fix (if known)
-- Your contact information
+## Dependency & CI/CD Security
 
-### Response Timeline
+- Keep dependencies up to date using Dependabot/Renovate.
+- Automated SAST (Bandit, Semgrep) runs on each change.
+- Generate SBOM (`cyclonedx`) and check for CVEs.
+- Multi-stage Dockerfiles; final images are security-hardened.
+- CI/CD blocks merges if any test or security check fails.
 
-- **Acknowledgment**: Within 48 hours
-- **Initial Assessment**: Within 1 week
-- **Fix Development**: 2-4 weeks (depending on severity)
-- **Public Disclosure**: After fix is released
+## Operational Security
 
-## Security Measures
+- Monitor logs for suspicious activity.
+- Use Docker healthchecks and monitoring.
 
-### Application Security
+## Error Handling
 
-#### Authentication & Authorization
-- Session-based authentication with secure cookies
-- CSRF protection on all state-changing operations
-- Proper session management and logout functionality
+- Do not expose sensitive error details in API responses.
+- Log errors securely.
 
-#### Input Validation
-- All user inputs validated using Zod schemas
-- File upload restrictions (type, size, content validation)
-- SQL injection prevention through parameterized queries
-- XSS protection through proper encoding
+## Reporting Vulnerabilities
 
-#### File Security
-- File uploads restricted to supported image formats
-- Content-type validation beyond file extensions
-- File size limits enforced (50MB default)
-- Files stored outside web root directory
-- Proper file permissions and access controls
+- Report security issues via GitHub Issues or support email.
 
-#### API Security
-- Rate limiting on all endpoints
-- Proper error handling without information leakage
-- Secure headers configured
-- HTTPS enforcement in production
+## References
 
-### Infrastructure Security
-
-#### Database Security
-- PostgreSQL with SSL connections
-- Environment variable configuration for credentials
-- Regular security updates
-- Connection pooling with proper timeouts
-
-#### Container Security
-- Multi-stage Docker builds with minimal base images
-- Non-root user execution
-- Security scanning in CI/CD pipeline
-- Regular base image updates
-
-### Development Security
-
-#### Dependency Management
-- Regular security audits with `npm audit`
-- Automated dependency updates via GitHub Actions
-- Known vulnerability scanning with Snyk
-- Minimal dependency principle
-
-#### Code Security
-- Static code analysis with CodeQL
-- TypeScript for type safety
-- ESLint security rules
-- Regular security code reviews
-
-### Deployment Security
-
-#### Environment Security
-- Environment variables for all sensitive configuration
-- No hardcoded secrets in codebase
-- Proper secret management in deployment environments
-- SSL/TLS encryption for all communications
-
-#### Monitoring
-- Application logging for security events
-- Failed authentication attempt tracking
-- File upload monitoring
-- Error tracking and alerting
-
-## Security Best Practices for Users
-
-### Installation Security
-- Always download from official releases
-- Verify checksums when provided
-- Use strong database passwords
-- Keep system dependencies updated
-
-### Configuration Security
-- Use environment variables for sensitive data
-- Enable HTTPS in production deployments
-- Configure firewall rules appropriately
-- Regular security updates
-
-### Operational Security
-- Regular database backups
-- Log monitoring and retention
-- Access control for admin functions
-- Regular security assessments
-
-## Known Security Considerations
-
-### Current Limitations
-- Single-user authentication model (suitable for personal/small team use)
-- Local file storage (ensure proper backup and access controls)
-- AI provider API key management (secure environment variable storage required)
-
-### Recommended Mitigations
-- Deploy behind reverse proxy with additional security headers
-- Use managed database services for production
-- Implement additional monitoring and alerting
-- Regular security assessment and updates
-
-## Security Updates
-
-Security updates are released as:
-- **Critical**: Immediate patch releases
-- **High**: Within 1-2 weeks
-- **Moderate**: In next regular release
-- **Low**: Addressed in future releases
-
-Subscribe to our releases to stay informed about security updates:
-- Watch this repository for releases
-- Follow our security advisories
-- Check the changelog for security-related changes
-
-## Contact Information
-
-- **Security Email**: security@pictallion.com
-- **General Issues**: [GitHub Issues](https://github.com/yourusername/pictallion/issues)
-- **Private Reports**: [GitHub Security Advisories](https://github.com/yourusername/pictallion/security/advisories)
-
-## Acknowledgments
-
-We appreciate responsible disclosure and will acknowledge security researchers who help improve Pictallion's security.
-
----
-
-This security policy is regularly updated. Last updated: January 2025
+- [API Documentation](API_DOCUMENTATION.md)
+- [Deployment Guide](DEPLOYMENT.md)
+- [Architecture](ARCHITECTURE.md)
