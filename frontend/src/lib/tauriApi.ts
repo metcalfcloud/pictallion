@@ -16,9 +16,8 @@ const isTauriEnvironment = (): boolean => {
 };
 
 // Lazy-loaded Tauri API with retry capability
-let tauriInvoke:
-  | ((cmd: string, args?: Record<string, unknown>) => Promise<unknown>)
-  | null = null;
+type InvokeFn = (cmd: string, args?: Record<string, unknown>) => Promise<unknown>;
+let tauriInvoke: InvokeFn | null = null;
 let tauriLoadPromise: Promise<void> | null = null;
 
 // Lazy load Tauri API on first use
@@ -39,14 +38,19 @@ async function ensureTauriApi(): Promise<void> {
   // Start loading
   tauriLoadPromise = (async () => {
     try {
-      // Prefer Tauri v2 API, fallback to v1
-      const core = await import("@tauri-apps/api/core").catch(() => null as any);
-      if (core && typeof (core as any).invoke === "function") {
-        tauriInvoke = (core as any).invoke as typeof tauriInvoke;
+      type TauriCoreModule = { invoke: InvokeFn };
+
+      let coreMod: TauriCoreModule | null = null;
+      try {
+        coreMod = (await import("@tauri-apps/api/core")) as unknown as TauriCoreModule;
+      } catch {
+        coreMod = null;
+      }
+
+      if (coreMod && typeof coreMod.invoke === "function") {
+        tauriInvoke = coreMod.invoke as InvokeFn;
       } else {
-        const v1Path = "@tauri-apps/api/" + "tauri";
-        const v1 = await import(v1Path as any);
-        tauriInvoke = (v1 as any).invoke as typeof tauriInvoke;
+        throw new Error("Tauri API core module not found");
       }
       console.log("[tauriApi] Tauri API loaded successfully");
     } catch (err) {
@@ -247,20 +251,9 @@ export interface Photo {
   tier: string;
 }
 
-// Browser fallback for listing photos
-async function listPhotosInBrowser(): Promise<Photo[]> {
-  console.warn(
-    "[tauriApi] Browser mode: Photo listing is not available. Please use the desktop app to manage your photo library.",
-  );
-  return [];
-}
-
 export async function listPhotos(): Promise<Photo[]> {
-  return await safeInvokeWithFallback<Photo[]>(
-    "list_photos",
-    undefined,
-    listPhotosInBrowser,
-  );
+  // Listing photos is a desktop feature; reject outside Tauri
+  return await safeInvoke<Photo[]>("list_photos");
 }
 
 export async function listPhotosByPerson(personId: string): Promise<Photo[]> {
@@ -407,13 +400,12 @@ export async function generateThumbnail(
   });
   if (isTauriEnvironment()) {
     try {
-      const core = await import("@tauri-apps/api/core").catch(() => null as any);
-      if (core && typeof (core as any).convertFileSrc === "function") {
-        return (core as any).convertFileSrc(path);
+      type CoreWithConvert = { convertFileSrc?: (p: string) => string };
+      const core = (await import("@tauri-apps/api/core")) as unknown as CoreWithConvert;
+      if (core && typeof core.convertFileSrc === "function") {
+        return core.convertFileSrc(path);
       }
-      const v1Path = "@tauri-apps/api/" + "tauri";
-      const v1 = await import(v1Path as any);
-      return (v1 as any).convertFileSrc(path);
+      return path;
     } catch {
       return path;
     }
@@ -424,13 +416,12 @@ export async function generateThumbnail(
 export async function toViewSrc(filePathOrUrl: string): Promise<string> {
   if (isTauriEnvironment()) {
     try {
-      const core = await import("@tauri-apps/api/core").catch(() => null as any);
-      if (core && typeof (core as any).convertFileSrc === "function") {
-        return (core as any).convertFileSrc(filePathOrUrl);
+      type CoreWithConvert = { convertFileSrc?: (p: string) => string };
+      const core = (await import("@tauri-apps/api/core")) as unknown as CoreWithConvert;
+      if (core && typeof core.convertFileSrc === "function") {
+        return core.convertFileSrc(filePathOrUrl);
       }
-      const v1Path = "@tauri-apps/api/" + "tauri";
-      const v1 = await import(v1Path as any);
-      return (v1 as any).convertFileSrc(filePathOrUrl);
+      return filePathOrUrl;
     } catch {
       return filePathOrUrl;
     }

@@ -50,18 +50,17 @@ run = ["npm run build"]
 
 [tasks.build-backend]
 description = "Build backend (Rust release)"
-dir = "src-tauri/src-tauri"
 run = [
-  "sh -lc 'command -v cc >/dev/null 2>&1 && cargo build --release || echo \"Skipping backend build: C compiler (cc) not found\"'"
+  "node scripts/build-backend.mjs"
 ]
 
 [tasks.build]
 description = "Build desktop app (Vite + Tauri)"
 run = [
   "echo Building frontend assets...",
-  "(npm ci --no-audit --no-fund || npm install) && npm run build",
+  "cd frontend && (npm ci --no-audit --no-fund || npm install) && npm run build",
   "echo Building Tauri application...",
-  "cd src-tauri/src-tauri && (npx --yes @tauri-apps/cli build || cargo tauri build)",
+  "mise run build-backend",
   "echo Production build completed successfully!"
 ]
 

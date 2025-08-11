@@ -4,6 +4,7 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 use tauri::Manager;
+use image::{DynamicImage, ImageFormat, GenericImageView};
 
 static MIGRATOR: Migrator = sqlx::migrate!("./migrations");
 
@@ -26,6 +27,8 @@ pub fn run() {
 
             // Initialize SQLite and media directories
             tauri::async_runtime::block_on(async move {
+                // Force SQLite usage regardless of environment variables
+                std::env::remove_var("DATABASE_URL");
                 let db_url = "sqlite://pictallion.db"; // stored in CWD/app dir
                 let db = SqlitePoolOptions::new()
                     .max_connections(5)
@@ -555,7 +558,8 @@ async fn delete_photo(
     let perm = permanent.unwrap_or(false);
     if perm {
         let _ = std::fs::remove_file(&storage_path);
-        sqlx::query!(r#"DELETE FROM photos WHERE id = ?1"#, photo_id)
+        sqlx::query(r#"DELETE FROM photos WHERE id = ?1"#)
+            .bind(&photo_id)
             .execute(&state.db)
             .await
             .map_err(|e| e.to_string())?;
@@ -568,15 +572,13 @@ async fn delete_photo(
     let dest = unique_path(&trash_dir.join(filename));
     std::fs::rename(&src, &dest).map_err(|e| e.to_string())?;
     let now = now_ts();
-    sqlx::query!(
-        r#"UPDATE photos SET storage_path = ?1, deleted_at = ?2 WHERE id = ?3"#,
-        dest.to_string_lossy(),
-        now,
-        photo_id
-    )
-    .execute(&state.db)
-    .await
-    .map_err(|e| e.to_string())?;
+    sqlx::query(r#"UPDATE photos SET storage_path = ?1, deleted_at = ?2 WHERE id = ?3"#)
+        .bind(dest.to_string_lossy().to_string())
+        .bind(now)
+        .bind(&photo_id)
+        .execute(&state.db)
+        .await
+        .map_err(|e| e.to_string())?;
     Ok("Photo moved to trash".into())
 }
 
@@ -603,13 +605,13 @@ async fn generate_thumbnail(
     photo_id: String,
     max_size: Option<u32>,
 ) -> Result<String, String> {
-    use image::{imageops::FilterType, DynamicImage, ImageFormat};
     let state = app.state::<AppState>();
-    let row = sqlx::query!(r#"SELECT storage_path FROM photos WHERE id = ?1"#, photo_id)
+    let row: Option<(String,)> = sqlx::query_as(r#"SELECT storage_path FROM photos WHERE id = ?1"#)
+        .bind(&photo_id)
         .fetch_optional(&state.db)
         .await
-        .map_err(|e| e.to_string())?
-        .ok_or_else(|| "Photo not found".to_string())?;
+        .map_err(|e| e.to_string())?;
+    let storage_path = row.ok_or_else(|| "Photo not found".to_string())?.0;
 
     // Compute thumbnail dir
     let thumbs_dir = Path::new("data").join("cache").join("thumbs");
@@ -619,7 +621,7 @@ async fn generate_thumbnail(
         }
     }
 
-    let input_path = PathBuf::from(row.storage_path);
+    let input_path = PathBuf::from(storage_path);
     let thumb_path = thumbs_dir.join(format!("{photo_id}.jpg"));
     let max_dim = max_size.unwrap_or(512);
 
@@ -638,6 +640,7 @@ async fn generate_thumbnail(
 }
 
 fn resize_keep_aspect(img: &DynamicImage, max_dim: u32) -> DynamicImage {
+    use image::imageops::FilterType;
     let (w, h) = img.dimensions();
     if w <= max_dim && h <= max_dim {
         return img.clone();
@@ -1010,7 +1013,8 @@ async fn export_photos(
                 .map_err(|e| e.to_string())?;
         if let Some((storage_path, original_path)) = row {
             let src = PathBuf::from(storage_path);
-            let name = PathBuf::from(original_path)
+            let original_pathbuf = PathBuf::from(original_path);
+            let name = original_pathbuf
                 .file_name()
                 .and_then(|s| s.to_str())
                 .unwrap_or("photo");

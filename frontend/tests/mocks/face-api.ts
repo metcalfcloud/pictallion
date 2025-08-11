@@ -1,7 +1,19 @@
 export const nets = {
-  ssdMobilenetv1: { loadFromUri: async (_: string) => {} },
-  faceLandmark68Net: { loadFromUri: async (_: string) => {} },
-  faceRecognitionNet: { loadFromUri: async (_: string) => {} },
+  ssdMobilenetv1: {
+    loadFromUri: async (path: string) => {
+      void path;
+    },
+  },
+  faceLandmark68Net: {
+    loadFromUri: async (path: string) => {
+      void path;
+    },
+  },
+  faceRecognitionNet: {
+    loadFromUri: async (path: string) => {
+      void path;
+    },
+  },
 };
 
 export class SsdMobilenetv1Options {
@@ -11,7 +23,9 @@ export class SsdMobilenetv1Options {
 type DetectionBox = { x: number; y: number; width: number; height: number };
 type DetectionResult = { detection: { box: DetectionBox }; descriptor: Float32Array };
 
-export function detectAllFaces(_img: unknown, _opts: SsdMobilenetv1Options) {
+export function detectAllFaces(img: unknown, opts: SsdMobilenetv1Options) {
+  void img;
+  void opts;
   return {
     withFaceLandmarks() {
       return {
@@ -24,4 +38,3 @@ export function detectAllFaces(_img: unknown, _opts: SsdMobilenetv1Options) {
     },
   };
 }
-

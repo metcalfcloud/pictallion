@@ -11,7 +11,6 @@ export default defineConfig(() => {
   if (shouldStubTauri || isTest) {
     const shim = path.resolve(__dirname, "./src/shims/tauri-core.ts");
     alias["@tauri-apps/api/core"] = shim;
-    alias["@tauri-apps/api/tauri"] = shim;
   }
 
   return {
@@ -21,6 +20,18 @@ export default defineConfig(() => {
     },
     server: {
       host: "0.0.0.0",
+    },
+    build: {
+      chunkSizeWarningLimit: 1500,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            react: ["react", "react-dom"],
+            mui: ["@mui/material", "@mui/icons-material", "@emotion/react", "@emotion/styled"],
+            face: ["@vladmandic/face-api"],
+          },
+        },
+      },
     },
   };
 });

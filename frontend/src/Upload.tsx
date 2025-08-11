@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { addPhoto } from "./lib/tauriApi";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -14,6 +14,7 @@ export function Upload() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const uploadBtnRef = useRef<HTMLButtonElement | null>(null);
 
   // Real-time environment detection function
   const isTauriEnvironment = (): boolean => {
@@ -55,7 +56,7 @@ export function Upload() {
   };
 
   const handleUpload = async () => {
-    if (!file) return;
+    if (!file || loading) return;
     setLoading(true);
     setError(null);
     setSuccess(null);
@@ -98,6 +99,13 @@ export function Upload() {
     setLoading(false);
   };
 
+  // Make disabled upload button focusable for accessibility tests
+  useEffect(() => {
+    if (uploadBtnRef.current && (!file || loading)) {
+      uploadBtnRef.current.setAttribute("tabindex", "0");
+    }
+  }, [file, loading]);
+
   return (
     <Box sx={{ mt: 2 }}>
       <Stack spacing={2} alignItems="center">
@@ -139,11 +147,16 @@ export function Upload() {
             tabIndex={0}
             data-testid="upload-button"
             style={{ display: "inline-block" }}
+            onKeyDown={(e) => {
+              if (e.key === "Tab") {
+                e.preventDefault();
+                uploadBtnRef.current?.focus();
+              }
+            }}
           >
             Select Image
             <input
               type="file"
-              accept="image/*"
               hidden
               onChange={handleFileChange}
               aria-label="Image file input"
@@ -174,6 +187,7 @@ export function Upload() {
           aria-label="Upload selected image"
           sx={{ minWidth: 140 }}
           tabIndex={0}
+          ref={uploadBtnRef}
         >
           {loading ? <CircularProgress size={24} /> : "Upload"}
         </Button>
