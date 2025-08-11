@@ -46,7 +46,7 @@ Edit
 1. **Single source of truth** – every change must be reflected in code, tests, docs and CI.
 2. Optimise for **readability** before micro‑performance.
 3. Prefer **open standards** (OpenAPI, OpenTelemetry, OIDC) over bespoke solutions.
-4. All artefacts must be reproducible from `git clone` + `just` + `docker compose up`.
+4. All artefacts must be reproducible from `git clone` + `mise install` + `mise run build` + `docker compose up`.
 5. Any task that takes >10 min twice must be automated.
 01_coding-style.md
 markdown
@@ -76,7 +76,7 @@ Goals:
 * Follow the workspace‑wide guidelines unless explicitly overridden.
 * Deliver runnable code **and** matching unit tests (pytest, vitest) in the same task.
 * Emit **diagnostic reasoning** before modifying files; wrap code in triple backticks.
-* After writing code, run `just test:all` and include the summary.
+* After writing code, run `mise run test` and include the summary.
 02_python-fastapi.md
 markdown
 Copy
@@ -177,7 +177,7 @@ Deliver and maintain CI/CD, infra ‑ as‑code and operational scripts.
 
 * Update GitHub Actions (`.github/workflows/*`) for tests, build, publish.
 * Produce multi‑stage Dockerfiles; final image ≤ 400 MB.
-* Generate `just` commands for common tasks.
+* Generate `mise run` tasks for common workflows.
 * Provision preview deployments on each PR (Docker Compose or Fly.io).
 * Integrate Dependabot and Renovate, configure auto‑merge on passing tests.
 F. Telemetry Engineer – .roo/rules-telemetry/01_role.md
@@ -216,7 +216,7 @@ customModes:
     groups:
       - read
       - edit
-      - command     # run scripts / just targets
+      - command     # run scripts / mise tasks
       - mcp         # allowed to call MCP tools
   - slug: qa-engineer
     name: QA Engineer

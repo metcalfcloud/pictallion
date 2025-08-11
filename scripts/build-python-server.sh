@@ -1,12 +1,12 @@
 #!/bin/bash
 
 # DEPRECATED: This script is for Python server deployment only
-# For Tauri desktop builds, use: just build
-# For development, use: just dev
+# For Tauri desktop builds, use: mise run build
+# For development, use: mise run dev
 
 echo "WARNING: This script builds for Python server deployment, not Tauri desktop"
-echo "For Tauri desktop builds, use: just build"
-echo "For development, use: just dev"
+echo "For Tauri desktop builds, use: mise run build"
+echo "For development, use: mise run dev"
 echo ""
 echo "Continuing with Python server build..."
 

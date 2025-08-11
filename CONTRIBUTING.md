@@ -24,7 +24,7 @@ Thank you for your interest in contributing! This guide covers contribution proc
 ## Testing
 
 - **Python Backend:** Write unit and integration tests using [`pytest`](https://docs.pytest.org/). Run tests with `pytest`. Check coverage with `pytest --cov=app`.
-- **Frontend:** Write unit and integration tests using [`Vitest`](https://vitest.dev/) and [`Playwright`](https://playwright.dev/). See [`frontend/tests/README.md`](frontend/tests/README.md:1) for details. Run tests with `just test` (recommended) or `npm test` in the `frontend` directory.
+- **Frontend:** Write unit and integration tests using [`Vitest`](https://vitest.dev/) and [`Playwright`](https://playwright.dev/). See [`frontend/tests/README.md`](frontend/tests/README.md:1) for details. Run tests with `mise run test` (recommended) or `npm test` in the `frontend` directory.
 - Add tests for new features, bug fixes, and refactoring.
 
 ## Documentation

@@ -17,7 +17,7 @@ Refer to each documentation file for specific guidance. For general project info
 
 ## Local Testing & Troubleshooting
 
-- Use the [`justfile`](../justfile:1) in the project root for setup, development, build, test, lint, and clean commands.
+- Use `mise` tasks defined in the project root [`.mise.toml`](../.mise.toml:1) for setup, development, build, test, lint, and clean commands.
 - Ensure all prerequisites are installed:
   - **Rust** (for backend)
   - **Tauri CLI** (for desktop integration)

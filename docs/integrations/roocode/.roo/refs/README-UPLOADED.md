@@ -24,19 +24,19 @@ Pictallion is a modern, AI-powered photo management platform featuring intellige
 
 ### Prerequisites
 
-- Node.js 18+
-- Rust toolchain (for backend/Tauri)
+- mise task runner (manages Node 22 and Rust stable)
 - Optional: Ollama (local AI), OpenAI API key
 
 ### Installation & Development
 
-All common development tasks are automated using [`just`](justfile:1). Recipes are defined in the project root.
+All common development tasks are automated using `mise` tasks defined in `.mise.toml` at the project root.
 
 ```bash
 git clone https://github.com/yourusername/pictallion.git
 cd pictallion
-just setup
-just dev
+mise install
+mise run setup
+mise run dev
 ```
 
 Open [http://localhost:5173](http://localhost:5173) in your browser.
@@ -65,15 +65,15 @@ pictallion/
 
 ## Development & Testing
 
-- **Setup:** `just setup`
-- **Dev server:** `just dev`
-- **Build:** `just build`
-- **Lint:** `just lint`
-- **Unit tests:** `just test`
+- **Setup:** `mise run setup`
+- **Dev server:** `mise run dev`
+- **Build:** `mise run build`
+- **Lint:** `mise run lint`
+- **Unit tests:** `mise run test`
 - **E2E tests:** See [`frontend/tests/README.md`](frontend/tests/README.md:1)
 - **Playwright/Puppeteer:** See [`frontend/tests/README.md`](frontend/tests/README.md:1)
 
-All workflows are automated via the project [`justfile`](justfile:1).
+All workflows are automated via the project `.mise.toml` tasks.
 
 ---
 

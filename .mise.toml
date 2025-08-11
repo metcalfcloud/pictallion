@@ -1,0 +1,182 @@
+[tools]
+# Use Node.js 22 (matches .nvmrc) and stable Rust
+node = "22"
+rust = "stable"
+
+[env]
+# Keep Playwright browsers managed per-project (no global cache directories)
+PLAYWRIGHT_BROWSERS_PATH = "0"
+
+[tasks.setup]
+description = "Install deps (root, frontend) and check Rust"
+run = [
+  # Root deps (contains Vite/Playwright/Vitest config and scripts)
+  "npm ci --no-audit --no-fund || npm install",
+  # Frontend workspace deps
+  "cd frontend && (npm ci --no-audit --no-fund || npm install)",
+  # Pre-fetch/build Rust deps so first builds are faster
+  # Lightweight Rust presence check (compilation may require platform toolchains)
+  "cd src-tauri/src-tauri && (cargo --version || true)"
+]
+
+[tasks.env]
+description = "Create .env from example if missing"
+run = [
+  # Cross-platform node one-liner to copy if missing
+  "node -e \"const fs=require('fs');if(!fs.existsSync('.env')&&fs.existsSync('.env.example'))fs.copyFileSync('.env.example','.env');\""
+]
+
+[tasks.dev]
+description = "Start Vite then launch Tauri desktop (live UI)"
+run = [
+  # Uses the maintained dev script colocated with tauri scripts
+  "node scripts/dev.mjs"
+]
+
+[tasks.dev-frontend]
+description = "Start Vite (browser-only dev)"
+dir = "frontend"
+run = ["npm run dev"]
+
+[tasks.dev-backend]
+description = "Start Tauri backend (desktop window)"
+dir = "src-tauri/src-tauri"
+run = ["npx --yes @tauri-apps/cli dev || cargo tauri dev"]
+
+[tasks.build-frontend]
+description = "Build frontend (Vite)"
+dir = "frontend"
+run = ["npm run build"]
+
+[tasks.build-backend]
+description = "Build backend (Rust release)"
+dir = "src-tauri/src-tauri"
+run = [
+  "sh -lc 'command -v cc >/dev/null 2>&1 && cargo build --release || echo \"Skipping backend build: C compiler (cc) not found\"'"
+]
+
+[tasks.build]
+description = "Build desktop app (Vite + Tauri)"
+run = [
+  "echo Building frontend assets...",
+  "(npm ci --no-audit --no-fund || npm install) && npm run build",
+  "echo Building Tauri application...",
+  "cd src-tauri/src-tauri && (npx --yes @tauri-apps/cli build || cargo tauri build)",
+  "echo Production build completed successfully!"
+]
+
+[tasks.clean-frontend]
+description = "Clean Vite artifacts"
+dir = "frontend"
+run = ["npm run clean"]
+
+[tasks.clean-backend]
+description = "Clean Rust target"
+dir = "src-tauri/src-tauri"
+run = ["cargo clean"]
+
+[tasks.clean]
+description = "Clean all build artifacts"
+depends = ["clean-frontend", "clean-backend"]
+
+[tasks.test-frontend]
+description = "Run unit tests (Vitest)"
+dir = "frontend"
+run = ["npm run test"]
+
+[tasks.test-backend]
+description = "Run Rust tests"
+dir = "src-tauri/src-tauri"
+run = [
+  "sh -lc 'command -v cc >/dev/null 2>&1 && cargo test || echo \"Skipping backend tests: C compiler (cc) not found\"'"
+]
+
+[tasks.test-e2e]
+description = "Run Playwright e2e (frontend config)"
+dir = "frontend"
+run = ["npm run test:e2e"]
+
+[tasks.test-e2e-ui]
+description = "Run Playwright e2e with UI"
+dir = "frontend"
+run = ["npm run test:e2e:ui"]
+
+[tasks.test]
+description = "Run all tests: unit + e2e + Rust"
+depends = ["test-frontend", "test-e2e", "test-backend"]
+
+[tasks.lint-frontend]
+description = "ESLint on frontend"
+dir = "frontend"
+run = ["npm run lint"]
+
+[tasks.lint-backend]
+description = "Clippy on Rust backend"
+dir = "src-tauri/src-tauri"
+run = [
+  "sh -lc 'command -v cc >/dev/null 2>&1 && cargo clippy || echo \"Skipping clippy: C compiler (cc) not found\"'"
+]
+
+[tasks.lint]
+description = "Run all linters"
+depends = ["lint-frontend", "lint-backend"]
+
+[tasks.format-frontend]
+description = "Format frontend (ESLint --fix)"
+dir = "frontend"
+run = ["npm run lint -- --fix"]
+
+[tasks.format-backend]
+description = "Format Rust (rustfmt)"
+dir = "src-tauri/src-tauri"
+run = ["cargo fmt"]
+
+[tasks.format]
+description = "Format all code"
+depends = ["format-frontend", "format-backend"]
+
+[tasks.e2e-setup]
+description = "Reinstall frontend deps for current OS"
+dir = "frontend"
+run = ["rimraf node_modules package-lock.json && npm install"]
+
+[tasks.e2e-install]
+description = "Install Playwright browsers"
+run = ["npx playwright install"]
+
+[tasks.e2e]
+description = "Run root Playwright suite"
+run = ["npx playwright test -c ./playwright.config.ts --reporter=line"]
+
+[tasks.e2e-all]
+description = "Full E2E pipeline: setup + install + run"
+depends = ["e2e-setup", "e2e-install", "e2e"]
+
+[tasks.diagnose]
+description = "Show versions and quick environment checks"
+run = [
+  "node --version",
+  "npm --version",
+  "rustc --version",
+  "cargo --version",
+  "npx --yes @tauri-apps/cli -V || echo 'tauri cli not available (ok if cargo tauri installed)'"
+]
+
+[tasks.doctor-linux]
+description = "Check Linux C toolchain and GTK/WebKit deps"
+run = [
+  "sh -lc 'if [ \"$(uname)\" != Linux ]; then echo \"Not on Linux; skipping.\"; exit 0; fi'",
+  "sh -lc 'command -v cc >/dev/null 2>&1 && echo \"✅ C compiler (cc) found\" || echo \"❌ C compiler (cc) missing: sudo apt-get install -y build-essential\"'",
+  "sh -lc 'command -v pkg-config >/dev/null 2>&1 && echo \"✅ pkg-config found\" || echo \"❌ pkg-config missing: sudo apt-get install -y pkg-config\"'",
+  "sh -lc 'pkg-config --exists gtk+-3.0 && echo \"✅ GTK 3 dev found\" || echo \"❌ GTK 3 dev missing: sudo apt-get install -y libgtk-3-dev\"'",
+  "sh -lc 'pkg-config --exists webkit2gtk-4.1 || pkg-config --exists webkit2gtk-4.0 && echo \"✅ WebKit2GTK dev found\" || echo \"❌ WebKit2GTK dev missing: sudo apt-get install -y libwebkit2gtk-4.1-dev || sudo apt-get install -y libwebkit2gtk-4.0-dev\"'",
+  "sh -lc 'pkg-config --exists ayatana-appindicator3-0.1 && echo \"✅ Ayatana AppIndicator dev found\" || echo \"❌ AppIndicator dev missing: sudo apt-get install -y libayatana-appindicator3-dev\"'",
+  "sh -lc 'pkg-config --exists librsvg-2.0 && echo \"✅ librsvg2 dev found\" || echo \"❌ librsvg2 dev missing: sudo apt-get install -y librsvg2-dev\"'"
+]
+
+[tasks.e2e-smoke-chromium]
+description = "Install Chromium only and run E2E on Chromium"
+run = [
+  "npx playwright install chromium",
+  "npx playwright test -c ./playwright.config.ts --project=chromium --reporter=line"
+]

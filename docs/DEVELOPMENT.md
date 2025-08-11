@@ -4,40 +4,43 @@ This guide describes how to set up and work with the Pictallion development envi
 
 ## Prerequisites
 
-- Node.js 18+
-- Rust toolchain (for backend/Tauri)
+- mise (manages Node 22 and Rust stable per `.mise.toml`)
 - Optional: Ollama (local AI), OpenAI API key
 
 ## Environment Setup
 
-All common development tasks are automated using [`just`](https://github.com/casey/just). Recipes are defined in the project root [`justfile`](justfile:1).
+All common development tasks are automated using `mise`. Tasks are defined in the project root `.mise.toml`.
 
+- Install toolchains:  
+  ```bash
+  mise install
+  ```
 - **Setup:**  
   ```bash
-  just setup
+  mise run setup
   ```
 - **Development:**  
   ```bash
-  just dev
+  mise run dev
   ```
 - **Build:**  
   ```bash
-  just build
+  mise run build
   ```
 - **Test:**  
   ```bash
-  just test
+  mise run test
   ```
 - **Lint:**  
   ```bash
-  just lint
+  mise run lint
   ```
 - **Clean:**  
   ```bash
-  just clean
+  mise run clean
   ```
 
-Manual steps are not required; dependencies and workflows are managed via `just`.
+Manual steps are not required; dependencies and workflows are managed via `mise`.
 
 ## Project Structure
 
@@ -47,7 +50,7 @@ Manual steps are not required; dependencies and workflows are managed via `just`
 
 ## Development Workflow
 
-- Start development servers with `just dev`.
+- Start development servers with `mise run dev`.
 - Edit frontend and backend code independently.
 - Use test data and scripts in [`scripts/`](scripts/) for development.
 - Frontend runs on [http://localhost:5173](http://localhost:5173).
@@ -58,7 +61,7 @@ Manual steps are not required; dependencies and workflows are managed via `just`
 - **Frontend:**  
   Run all tests:
   ```bash
-  just test
+  mise run test
   ```
   Or run directly in [`frontend/`](frontend/):
   ```bash
@@ -69,7 +72,7 @@ Manual steps are not required; dependencies and workflows are managed via `just`
 - **Backend:**  
   Run Rust/Tauri tests:
   ```bash
-  just test
+  mise run test
   ```
   Or use Cargo directly in [`src-tauri/`](src-tauri/):
   ```bash

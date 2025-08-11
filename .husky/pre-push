@@ -7,16 +7,16 @@ fi
 
 echo "🔎 Running pre-push checks (lint + tests)"
 
-# Prefer just if available for consistency
-if command -v just >/dev/null 2>&1; then
-  just lint || exit 1
-  just test-frontend || exit 1
-  just test-backend || exit 1
+# Prefer mise tasks if available for consistency
+if command -v mise >/dev/null 2>&1; then
+  mise run lint || exit 1
+  mise run test-frontend || exit 1
+  mise run test-backend || exit 1
   exit 0
 fi
 
-# Fallback without just
-echo "ℹ️ 'just' not found, running fallback commands"
+# Fallback without mise
+echo "ℹ️ 'mise' not found, running fallback commands"
 
 # Lint frontend
 cd frontend || exit 1

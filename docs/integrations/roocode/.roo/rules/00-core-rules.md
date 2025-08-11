@@ -3,7 +3,7 @@
 These are invariants that **must be followed in all modes**. Keep replies concise and prefer diffs/patches over full file rewrites.
 
 ## Canonical Practices
-- Use `just` recipes for all tasks: build, dev, test, lint, format, and deploy.
+- Use `mise` tasks for all tasks: build, dev, test, lint, format, and deploy.
 - Respect the tiered photo flow **Bronze → Silver → Gold**; never break folder contracts.
 - Pictallion stack: **Tauri (Rust) + React/TypeScript** with IPC for FE↔BE calls; SQLite for desktop, PostgreSQL for server.
 - Cross-platform support (Windows/macOS/Linux) is required; avoid OS-specific commands when possible.
@@ -18,6 +18,6 @@ These are invariants that **must be followed in all modes**. Keep replies concis
 - When editing large files, propose **unified diffs** or **targeted patches**.
 
 ## Definition of Done
-- Code compiles; `just test` and `just lint` succeed locally.
+- Code compiles; `mise run test` and `mise run lint` succeed locally.
 - E2E critical paths pass or are updated with new tests.
 - Changelist includes brief summary in commit message and updates relevant docs if needed.

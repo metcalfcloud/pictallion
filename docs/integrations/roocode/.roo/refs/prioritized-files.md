@@ -1,6 +1,6 @@
 # Prioritized Files (Reference)
 1. README.md
-2. justfile
+2. .mise.toml
 3. frontend/src/App.tsx
 4. src-tauri/src-tauri/src/lib.rs
 5. ARCHITECTURE.md

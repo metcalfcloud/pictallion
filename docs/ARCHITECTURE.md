@@ -51,7 +51,7 @@ graph TB
 
 - Async-first, modular, testable
 - IPC-based API, OpenAPI compatibility planned
-- Secure, maintainable, reproducible from `git clone` + `just` + `docker compose up`
+- Secure, maintainable, reproducible from `git clone` + `mise install` + `mise run build` + `docker compose up`
 
 ## References
 

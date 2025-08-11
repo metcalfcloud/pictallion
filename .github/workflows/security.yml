@@ -137,9 +137,8 @@ jobs:
 
       - name: 🏗️ Build Docker image
         run: |
-          chmod +x scripts/build-docker.sh
-          ./scripts/build-docker.sh
-          docker build -t pictallion:security-test .
+          # Build from the repo's Dockerfile under docker/
+          docker build -f docker/Dockerfile -t pictallion:security-test .
 
       - name: 🔍 Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master

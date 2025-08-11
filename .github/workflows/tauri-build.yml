@@ -27,24 +27,26 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Install frontend deps
+      - name: Install mise
         run: |
-          cd frontend
-          npm ci --no-audit --no-fund
+          curl -fsSL https://mise.jdx.dev/install.sh | sh
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          ~/.local/bin/mise --version
+
+      - name: Trust tasks & install toolchains
+        run: |
+          mise trust .
+          mise install
+
+      - name: Install Linux native dependencies (GTK/WebKit)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y build-essential pkg-config libssl-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev libwebkit2gtk-4.1-dev || sudo apt-get install -y libwebkit2gtk-4.0-dev
 
       - name: Build frontend
         run: |
-          cd frontend
-          npm run build
+          mise run build-frontend
 
       - name: Cache cargo registry + build
         uses: actions/cache@v4

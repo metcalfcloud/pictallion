@@ -20,7 +20,7 @@ Then in Roo Code:
 
 ## Workflow
 1. Ask Roo in **Orchestrator**: “Ship feature X.”
-2. It drafts a plan (Architect), assigns tasks (Coder/QA), and runs `just` commands.
+2. It drafts a plan (Architect), assigns tasks (Coder/QA), and runs `mise run` tasks.
 3. Use refs instead of pasting large files; Roo should **open** files and summarize.
 
 ## Token Budgeting

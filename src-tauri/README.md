@@ -41,7 +41,7 @@ This will start both the frontend and backend for local development:
 
 ```sh
 # From the project root
-just dev
+mise run dev
 ```
 
 Or manually:
