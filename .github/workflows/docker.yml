@@ -4,11 +4,10 @@ on:
   push:
     branches: [main]
     paths:
-      - 'server/**'
-      - 'client/**'
+      - 'frontend/**'
+      - 'src-tauri/**'
       - 'shared/**'
-      - 'Dockerfile'
-      - 'docker-compose.yml'
+      - 'docker/**'
     tags-ignore:
       - 'v*.*.*'
   pull_request:
@@ -45,7 +44,7 @@ jobs:
             type=sha
 
       - name: 🚀 Build Docker setup
-        run: bash ./scripts/ci/build-docker-setup.sh
+        run: bash ./scripts/ci/docker-setup.sh
 
       - name: 🏗️ Build Docker image
         uses: docker/build-push-action@v5
