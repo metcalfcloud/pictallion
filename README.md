@@ -70,8 +70,8 @@ pictallion/
 - **Build:** `mise run build`
 - **Lint:** `mise run lint`
 - **Unit tests:** `mise run test`
-- **E2E tests:** See [`frontend/tests/README.md`](frontend/tests/README.md:1)
-- **Playwright/Puppeteer:** See [`frontend/tests/README.md`](frontend/tests/README.md:1)
+- **E2E tests:** See [`frontend/tests/README.md`](frontend/tests/README.md)
+- **Playwright/Puppeteer:** See [`frontend/tests/README.md`](frontend/tests/README.md)
 
 All workflows are automated via the project `.mise.toml` tasks.
 
@@ -92,8 +92,8 @@ Environment variables are managed via `.env` files. See `.env.example` for requi
 - [Architecture](docs/ARCHITECTURE.md)
 - [Deployment](docs/DEPLOYMENT.md)
 - [Development](docs/DEVELOPMENT.md)
-- [Contributing](CONTRIBUTING.md:1)
-- [Security](SECURITY.md:1)
+- [Contributing](CONTRIBUTING.md)
+- [Security](SECURITY.md)
 
 ---
 
@@ -125,7 +125,7 @@ Notes:
 
 ## License
 
-MIT – see [`LICENSE`](LICENSE:1)
+MIT – see [`LICENSE`](LICENSE)
 
 ---
 
