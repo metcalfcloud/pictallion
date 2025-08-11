@@ -97,6 +97,32 @@ Environment variables are managed via `.env` files. See `.env.example` for requi
 
 ---
 
+## Release
+
+CI builds macOS/Linux/Windows installers on tags matching `v*` and drafts a GitHub Release with artifacts.
+
+Checklist:
+
+```bash
+# 1) Update version (package.json or app metadata) and commit
+
+# 2) Tag and push
+git tag v0.1.0
+git push --tags
+
+# 3) CI builds cross-platform bundles and drafts a release
+#    Artifacts: src-tauri/src-tauri/target/release/bundle/**
+
+# 4) (Optional) Configure signing in repo secrets before tagging
+#    TAURI_SIGNING_PRIVATE_KEY, TAURI_SIGNING_PRIVATE_KEY_PASSWORD
+```
+
+Notes:
+- Face models: place `@vladmandic/face-api` models under `frontend/public/models/` or provide a CDN fallback.
+- See Deployment for per-OS packaging, signing, and release details.
+
+---
+
 ## License
 
 MIT – see [`LICENSE`](LICENSE:1)

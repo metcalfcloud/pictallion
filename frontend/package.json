@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "echo '[dev] Starting Vite server...' && vite",
     "build": "tsc -b && vite build",
@@ -15,12 +18,14 @@
     "clean": "rimraf dist node_modules/.vite"
   },
   "dependencies": {
+    "@tauri-apps/api": "^2.7.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@mui/icons-material": "^5.18.0",
     "@mui/material": "^5.15.14",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "@vladmandic/face-api": "^1.7.15"
   },
   "devDependencies": {
     "@eslint/js": "^9.30.1",

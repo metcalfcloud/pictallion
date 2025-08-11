@@ -1,0 +1,38 @@
+#!/usr/bin/env sh
+
+# Skip in CI where checks run server-side
+if [ "$CI" = "true" ]; then
+  exit 0
+fi
+
+echo "🔎 Running pre-push checks (lint + tests)"
+
+# Prefer just if available for consistency
+if command -v just >/dev/null 2>&1; then
+  just lint || exit 1
+  just test-frontend || exit 1
+  just test-backend || exit 1
+  exit 0
+fi
+
+# Fallback without just
+echo "ℹ️ 'just' not found, running fallback commands"
+
+# Lint frontend
+cd frontend || exit 1
+npx eslint . --max-warnings=0 || exit 1
+
+# Unit tests (frontend)
+npm run -s test || exit 1
+
+# E2E (optional locally). Enable by exporting RUN_E2E=1
+if [ "$RUN_E2E" = "1" ]; then
+  npx playwright install --with-deps || true
+  npx playwright test -c ../playwright.config.ts --reporter=line || exit 1
+fi
+
+# Backend tests
+cd ../src-tauri/src-tauri || exit 1
+cargo test || exit 1
+
+echo "✅ Pre-push checks passed"

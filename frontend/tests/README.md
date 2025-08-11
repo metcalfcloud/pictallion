@@ -22,11 +22,13 @@ This directory contains integration, UI, and end-to-end tests for the Pictallion
 ## Running Tests
 
 Run all Vitest tests:
+
 ```bash
 npm run test
 ```
 
 Run specific Vitest tests:
+
 ```bash
 npm run test -- tests/integration/
 npm run test -- tests/integration/upload.test.tsx
@@ -35,6 +37,7 @@ npm run test -- tests/App.test.tsx
 ```
 
 Development options (Vitest):
+
 ```bash
 npm run test -- --watch
 npm run test -- --coverage
@@ -42,11 +45,13 @@ npm run test -- --reporter=verbose
 ```
 
 Run Playwright end-to-end tests:
+
 ```bash
 npm run test:e2e
 ```
 
 Run Puppeteer UI tests:
+
 ```bash
 npm run test:puppeteer
 ```
@@ -56,6 +61,7 @@ npm run test:puppeteer
 Use [`vitest`](https://vitest.dev/), [`@testing-library/react`](https://testing-library.com/docs/react-testing-library/intro/), [`@testing-library/user-event`](https://testing-library.com/docs/user-event/intro/), [`playwright`](https://playwright.dev/), and [`puppeteer`](https://pptr.dev/).
 
 Example (Vitest):
+
 ```typescript
 import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
@@ -89,15 +95,22 @@ describe('Upload', () => {
 ## Mocking Tauri
 
 Basic usage:
+
 ```typescript
 mockTauriSuccess();
-mockTauriFailure('Error message');
+mockTauriFailure("Error message");
 mockTauriDelay(1000);
 ```
+
 Advanced:
+
 ```typescript
 const mockManager = TauriMockManager.getInstance();
-mockManager.configure({ shouldFail: false, delay: 500, customResponses: { add_photo: 'Success' } });
+mockManager.configure({
+  shouldFail: false,
+  delay: 500,
+  customResponses: { add_photo: "Success" },
+});
 ```
 
 ## Troubleshooting

@@ -49,19 +49,59 @@ function App() {
   // Ensure Gallery tab is default for Puppeteer tests
   const [activeTab, setActiveTab] = useState(0);
   const [mode, setMode] = useState<"light" | "dark">(
-    window.localStorage.getItem("theme") === "dark" ? "dark" : "light"
+    window.localStorage.getItem("theme") === "dark" ? "dark" : "light",
   );
   const [helpOpen, setHelpOpen] = useState(false);
 
   const sidebarItems = [
-    { label: "Gallery", icon: <PhotoLibraryIcon />, tab: 0, testId: "gallery-nav" },
-    { label: "Upload", icon: <UploadFileIcon />, tab: 1, testId: "upload-button" },
-    { label: "Bulk Actions", icon: <PhotoLibraryIcon />, tab: 0, testId: "bulk-actions-nav" },
-    { label: "Search", icon: <PhotoLibraryIcon />, tab: 0, testId: "search-input" },
-    { label: "Face Detection", icon: <PhotoLibraryIcon />, tab: 0, testId: "face-detection-nav" },
-    { label: "People", icon: <PeopleIcon />, tab: 2, testId: "people-manager-nav" },
-    { label: "Metadata", icon: <InfoIcon />, tab: 3, testId: "metadata-viewer-nav" },
-    { label: "Settings", icon: <SettingsIcon />, tab: 4, testId: "user-settings-nav" },
+    {
+      label: "Gallery",
+      icon: <PhotoLibraryIcon />,
+      tab: 0,
+      testId: "gallery-nav",
+    },
+    {
+      label: "Upload",
+      icon: <UploadFileIcon />,
+      tab: 1,
+      testId: "upload-button",
+    },
+    {
+      label: "Bulk Actions",
+      icon: <PhotoLibraryIcon />,
+      tab: 0,
+      testId: "bulk-actions-nav",
+    },
+    {
+      label: "Search",
+      icon: <PhotoLibraryIcon />,
+      tab: 0,
+      testId: "search-input",
+    },
+    {
+      label: "Face Detection",
+      icon: <PhotoLibraryIcon />,
+      tab: 0,
+      testId: "face-detection-nav",
+    },
+    {
+      label: "People",
+      icon: <PeopleIcon />,
+      tab: 2,
+      testId: "people-manager-nav",
+    },
+    {
+      label: "Metadata",
+      icon: <InfoIcon />,
+      tab: 3,
+      testId: "metadata-viewer-nav",
+    },
+    {
+      label: "Settings",
+      icon: <SettingsIcon />,
+      tab: 4,
+      testId: "user-settings-nav",
+    },
   ];
 
   const theme = createTheme({
@@ -90,14 +130,25 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box sx={{ bgcolor: "background.default", minHeight: "100vh", display: "flex" }}>
+      <Box
+        sx={{
+          bgcolor: "background.default",
+          minHeight: "100vh",
+          display: "flex",
+        }}
+      >
         {/* Sidebar */}
         <Drawer
           variant="permanent"
           sx={{
             width: 220,
             flexShrink: 0,
-            [`& .MuiDrawer-paper`]: { width: 220, boxSizing: "border-box", bgcolor: "primary.main", color: "#fff" },
+            [`& .MuiDrawer-paper`]: {
+              width: 220,
+              boxSizing: "border-box",
+              bgcolor: "primary.main",
+              color: "#fff",
+            },
             display: { xs: "none", md: "block" },
           }}
           open
@@ -112,7 +163,9 @@ function App() {
                   aria-label={`Go to ${item.label}`}
                   data-testid={item.testId ? item.testId : undefined}
                 >
-                  <ListItemIcon sx={{ color: "secondary.main" }}>{item.icon}</ListItemIcon>
+                  <ListItemIcon sx={{ color: "secondary.main" }}>
+                    {item.icon}
+                  </ListItemIcon>
                   <ListItemText primary={item.label} />
                 </ListItemButton>
               </ListItem>
@@ -121,7 +174,12 @@ function App() {
         </Drawer>
         {/* Main Content */}
         <Box sx={{ flexGrow: 1, px: { xs: 1, md: 4 }, py: 4 }}>
-          <AppBar position="fixed" color="primary" elevation={2} sx={{ zIndex: 1201 }}>
+          <AppBar
+            position="fixed"
+            color="primary"
+            elevation={2}
+            sx={{ zIndex: 1201 }}
+          >
             <Toolbar>
               <Typography variant="h6" sx={{ flexGrow: 1 }}>
                 Pictallion
@@ -166,16 +224,30 @@ function App() {
           <Toolbar />
           <Container maxWidth="lg" sx={{ mt: 4 }}>
             <Paper elevation={3} sx={{ p: 3 }}>
-              <Typography variant="h2" gutterBottom align="center" sx={{ fontWeight: 700 }}>
+              <Typography
+                variant="h2"
+                gutterBottom
+                align="center"
+                sx={{ fontWeight: 700 }}
+              >
                 Welcome to Pictallion
               </Typography>
-              <Typography variant="h5" align="center" gutterBottom sx={{ color: "text.secondary", fontWeight: 400 }}>
+              <Typography
+                variant="h5"
+                align="center"
+                gutterBottom
+                sx={{ color: "text.secondary", fontWeight: 400 }}
+              >
                 A modern photo management app built with Tauri, Rust, and React.
               </Typography>
               <Box sx={{ mt: 4 }}>
                 {activeTab === 0 && (
                   <Box>
-                    <Typography variant="h4" gutterBottom sx={{ fontWeight: 600 }}>
+                    <Typography
+                      variant="h4"
+                      gutterBottom
+                      sx={{ fontWeight: 600 }}
+                    >
                       Photo Gallery
                     </Typography>
                     <Gallery />
@@ -186,7 +258,11 @@ function App() {
                 )}
                 {activeTab === 1 && (
                   <Box>
-                    <Typography variant="h4" gutterBottom sx={{ fontWeight: 600 }}>
+                    <Typography
+                      variant="h4"
+                      gutterBottom
+                      sx={{ fontWeight: 600 }}
+                    >
                       Upload Photos
                     </Typography>
                     <Upload />
@@ -194,7 +270,11 @@ function App() {
                 )}
                 {activeTab === 2 && (
                   <Box>
-                    <Typography variant="h4" gutterBottom sx={{ fontWeight: 600 }}>
+                    <Typography
+                      variant="h4"
+                      gutterBottom
+                      sx={{ fontWeight: 600 }}
+                    >
                       People Manager
                     </Typography>
                     <PeopleManager />
@@ -202,15 +282,17 @@ function App() {
                 )}
                 {activeTab === 3 && (
                   <Box>
-                    <Typography variant="h4" gutterBottom sx={{ fontWeight: 600 }}>
+                    <Typography
+                      variant="h4"
+                      gutterBottom
+                      sx={{ fontWeight: 600 }}
+                    >
                       Metadata Viewer
                     </Typography>
                     <MetadataViewer photoId="" />
                   </Box>
                 )}
-                {activeTab === 4 && (
-                  <UserSettings data-testid="user-profile" />
-                )}
+                {activeTab === 4 && <UserSettings data-testid="user-profile" />}
               </Box>
             </Paper>
             <Box sx={{ mt: 4, textAlign: "center", color: "text.secondary" }}>
@@ -239,11 +321,17 @@ function App() {
         </Box>
       </Box>
       {/* Onboarding/Help Modal */}
-      <Dialog open={helpOpen} onClose={() => setHelpOpen(false)} aria-labelledby="help-dialog-title" data-testid="onboarding-modal">
+      <Dialog
+        open={helpOpen}
+        onClose={() => setHelpOpen(false)}
+        aria-labelledby="help-dialog-title"
+        data-testid="onboarding-modal"
+      >
         <DialogTitle id="help-dialog-title">Welcome to Pictallion</DialogTitle>
         <DialogContent dividers>
           <Typography variant="body1" gutterBottom>
-            This app helps you manage your photo collection with advanced features:
+            This app helps you manage your photo collection with advanced
+            features:
           </Typography>
           <ul>
             <li>Browse and search your photos in a responsive gallery.</li>

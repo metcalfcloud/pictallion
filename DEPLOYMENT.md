@@ -1,6 +1,6 @@
 # Pictallion Deployment Guide
 
-This guide describes production deployment for all major components of Pictallion using the unified Docker setup. The supported stack includes a Python backend (FastAPI/Uvicorn), React frontend, PostgreSQL database, and optional Ollama AI service.
+This guide describes packaging and deployment for the desktop app (Tauri) and, if needed, the earlier Docker setup used during prototyping. The desktop app stack is Tauri (Rust) + React (Vite) with SQLite.
 
 ## Prerequisites
 
@@ -16,9 +16,37 @@ See [`.env.example`](.env.example:1) for all required variables. Key settings in
 - `AI_PROVIDER`, `OLLAMA_BASE_URL`, `OPENAI_API_KEY`
 - `SESSION_SECRET`, `LOG_LEVEL`
 
-## Deployment (Recommended)
+## Desktop Packaging (Tauri)
 
-All services (backend, frontend, database, Ollama) are built and run using a single script.
+Build the frontend and package the desktop application per-OS.
+
+```bash
+cd frontend && npm install && npm run build
+cd ../src-tauri/src-tauri && cargo tauri build
+```
+
+Artifacts (installers/bundles) are placed under `src-tauri/src-tauri/target/release/`.
+
+### macOS
+- Codesigning and notarization require an Apple Developer ID certificate.
+- In CI, set `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` (see `.github/workflows/tauri-build.yml`).
+
+### Windows
+- Optional signing via a code signing certificate. Configure env vars in CI.
+
+### Linux
+- AppImage/Deb/RPM bundles are produced. Signing is optional.
+
+### CI Publishing (GitHub Actions)
+- On tags matching `v*`, CI builds macOS/Linux/Windows bundles and:
+  - Uploads artifacts for each platform.
+  - Creates a draft GitHub Release with installers attached.
+- Configure signing by setting `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` repository secrets.
+- Workflow: `.github/workflows/tauri-build.yml`.
+
+## Docker Deployment (legacy)
+
+Early prototypes used a web stack (Python/Node). If you need that flow, use the scripts below; otherwise prefer the Tauri desktop packaging above.
 
 ### Quick Start
 

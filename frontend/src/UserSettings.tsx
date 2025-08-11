@@ -26,13 +26,13 @@ export function UserSettings() {
           <TextField
             label="Name"
             value={name}
-            onChange={e => setName(e.target.value)}
+            onChange={(e) => setName(e.target.value)}
             fullWidth
           />
           <TextField
             label="Email"
             value={email}
-            onChange={e => setEmail(e.target.value)}
+            onChange={(e) => setEmail(e.target.value)}
             fullWidth
           />
           <Button variant="contained" color="primary" onClick={handleSave}>

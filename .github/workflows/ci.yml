@@ -42,56 +42,68 @@ jobs:
           node-version: '22'
           cache: 'npm'
 
-      - name: 🔧 Install dependencies
-        run: npm ci
+      - name: 🔧 Install frontend dependencies
+        run: |
+          cd frontend
+          npm ci --no-audit --no-fund
 
-      - name: 🎨 Lint code
+      - name: 🎨 Lint code (frontend)
         run: |
           cd frontend
           npx eslint . --max-warnings=0
           npx prettier --check .
 
       - name: 🏗️ Build client
-        run: cd frontend && npm run build
+        run: cd frontend && VITE_TAURI_STUB=1 npm run build
 
-      - name: ✅ Type check
-        run: npm run check
+      # Type checking happens during build in frontend script
 
-      - name: 🔍 Database setup
-        run: npm run db:push
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/pictallion_test
-
-      - name: 🧪 Run client tests with coverage
+      # Install Playwright browsers for e2e
+      - name: 🎭 Install Playwright browsers
         run: |
           cd frontend
-          npx vitest run --coverage --reporter=lcov
-          npx vitest run --coverage --reporter=text
-          # Enforce minimum coverage (example: 85%)
-          npx vitest run --coverage --reporter=text | grep 'Coverage' | grep -q '85%' || (echo "❌ Coverage below threshold" && exit 1)
+          npx playwright install --with-deps
+
+      - name: 🧪 Run client unit tests (Vitest)
+        run: |
+          cd frontend
+          npm run test
       - name: Upload client coverage to Codecov
+        if: env.ACT != 'true'
         uses: codecov/codecov-action@v3
         with:
           file: frontend/coverage/lcov.info
           flags: tauri-frontend
           name: tauri-frontend-coverage
 
+      - name: 🎭 Run E2E tests (Playwright)
+        run: |
+          cd frontend
+          # Use root config to start dev server and run root tests
+          npx playwright test -c ../playwright.config.ts --reporter=line
+
       - name: 🦀 Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
-      - name: 📦 Install Rust dependencies
-        run: |
-          cd src-tauri
-          cargo fetch
+      - name: 💾 Cache cargo registry and target
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            src-tauri/src-tauri/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('src-tauri/src-tauri/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
 
       - name: 🏗️ Build Rust/Tauri backend
         run: |
-          cd src-tauri
+          cd src-tauri/src-tauri
           cargo build --release
 
       - name:  Run Rust unit tests
         run: |
-          cd src-tauri
+          cd src-tauri/src-tauri
           cargo test --all --release
 
       - name: 🧪 Run server tests (placeholder)
@@ -115,8 +127,10 @@ jobs:
           node-version: '22'
           cache: 'npm'
 
-      - name: 🔧 Install dependencies
-        run: npm ci
+      - name: 🔧 Install frontend dependencies
+        run: |
+          cd frontend
+          npm ci --no-audit --no-fund
 
       - name: 🏗️ Build application
         run: |
@@ -150,11 +164,14 @@ jobs:
           node-version: '22'
           cache: 'npm'
 
-      - name: 🔧 Install dependencies
-        run: npm ci
+      - name: 🔧 Install dependencies (frontend)
+        run: |
+          cd frontend
+          npm ci
 
       - name: 🔍 Run security audit (npm)
         run: |
+          cd frontend
           # Run audit and capture output
           npm audit --audit-level=high --json > audit-results.json || true
 

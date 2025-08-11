@@ -43,6 +43,9 @@ coverage/
 *.swo
 *~
 
+# Local tooling caches and binaries
+.tools/
+
 # OS generated files
 .DS_Store
 .DS_Store?

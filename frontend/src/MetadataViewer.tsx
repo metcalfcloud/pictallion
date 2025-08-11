@@ -44,10 +44,21 @@ export function MetadataViewer({ photoId }: MetadataViewerProps) {
       >
         {loading ? <CircularProgress size={20} /> : "View Metadata"}
       </Button>
-      {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
-      <Paper sx={{ mt: 2, p: 2, bgcolor: "#f9f9f9" }} data-testid="metadata-table">
+      {error && (
+        <Alert severity="error" sx={{ mt: 2 }}>
+          {error}
+        </Alert>
+      )}
+      <Paper
+        sx={{ mt: 2, p: 2, bgcolor: "#f9f9f9" }}
+        data-testid="metadata-table"
+      >
         {!metadata && !error ? (
-          <Typography variant="body2" color="text.secondary" sx={{ fontStyle: "italic", mt: 2 }}>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ fontStyle: "italic", mt: 2 }}
+          >
             No metadata loaded.
           </Typography>
         ) : (

@@ -53,14 +53,18 @@ tests/
 Example usage:
 
 ```typescript
-import { mockTauriSuccess, mockTauriFailure, getTauriCallHistory } from './mocks/tauriMocks';
+import {
+  mockTauriSuccess,
+  mockTauriFailure,
+  getTauriCallHistory,
+} from "./mocks/tauriMocks";
 
 mockTauriSuccess();
-await addPhoto('/path/to/photo.jpg');
-expect(getTauriCallHistory()[0].command).toBe('add_photo');
+await addPhoto("/path/to/photo.jpg");
+expect(getTauriCallHistory()[0].command).toBe("add_photo");
 
-mockTauriFailure('Network error');
-await expect(addPhoto('/invalid/path.jpg')).rejects.toThrow('Network error');
+mockTauriFailure("Network error");
+await expect(addPhoto("/invalid/path.jpg")).rejects.toThrow("Network error");
 ```
 
 ### Test Environment

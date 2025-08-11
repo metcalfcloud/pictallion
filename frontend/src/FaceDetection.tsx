@@ -3,7 +3,8 @@
 // Comments explain "why" logic exists for maintainability.
 
 import { useState } from "react";
-import { detectFaces } from "./lib/tauriApi";
+import { saveFaceDetections } from "./lib/tauriApi";
+import { detectFacesOnPath } from "./lib/faceDetection";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Alert from "@mui/material/Alert";
@@ -14,10 +15,11 @@ import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
 
 interface FaceDetectionProps {
-  imagePath: string;
+  imagePath?: string;
+  photoId?: string;
 }
 
-export function FaceDetection({ imagePath }: FaceDetectionProps) {
+export function FaceDetection({ imagePath, photoId }: FaceDetectionProps) {
   const [faces, setFaces] = useState<
     Array<{ boundingBox: [number, number, number, number] }>
   >([]);
@@ -28,8 +30,14 @@ export function FaceDetection({ imagePath }: FaceDetectionProps) {
     setLoading(true);
     setError(null);
     try {
-      const result = await detectFaces(imagePath);
-      setFaces(result);
+      if (!imagePath) {
+        throw new Error("No image selected");
+      }
+      const detections = await detectFacesOnPath(imagePath);
+      setFaces(detections.map((d) => ({ boundingBox: d.boundingBox })));
+      if (photoId) {
+        await saveFaceDetections(photoId, "face-api@1.7.15", detections);
+      }
     } catch (e) {
       setError(`Failed to detect faces: ${String(e)}`);
     }
@@ -48,10 +56,21 @@ export function FaceDetection({ imagePath }: FaceDetectionProps) {
       >
         {loading ? <CircularProgress size={20} /> : "Detect Faces"}
       </Button>
-      {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
-      <Paper sx={{ mt: 2, p: 2, bgcolor: "#f9f9f9" }} data-testid="face-detection-result">
+      {error && (
+        <Alert severity="error" sx={{ mt: 2 }}>
+          {error}
+        </Alert>
+      )}
+      <Paper
+        sx={{ mt: 2, p: 2, bgcolor: "#f9f9f9" }}
+        data-testid="face-detection-result"
+      >
         {faces.length === 0 && !error ? (
-          <Typography variant="body2" color="text.secondary" sx={{ fontStyle: "italic", mt: 2 }}>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ fontStyle: "italic", mt: 2 }}
+          >
             No faces detected.
           </Typography>
         ) : (

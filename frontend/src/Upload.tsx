@@ -17,7 +17,7 @@ export function Upload() {
 
   // Real-time environment detection function
   const isTauriEnvironment = (): boolean => {
-    return typeof window !== 'undefined' && !!window.__TAURI_IPC__;
+    return typeof window !== "undefined" && !!window.__TAURI_IPC__;
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -38,7 +38,9 @@ export function Upload() {
     e.preventDefault();
     setDragActive(false);
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFileChange({ target: { files: e.dataTransfer.files } } as React.ChangeEvent<HTMLInputElement>);
+      handleFileChange({
+        target: { files: e.dataTransfer.files },
+      } as React.ChangeEvent<HTMLInputElement>);
     }
   };
 
@@ -57,31 +59,38 @@ export function Upload() {
     setLoading(true);
     setError(null);
     setSuccess(null);
-    
+
     // Debug logging
     console.log("[Upload] Starting upload process");
-    console.log("[Upload] window.__TAURI_IPC__ type:", typeof window.__TAURI_IPC__);
+    console.log(
+      "[Upload] window.__TAURI_IPC__ type:",
+      typeof window.__TAURI_IPC__,
+    );
     console.log("[Upload] window.__TAURI_IPC__ value:", window.__TAURI_IPC__);
     console.log("[Upload] isTauriEnvironment():", isTauriEnvironment());
-    
+
     try {
       if (isTauriEnvironment()) {
         console.log("[Upload] Using Tauri environment path");
-        // In Tauri, we need to pass the file path, but since we have a File object from the browser,
+        // In Tauri, we need to pass the file path; since we have a File object from the browser,
         // we'll pass the file name as a placeholder. In a real Tauri app, you'd typically use
         // Tauri's file dialog or have the file already saved to disk.
         await addPhoto(file.name);
-        setSuccess("Photo uploaded successfully to your library!");
+        setSuccess("Photo uploaded successfully!");
       } else {
-        console.log("[Upload] Using browser environment path");
-        // In browser, pass the File object directly
-        const result = await addPhoto(file);
-        setSuccess(`${result} (Browser demo mode - photo not actually saved)`);
+        // Validate file type explicitly and report an error
+        if (!file.type.startsWith("image/")) {
+          throw new Error("Unsupported file format");
+        }
+        // In non-Tauri environments, return a clear error (no browser upload)
+        throw new Error("Tauri runtime not available");
       }
     } catch (e) {
       const errorMessage = String(e);
-      if (errorMessage.includes('Feature unavailable')) {
-        setError('This feature requires the desktop app. Please download and use the Tauri desktop version for full functionality.');
+      if (errorMessage.includes("Feature unavailable")) {
+        setError(
+          "This feature requires the desktop app. Please download and use the Tauri desktop version for full functionality.",
+        );
       } else {
         setError(`Failed to upload photo: ${errorMessage}`);
       }
@@ -95,8 +104,9 @@ export function Upload() {
         {!isTauriEnvironment() && (
           <Alert severity="info" sx={{ width: "100%", mb: 2 }}>
             <Typography variant="body2">
-              <strong>Browser Demo Mode:</strong> You're running in browser mode with limited functionality.
-              For full photo management features, please use the desktop app.
+              <strong>Browser Demo Mode:</strong> You're running in browser mode
+              with limited functionality. For full photo management features,
+              please use the desktop app.
             </Typography>
           </Alert>
         )}
@@ -167,15 +177,31 @@ export function Upload() {
         >
           {loading ? <CircularProgress size={24} /> : "Upload"}
         </Button>
-        {error && <Alert severity="error" sx={{ width: "100%" }}>{error}</Alert>}
-        {success && <Alert severity="success" sx={{ width: "100%" }}>{success}</Alert>}
+        {error && (
+          <Alert severity="error" sx={{ width: "100%" }}>
+            {error}
+          </Alert>
+        )}
+        {success && (
+          <Alert severity="success" sx={{ width: "100%" }}>
+            {success}
+          </Alert>
+        )}
         {!file && (
-          <Typography variant="subtitle2" color="text.secondary" sx={{ fontStyle: "italic", fontWeight: 400 }}>
+          <Typography
+            variant="subtitle2"
+            color="text.secondary"
+            sx={{ fontStyle: "italic", fontWeight: 400 }}
+          >
             No image selected.
           </Typography>
         )}
         {file && (
-          <Typography variant="subtitle2" color="text.primary" sx={{ fontWeight: 500 }}>
+          <Typography
+            variant="subtitle2"
+            color="text.primary"
+            sx={{ fontWeight: 500 }}
+          >
             Selected: {file.name}
           </Typography>
         )}

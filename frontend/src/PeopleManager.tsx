@@ -170,7 +170,9 @@ export function PeopleManager() {
                         setMergeIds(mergeIds.filter((id) => id !== person.id));
                       }
                     }}
-                    inputProps={{ "aria-label": `Select ${person.name} for merge` }}
+                    inputProps={{
+                      "aria-label": `Select ${person.name} for merge`,
+                    }}
                     tabIndex={0}
                   />
                 </Stack>

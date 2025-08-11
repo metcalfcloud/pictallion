@@ -1,7 +1,6 @@
 # Unified automation for Rust, Python, and TypeScript
 
-# Platform-specific shell configuration for cross-platform compatibility
-set shell := ["cmd.exe", "/C"]
+# Use just's default shell per-OS (PowerShell on Windows, sh/bash elsewhere)
 
 # Install Rust, Python, and Node dependencies
 setup:
@@ -14,14 +13,13 @@ dev-frontend:
 
 # Start Tauri desktop dev (backend) from correct directory
 dev-backend:
-	cd src-tauri/src-tauri && cargo tauri dev
+	cd src-tauri/src-tauri && (npx --yes @tauri-apps/cli dev || cargo tauri dev)
 
 # Start Vite then launch Tauri desktop pointing at Vite dev URL
 # This opens a desktop window with live-reloading UI.
 # On Windows, '&' starts the first command then continues; Vite keeps running.
 dev:
-	cd frontend && npm run dev &
-	cd src-tauri/src-tauri && cargo tauri dev -- --dev-url http://localhost:5173
+	node scripts/dev.mjs
 
 # Run frontend unit tests (Vitest)
 test-frontend:
@@ -82,14 +80,14 @@ build-backend:
 # Build complete application (frontend + backend)
 build:
 	@echo "Building frontend assets..."
-	cd frontend && npm run build
+	cd frontend && (npm ci --no-audit --no-fund || npm install) && npm run build
 	@echo "Building Tauri application..."
-	cd src-tauri/src-tauri && cargo tauri build
+	cd src-tauri/src-tauri && (npx --yes @tauri-apps/cli build || cargo tauri build)
 	@echo "Production build completed successfully!"
 
 # Build project documentation
 build-docs:
-	cd docs && mkdir build 2>nul || echo "build directory exists" && npx cpy "*.md" build/
+	cd docs && mkdir -p build && npx cpy "*.md" build/
 
 # Clean frontend build artifacts
 clean-frontend:
@@ -107,9 +105,9 @@ clean:
 # Show dev process status and URLs for troubleshooting
 diagnose-dev:
 	echo Checking if Vite is running on http://localhost:5173 ...
-	powershell -NoProfile -Command "$ErrorActionPreference='SilentlyContinue'; try { $r = Invoke-WebRequest -UseBasicParsing http://localhost:5173/; if ($r.StatusCode -eq 200) { Write-Host 'Vite is responding (200)'; exit 0 } else { Write-Host ('Vite responded with status ' + $r.StatusCode); exit 1 } } catch { Write-Host 'Vite not responding'; exit 1 }"
-	echo If not running, start it with: start \"Pictallion Vite Dev\" cmd /C \"cd frontend && npm run dev\"
-	echo To launch desktop window manually: cd src-tauri/src-tauri && cargo tauri dev -- --dev-url http://localhost:5173
+	(if command -v curl >/dev/null 2>&1; then curl -sSf http://localhost:5173/ >/dev/null && echo 'Vite is responding (200)' || echo 'Vite not responding'; else wget -q --spider http://localhost:5173/ && echo 'Vite is responding (200)' || echo 'Vite not responding'; fi)
+	echo "If not running, start it with: cd frontend && npm run dev"
+	echo "To launch desktop window: cd src-tauri/src-tauri && npx @tauri-apps/cli dev -- --dev-url http://localhost:5173"
 
 # Quick environment diagnostics for Tauri v2 dev
 # Prints versions and checks basic Windows build tooling presence.
@@ -118,8 +116,30 @@ diagnose:
 	npm --version
 	rustc --version
 	cargo --version
-	npx --yes @tauri-apps/cli -V
-	where cl.exe || echo "MSVC Build Tools cl.exe not found (OK if using alternative toolchain)"
-	where powershell.exe
+	npx --yes @tauri-apps/cli -V || echo "tauri cli not available (ok if cargo tauri installed)"
+	(command -v cl >/dev/null 2>&1 && echo "MSVC cl found") || echo "MSVC cl not found (ok on non-Windows or using alternative toolchain)"
+	(command -v powershell >/dev/null 2>&1 && echo "PowerShell found") || echo "PowerShell not found (ok on non-Windows)"
+	@# Enforce Node 22+ with a clear message
+	@node -e 'const v=process.versions.node.split(".")||["0","0"]; if(+v[0]<22){console.error("Node "+process.versions.node+" detected. Please use Node 22+ (see .nvmrc)."); process.exit(1)} else { console.log("Node version OK for this repo."); }'
 	echo "If Tauri window does not open, ensure Vite is on http://localhost:5173 and ports are free."
 	echo "Use: just dev  (desktop), just dev-frontend (browser-only), just dev-backend (Tauri only)"
+
+# --- Playwright root E2E helpers ---
+
+# Reinstall frontend deps for current OS (fix native rollup mismatch)
+e2e-setup:
+	cd frontend && rm -rf node_modules package-lock.json && npm install
+
+# Install Playwright browsers
+e2e-install:
+	npx playwright install
+
+# Run root Playwright suite (uses root playwright.config.ts)
+e2e:
+	npx playwright test -c ./playwright.config.ts --reporter=line
+
+# Full E2E pipeline: setup deps, install browsers, run tests
+e2e-all:
+	just e2e-setup
+	just e2e-install
+	just e2e
