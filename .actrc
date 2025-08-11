@@ -1,0 +1,8 @@
+# Map GitHub's ubuntu-latest to a full-featured image for act
+-P ubuntu-latest=catthehacker/ubuntu:act-latest
+
+# Reuse containers between runs for speed
+--reuse
+
+# Default event if none provided
+--eventpath .github/workflows/_sample_event.json

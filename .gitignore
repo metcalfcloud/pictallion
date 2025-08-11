@@ -43,6 +43,9 @@ coverage/
 *.swo
 *~
 
+# Local tooling caches and binaries
+.tools/
+
 # OS generated files
 .DS_Store
 .DS_Store?
@@ -79,5 +82,28 @@ uploads/temp/*
 .replit
 replit.nix
 
-# Roo Code specific
-.roo
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.env
+.env/
+.venv/
+venv/
+ENV/
+env/
+build/
+dist/
+*.egg-info/
+*.egg
+*.log
+pip-log.txt
+pip-delete-this-directory.txt
+htmlcov/
+.coverage
+.cache/
+.mypy_cache/
+.pytest_cache/
+.tox/

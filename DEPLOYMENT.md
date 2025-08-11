@@ -1,192 +1,117 @@
 # Pictallion Deployment Guide
 
-This guide covers different ways to package, deploy, and distribute Pictallion for various environments.
+This guide describes packaging and deployment for the desktop app (Tauri) and, if needed, the earlier Docker setup used during prototyping. The desktop app stack is Tauri (Rust) + React (Vite) with SQLite.
 
-## Quick Packaging for Distribution
+## Prerequisites
 
-### Option 1: Native Package (Recommended)
+- Docker & Docker Compose
+- Python 3.11+ (for manual backend builds, if needed)
+- Node.js 18+ (for manual frontend builds, if needed)
+- Optional: Ollama (local AI), OpenAI API key
+
+## Environment Variables
+
+See [`.env.example`](.env.example:1) for all required variables. Key settings include:
+- `DATABASE_URL`
+- `AI_PROVIDER`, `OLLAMA_BASE_URL`, `OPENAI_API_KEY`
+- `SESSION_SECRET`, `LOG_LEVEL`
+
+## Desktop Packaging (Tauri)
+
+Build the frontend and package the desktop application per-OS.
+
 ```bash
-# Make the script executable
-chmod +x scripts/ci/package.sh
-
-# Build and package
-./scripts/ci/package.sh
+cd frontend && npm install && npm run build
+cd ../src-tauri/src-tauri && cargo tauri build
 ```
 
-This creates:
-- `pictallion_v1.0.0_TIMESTAMP.tar.gz` (Linux/macOS)
-- `pictallion_v1.0.0_TIMESTAMP.zip` (Windows)
+Artifacts (installers/bundles) are placed under `src-tauri/src-tauri/target/release/`.
 
-### Option 2: Docker Container
+### macOS
+- Codesigning and notarization require an Apple Developer ID certificate.
+- In CI, set `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` (see `.github/workflows/tauri-build.yml`).
+
+### Windows
+- Optional signing via a code signing certificate. Configure env vars in CI.
+
+### Linux
+- AppImage/Deb/RPM bundles are produced. Signing is optional.
+
+### CI Publishing (GitHub Actions)
+- On tags matching `v*`, CI builds macOS/Linux/Windows bundles and:
+  - Uploads artifacts for each platform.
+  - Creates a draft GitHub Release with installers attached.
+- Configure signing by setting `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` repository secrets.
+- Workflow: `.github/workflows/tauri-build.yml`.
+
+## Docker Deployment (legacy)
+
+Early prototypes used a web stack (Python/Node). If you need that flow, use the scripts below; otherwise prefer the Tauri desktop packaging above.
+
+### Quick Start
+
 ```bash
-# Build Docker setup
-chmod +x scripts/build-docker.sh
-./scripts/build-docker.sh
-
-# Run with Docker
 ./scripts/docker-setup.sh
 ```
 
-## Distribution Methods
+- Application is served from the Python backend container on port 8000.
+- Database is exposed on port 5432.
+- Ollama AI service is exposed on port 11434.
+- Media files are persisted in Docker volumes.
 
-### For End Users (Simple Installation)
+### What the Script Does
 
-**What you share:**
-- The packaged archive (.tar.gz or .zip)
-- Installation instructions
+- Uses [`docker/docker-compose.yml`](docker/docker-compose.yml:1) and [`docker/Dockerfile.external`](docker/Dockerfile.external:1) for unified deployment.
+- Builds and starts all services.
+- Pulls required AI models for Ollama.
+- Creates `.env` file if missing.
 
-**What recipients do:**
-1. Extract the archive
-2. Run `install.sh` (Linux/Mac) or `install.bat` (Windows)
-3. Edit `.env` with database credentials
-4. Run `node start.js`
+### Access
 
-### For Developers (Source Code)
+- Application: [http://localhost:8000](http://localhost:8000)
+- Ollama API: [http://localhost:11434](http://localhost:11434)
 
-**Share the entire project:**
-1. Clone/download the source code
-2. `npm install` to install dependencies
-3. `npm run dev` for development mode
-4. `npm run build` to create production build
+### Useful Commands
 
-## Deployment Environments
+- View logs: `docker-compose logs -f app`
+- Stop: `docker-compose down`
+- Restart: `docker-compose restart app`
+- Update: `docker-compose pull && docker-compose up -d`
 
-### 1. Local/Personal Use
-- Use the native package method
-- Includes automatic installer scripts
-- Works on Windows, macOS, and Linux
+## Secrets Management
 
-### 2. Small Team/Office
-- Use Docker Compose for easy setup
-- Includes PostgreSQL and Ollama containers
-- Easy to backup and restore
+- Store secrets in Docker secrets or a managed secret manager (recommended for production).
+- Never commit secrets to source control.
+- Use `.env.example` as a template; never store real secrets in `.env` files.
+- Reference secrets in your application as `/run/secrets/<secret_name>`.
+- Rotate secrets and session keys regularly.
+- For CI/CD, use your provider's secret management (e.g., GitHub Actions secrets).
 
-### 3. Production Server
-- Use Docker with external database
-- Set up reverse proxy (nginx)
-- Configure SSL certificates
-- Use environment variables for secrets
+## Health Checks & Monitoring
 
-### 4. Cloud Deployment
-- Deploy to VPS (DigitalOcean, Linode, etc.)
-- Use managed PostgreSQL (Neon, Supabase)
-- Configure for external access
+- Backend exposes `/health` endpoint.
+- Unified deployment includes a health check for the Python service.
+- Use Docker healthcheck or external monitoring (Prometheus/Grafana recommended).
 
-## Configuration Examples
+## Rollback Procedures
 
-### Basic .env Configuration
-```bash
-# Database
-DATABASE_URL=postgresql://username:password@localhost:5432/pictallion
-
-# Server
-PORT=5000
-NODE_ENV=production
-
-# AI (choose one or both)
-AI_PROVIDER=ollama
-OLLAMA_BASE_URL=http://localhost:11434
-# OPENAI_API_KEY=sk-your-key-here
-```
-
-### Docker Environment
-```bash
-# Database (Docker internal)
-DATABASE_URL=postgresql://pictallion:password@postgres:5432/pictallion
-
-# AI (Docker internal)
-AI_PROVIDER=ollama
-OLLAMA_BASE_URL=http://ollama:11434
-```
-
-**Important Notes:**
-- Use `docker compose` (not `docker-compose`) with modern Docker installations
-- The Docker build uses a unified structure (no separate client directory)
-- Multi-stage build optimizes image size and security
-- Non-root user execution for enhanced security
-
-### Cloud Production
-```bash
-# Managed database
-DATABASE_URL=postgresql://user:pass@db.provider.com:5432/pictallion
-
-# External Ollama or OpenAI
-AI_PROVIDER=openai
-OPENAI_API_KEY=sk-your-production-key
-```
-
-## System Requirements
-
-### Minimum Requirements
-- Node.js 18+
-- 1GB RAM
-- 5GB storage
-- PostgreSQL database
-
-### Recommended Requirements
-- Node.js 20+
-- 4GB RAM
-- 50GB+ storage
-- SSD for database
-- Ollama for local AI processing
-
-## Security Considerations
-
-### For Distribution
-- Don't include API keys in packages
-- Use environment variables for secrets
-- Include security documentation
-- Provide example configurations
-
-### For Production
-- Use strong database passwords
-- Enable SSL/TLS
-- Configure firewall rules
-- Regular security updates
-- Backup strategies
+- Restore previous Docker images and database/media backups.
+- Use versioned backups for media and PostgreSQL.
+- For database: `pg_restore` or `psql` with backup files.
+- For media: restore from backup directory.
+- Always test rollback in staging before production.
 
 ## Troubleshooting
 
-### Common Distribution Issues
-1. **Node.js version conflicts** - Specify minimum version
-2. **Database connection** - Provide clear setup instructions
-3. **File permissions** - Include proper chmod commands
-4. **Port conflicts** - Document port configuration
+- Check logs with `docker logs <container>`
+- Validate environment variables (see `.env.example`)
+- Ensure database connectivity (`docker exec <db-container> psql ...`)
+- Use `/health` endpoint for service status
+- For CI/CD failures, review workflow logs and secret configuration
 
-### Installation Support
-- Include comprehensive README
-- Provide example configurations
-- Document common error messages
-- Include system requirements
+## References
 
-## Automation Scripts
-
-The project includes several automation scripts:
-
-- `scripts/ci/package.sh` - Create distribution packages
-- `scripts/build-docker.sh` - Setup Docker deployment
-- `scripts/docker-setup.sh` - Initialize Docker environment
-
-## Best Practices
-
-### For Distributors
-1. Test packages on clean systems
-2. Include all necessary dependencies
-3. Provide clear installation instructions
-4. Document system requirements
-5. Include troubleshooting guide
-
-### For Recipients
-1. Read README.md first
-2. Check system requirements
-3. Configure database before starting
-4. Test with sample photos
-5. Configure AI providers
-
----
-
-Choose the deployment method that best fits your needs:
-- **Personal use**: Native package
-- **Team use**: Docker Compose
-- **Production**: Docker with external services
-- **Development**: Source code with npm
+- [API Documentation](API_DOCUMENTATION.md)
+- [Development Guide](DEVELOPMENT.md)
+- [Architecture](ARCHITECTURE.md)
+- [Security](SECURITY.md)
